@@ -12,8 +12,9 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import patsy
 import statsmodels.api as sm
+from patsy.build import build_design_matrices
+from patsy.highlevel import dmatrix
 from scipy import stats
 from scipy.special import expit
 from statsmodels.othermod.betareg import BetaModel
@@ -78,7 +79,7 @@ class Padronizador:
         # log n da dispersão (montar_Z): média e desvio só do treino
         ln = np.log(np.maximum(_coluna(df, self.mapa, "n"), 1.0))
         self.media_logn, self.desvio_logn = float(ln.mean()), float(ln.std(ddof=0)) or 1.0
-        self._desenho_spline = patsy.dmatrix(
+        self._desenho_spline = dmatrix(
             "bs(x, df=4, degree=3, include_intercept=False) - 1", {"x": lag},
             return_type="dataframe").design_info
         return self
@@ -89,8 +90,8 @@ class Padronizador:
     def spline_lag(self, df):
         """Base B-spline cúbica do lag; valores fora do suporte do treino são limitados."""
         x = np.clip(_coluna(df, self.mapa, "lag"), self.lag_min, self.lag_max)
-        b = patsy.build_design_matrices([self._desenho_spline], {"x": x},
-                                        return_type="dataframe")[0]
+        b = build_design_matrices([self._desenho_spline], {"x": x},
+                                  return_type="dataframe")[0]
         b.columns = [f"lag_bs{i + 1}" for i in range(b.shape[1])]
         return b
 
@@ -191,7 +192,9 @@ class BetaBinomialOffset(M.BetaBinomial):
     def __init__(self, endog, exog, n, link=None, **kwds):
         super().__init__(endog, exog, n, link, **kwds)
         self.nparams = self.exog.shape[1]
-        del self.exog_names[-2]
+        nomes = self.exog_names
+        assert nomes is not None
+        del nomes[-2]
 
     def _pi(self, params, exog=None):
         exog = self.exog if exog is None else np.asarray(exog)
@@ -246,7 +249,7 @@ def _ajustar_l1(X, y, n, graus=None):
         i2 = np.r_[idx, idx + len(A)]
         w = np.r_[p[idx], 1 - p[idx]]
         return LogisticRegression(l1_ratio=1, solver="liblinear", C=C, tol=1e-6,
-                                  max_iter=500).fit(A2[i2], alvo[i2], sample_weight=w)
+                                  max_iter=500, random_state=0).fit(A2[i2], alvo[i2], sample_weight=w)
 
     grade, folds = np.logspace(-3, 2, 11), M.folds_kfold(len(A), 5, seed=0)
     perda = np.zeros((len(grade), len(folds)))
@@ -329,6 +332,8 @@ class Candidato:
         link = LIGACOES.get(self.ligacao)
         f = self.familia
         if f in ("binomial", "quasi"):
+            if link is None:
+                raise ValueError(f"ligação desconhecida: {self.ligacao}")
             Xd = X.drop(columns=_COL_OFFSET) if off else X
             mod = sm.GLM(np.column_stack([y, n - y]), Xd, family=sm.families.Binomial(link=link()),
                          offset=X[_COL_OFFSET].to_numpy() if off else None)
@@ -354,6 +359,8 @@ class Candidato:
             return Ajuste(res, pad, nomes, len(nomes), float(res.llf),
                           {"theta": M.theta_de(res), "rho": M.icc(res)})
         if f == "betareg":
+            if link is None:
+                raise ValueError(f"ligação desconhecida: {self.ligacao}")
             p = np.clip(y / n, 1e-6, 1 - 1e-6)
             res = BetaModel(p, X, link=link()).fit(disp=False)
             return Ajuste(res, pad, list(res.params.index), len(res.params), np.nan)

@@ -1,6 +1,6 @@
 # Correlação residual: decomposição e krigagem dos resíduos (Parte 18 do notebook 05)
 
-Células citadas contam a partir de 0 em `notebooks/05-modelo-final.ipynb` (33 a 38). Tabelas em `results/tables/final_moran_decomposto.csv` e `final_krigagem.csv`. A dependência espacial e o SLX estão em [10-dependencia-espacial.md](10-dependencia-espacial.md); as estimativas do modelo final em [11-modelo-final.md](11-modelo-final.md).
+Células citadas contam a partir de 0 em `notebooks/05-modelo-final.ipynb` (33 a 37). Tabelas em `results/tables/final_moran_decomposto.csv` e `final_krigagem.csv`. A dependência espacial e o SLX estão em [10-dependencia-espacial.md](10-dependencia-espacial.md); as estimativas do modelo final em [11-modelo-final.md](11-modelo-final.md).
 
 ## 1. Regra de aceitação, fixada em 2026-11-09 antes do resultado
 

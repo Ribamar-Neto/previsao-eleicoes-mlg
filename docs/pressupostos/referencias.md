@@ -1,6 +1,6 @@
 # Referências
 
-Lista única das referências dos arquivos 02 a 06 e 08 a 12, sem duplicatas, em ordem de autor.
+Lista única das referências dos arquivos 02 a 06 e 08 a 13, sem duplicatas, em ordem de autor.
 
 Legenda: ✔ = conferida por busca na web (autores, ano, título, veículo), com DOI, ISBN ou URL.
 Nenhuma entrada ficou sem conferência. Detalhes que a busca não fechou: o subtítulo de Griffith
@@ -18,6 +18,7 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Bolognesi, B.; Ribeiro, E.; Codato, A. (2023). Uma nova classificação ideológica dos partidos políticos brasileiros. *Dados*, 66(2) (versão em inglês: DOI 10.1590/dados.2023.66.2.303x). ✔ https://doi.org/10.1590/dados.2023.66.2.303
 - Breslow, N. E.; Clayton, D. G. (1993). Approximate inference in generalized linear mixed models. *Journal of the American Statistical Association*, 88(421), 9-25. ✔ https://doi.org/10.1080/01621459.1993.10594284
 - Cameron, A. C.; Miller, D. L. (2015). A practitioner's guide to cluster-robust inference. *Journal of Human Resources*, 50(2), 317-372. ✔ https://doi.org/10.3368/jhr.50.2.317
+- Besag, J.; York, J.; Mollié, A. (1991). Bayesian image restoration, with two applications in spatial statistics. *Annals of the Institute of Statistical Mathematics*, 43(1), 1-20. ✔ https://doi.org/10.1007/BF00116466 (conferida em 2026-11-09 na Springer e no IDEAS/RePEc)
 - Cleveland, W. S. (1979). Robust locally weighted regression and smoothing scatterplots. *Journal of the American Statistical Association*, 74(368), 829-836. ✔ https://doi.org/10.1080/01621459.1979.10481038
 - Conley, T. G. (1999). GMM estimation with cross sectional dependence. *Journal of Econometrics*, 92(1), 1-45. ✔ https://doi.org/10.1016/S0304-4076(98)00084-0
 - Cook, R. D. (1977). Detection of influential observation in linear regression. *Technometrics*, 19(1), 15-18. ✔ https://doi.org/10.1080/00401706.1977.10489493
@@ -30,6 +31,7 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Halleck Vega, S.; Elhorst, J. P. (2015). The SLX model. *Journal of Regional Science*, 55(3), 339-363. ✔ https://doi.org/10.1111/jors.12188 (conferida em 2026-11-09 no IDEAS/RePEc e no EconPapers)
 - Hastie, T.; Tibshirani, R.; Friedman, J. (2009). *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (2ª ed.). Springer (regra de 1 erro-padrão, cap. 7). ✔ https://doi.org/10.1007/978-0-387-84858-7
 - Hyndman, R. J.; Koehler, A. B. (2006). Another look at measures of forecast accuracy. *International Journal of Forecasting*, 22(4), 679-688. ✔ https://doi.org/10.1016/j.ijforecast.2006.03.001
+- Leroux, B. G.; Lei, X.; Breslow, N. (2000). Estimation of disease rates in small areas: a new mixed model for spatial dependence. In Halloran, M. E.; Berry, D. (orgs.), *Statistical Models in Epidemiology, the Environment, and Clinical Trials*. Springer, 179-191. ✔ https://doi.org/10.1007/978-1-4612-1284-3_4 (conferida em 2026-11-09 na Springer)
 - McCullagh, P.; Nelder, J. A. (1989). *Generalized Linear Models* (2ª ed.). Chapman & Hall (GLM binomial e logit empírico). ✔ ISBN 0-412-31760-5 (https://doi.org/10.1201/9780203753736, reimpressão Routledge 2019)
 - Moral, R. A.; Hinde, J.; Demétrio, C. G. B. (2017). Half-normal plots and overdispersed models in R: the hnp package. *Journal of Statistical Software*, 81(10), 1-23. ✔ https://doi.org/10.18637/jss.v081.i10
 - Moran, P. A. P. (1950). Notes on continuous stochastic phenomena. *Biometrika*, 37(1-2), 17-23. ✔ https://doi.org/10.1093/biomet/37.1-2.17

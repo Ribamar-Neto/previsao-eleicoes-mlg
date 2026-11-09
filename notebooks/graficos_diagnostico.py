@@ -1,13 +1,15 @@
 """Gráficos plotly de diagnóstico do notebook 02 (MLG). Salvos em results/figures/mlg_*.html."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import plotly.graph_objects as go
 from scipy import stats
 
 
 def salvar(fig, caminho):
-    fig.write_html(str(caminho), include_plotlyjs="cdn")
+    fig.write_html(str(caminho), include_plotlyjs="cdn", div_id=Path(caminho).stem)
     return fig
 
 

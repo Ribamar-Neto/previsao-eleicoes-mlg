@@ -47,7 +47,9 @@ class BetaBinomial(GenericLikelihoodModel):
         self.exog_disp = None
         self._p = None  # None: caminho antigo (theta constante, log_theta por último)
         if exog_disp is None:
-            self.exog_names.append("log_theta")
+            nomes_exog = self.exog_names
+            assert nomes_exog is not None
+            nomes_exog.append("log_theta")
             self.k_extra = 1
             self.nparams = self.exog.shape[1] + 1
         else:
@@ -60,7 +62,9 @@ class BetaBinomial(GenericLikelihoodModel):
                 raise ValueError("exog_disp deve ter uma linha por observação")
             self.exog_disp = Z
             self._p = self.exog.shape[1]
-            self.exog_names.extend(nomes or [f"disp_{j}" for j in range(Z.shape[1])])
+            nomes_exog = self.exog_names
+            assert nomes_exog is not None
+            nomes_exog.extend(nomes or [f"disp_{j}" for j in range(Z.shape[1])])
             self.k_extra = Z.shape[1]
             self.nparams = self._p + Z.shape[1]
         self._log_binom = (
@@ -136,7 +140,8 @@ class BetaBinomial(GenericLikelihoodModel):
             return np.append(np.asarray(glm.params), gam)
         return np.append(np.asarray(glm.params), lt)
 
-    def fit(self, start_params=None, method="bfgs", maxiter=2000, disp=False, **kwds):
+    def fit(self, start_params=None, method="bfgs", maxiter=2000, full_output=1,
+            disp=False, callback=None, retall=0, **kwds):
         if start_params is None:
             start_params = self._start()
         # gtol sobre a log-verossimilhança SOMADA: um limite proporcional a N (1e-4*N)
@@ -145,7 +150,8 @@ class BetaBinomial(GenericLikelihoodModel):
         if method == "bfgs":
             kwds.setdefault("gtol", 1e-3)
         return super().fit(
-            start_params=start_params, method=method, maxiter=maxiter, disp=disp, **kwds
+            start_params=start_params, method=method, maxiter=maxiter,
+            full_output=full_output, disp=disp, callback=callback, retall=retall, **kwds
         )
 
 

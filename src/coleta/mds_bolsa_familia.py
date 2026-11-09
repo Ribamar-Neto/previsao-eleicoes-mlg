@@ -68,7 +68,7 @@ def _municipios_ibge() -> pd.DataFrame:
         resp.raise_for_status()
         PASTA.mkdir(parents=True, exist_ok=True)
         cache.write_text(resp.text, encoding="utf-8")
-    df = pd.read_json(cache, dtype=False)
+    df = pd.read_json(cache, dtype=False)  # ty: ignore[invalid-argument-type]  # pandas omite bool na anotação
     df = df.rename(columns={"municipio-id": "id_municipio", "municipio-nome": "nome", "UF-sigla": "uf"})
     df["id_municipio"] = df["id_municipio"].astype(int)
     df["chave"] = df["uf"] + "|" + df["nome"].map(_norm)

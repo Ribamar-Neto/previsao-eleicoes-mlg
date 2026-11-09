@@ -62,7 +62,7 @@ def normalizar(nome: str) -> str:
 
 def ler_ibge() -> pd.DataFrame:
     destino = baixar(URL_IBGE, PASTA / "mun.json")
-    df = pd.read_json(destino, dtype=False)
+    df = pd.read_json(destino, dtype=False)  # ty: ignore[invalid-argument-type]  # pandas omite bool na anotação
     df = df.rename(
         columns={
             "municipio-id": "id_municipio",

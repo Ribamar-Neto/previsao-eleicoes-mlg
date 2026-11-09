@@ -9,8 +9,9 @@ Referências: Griffith (2003); Tiefelsdorf & Griffith (2007); Conley (1999).
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from scipy.sparse.linalg import LinearOperator, eigsh
-from scipy.spatial import cKDTree
+from scipy.optimize import minimize
+from scipy.sparse.linalg import LinearOperator, eigsh, splu
+from scipy.spatial import KDTree
 
 R_TERRA_KM = 6371.0088
 
@@ -116,7 +117,7 @@ def autovetores_esf(geo, k=100):
         y = C @ x
         return y - y.mean()
 
-    op = LinearOperator((N, N), matvec=mv, dtype=float)
+    op = LinearOperator((N, N), matvec=mv, dtype=float)  # ty: ignore[missing-argument, unknown-argument, parameter-already-assigned]  # stub do scipy incompleto
     lam, vec = eigsh(op, k=k, which="LA", ncv=min(N, max(2 * k + 1, 20)),
                      v0=np.random.default_rng(0).normal(size=N))
     ordem = np.argsort(-lam)
@@ -138,7 +139,7 @@ def _vetores_unitarios(lat, lon):
 def _pares_ate(lat, lon, dist_km):
     """Pares (i, j, d_km), incluindo i=j e ambas as direções, com d <= dist_km."""
     xyz = _vetores_unitarios(lat, lon)
-    arvore = cKDTree(xyz)
+    arvore = KDTree(xyz)
     corda = 2.0 * np.sin(min(dist_km, np.pi * R_TERRA_KM) / (2 * R_TERRA_KM))
     p = arvore.sparse_distance_matrix(arvore, corda, output_type="ndarray")
     d = 2 * R_TERRA_KM * np.arcsin(np.clip(p["v"] / 2, 0, 1))
@@ -305,3 +306,67 @@ def krigagem_residuos(r_treino, lat, lon, treino, teste, grupos, corte_km):
     s2 = float(k_tr @ k_tr)
     rho = float(np.clip((k_tr @ r) / s2, 0.0, 1.0)) if s2 > 0 else 0.0
     return rho, kb[ntr:]
+
+
+def _adjacencia_binaria(w):
+    A = sp.csr_matrix(w.sparse, dtype=float)
+    A.setdiag(0)
+    A.eliminate_zeros()
+    A.data[:] = 1.0
+    return ((A + A.T) > 0).astype(float).tocsr()
+
+
+def _precisao_leroux(A, lam):
+    """Q sem o fator 1/tau: (1-lam) I + lam (D - A). Positiva definida para lam < 1,
+    mesmo com ilhas (a parte (1-lam) I mantém o posto)."""
+    d = np.asarray(A.sum(axis=1)).ravel()
+    return (sp.diags(1.0 - lam + lam * d) - lam * A).tocsc()
+
+
+def _logdet_spd(M):
+    return float(np.sum(np.log(np.abs(splu(M.tocsc(), permc_spec="MMD_AT_PLUS_A", diag_pivot_thresh=0.0).U.diagonal()))))
+
+
+def car_residuos(r_treino, w, treino, teste):
+    """Efeito BYM em dois estágios nos resíduos logit: (parâmetros, previsão do teste).
+
+    r = u + e, u ~ CAR de Leroux com precisão (1/tau)[(1-lam) I + lam (D - A)] na
+    adjacência queen binária, e ~ N(0, sigma2) iid. (tau, lam, sigma2) saem da máxima
+    verossimilhança gaussiana no subgrafo de treino, então nada do teste entra no ajuste.
+    A previsão é a média a posteriori de u no grafo completo dado só r de treino; a UF
+    deixada de fora só é informada pelos vizinhos de treino pela divisa. Ilhas ficam com
+    previsão 0 (mais a média removida), sem NaN.
+    """
+    tr, te = np.asarray(treino), np.asarray(teste)
+    r = np.asarray(r_treino, float)
+    mu = float(r.mean())
+    rc = r - mu
+    A = _adjacencia_binaria(w)
+    Ao = A[tr][:, tr]
+    n = len(tr)
+    I = sp.identity(n, format="csc")
+
+    def nll(theta):
+        tau, lam, s2 = np.exp(theta[0]), 0.99 / (1 + np.exp(-theta[1])), np.exp(2 * theta[2])
+        Q = _precisao_leroux(Ao, lam) / tau
+        try:
+            ld = _logdet_spd(Q + I / s2) - _logdet_spd(Q) + n * np.log(s2)
+            quad = rc @ rc / s2 - (rc @ splu(Q + I / s2).solve(rc)) / s2**2
+        except RuntimeError:
+            return 1e12
+        v = 0.5 * (ld + quad)
+        return v if np.isfinite(v) else 1e12
+
+    v0 = max(float(rc.var()), 1e-12)
+    inicio = np.array([np.log(v0 / 2), 0.0, 0.5 * np.log(v0 / 2)])
+    ot = minimize(nll, inicio, method="Nelder-Mead", options={"xatol": 1e-3, "fatol": 1e-4, "maxiter": 400})
+    tau, lam, s2 = float(np.exp(ot.x[0])), float(0.99 / (1 + np.exp(-ot.x[1]))), float(np.exp(2 * ot.x[2]))
+
+    N = A.shape[0]
+    Do = np.zeros(N)
+    Do[tr] = 1.0
+    rfull = np.zeros(N)
+    rfull[tr] = rc
+    Q = _precisao_leroux(A, lam) / tau + sp.diags(Do / s2)
+    m = splu(Q.tocsc()).solve(Do * rfull / s2)
+    return {"tau": tau, "lam": lam, "sigma2": s2}, m[te] + mu

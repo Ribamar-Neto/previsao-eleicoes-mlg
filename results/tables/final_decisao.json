@@ -5,7 +5,8 @@
     "disp": true,
     "esf": false,
     "slx": true,
-    "krig": false
+    "krig": false,
+    "car": false
   },
   "motivos": {
     "disp": "Wald robusto (Conley x1, chi2): passo A (dummies de região) p=1.48e-11 -> mantido; passo B (log_n) p=4.17e-16 -> mantido. Antes (LRT/BIC): regiao_logn; CV LOSO mae_uf=0.9951 vs limite 1.1308",
@@ -283,6 +284,54 @@
       "media": 0.02003057699823737,
       "min": 0.0,
       "max": 0.04891005436516475
+    },
+    "criterio_moran_ok": false,
+    "criterio_mae_ok": true,
+    "aceita": false
+  },
+  "car": {
+    "regra": {
+      "queda_minima_moran": 0.05,
+      "mae_uf_max": 1.1307676100284951
+    },
+    "moran_oos_loso": {
+      "bb_slx": 0.42007795486639543,
+      "bb_slx_car": 0.3834156852437133,
+      "queda": 0.03666226962268215
+    },
+    "moran_oos_5fold": {
+      "bb_slx": 0.3128577865532739,
+      "bb_slx_car": -0.04963437034457497
+    },
+    "mae_uf_loso": {
+      "bb_slx": 1.0223640692411986,
+      "bb_slx_car": 0.9430469712687665
+    },
+    "mae_uf_5fold": {
+      "bb_slx": 0.7546121518738472,
+      "bb_slx_car": 0.45018336353697347
+    },
+    "parametros_loso": {
+      "tau_media": 0.014679011968389206,
+      "tau_min": 0.01345541126691476,
+      "tau_max": 0.01727064521290796,
+      "lam_media": 0.8696905811288197,
+      "lam_min": 0.494988363790893,
+      "lam_max": 0.9294424384130981,
+      "sigma2_media": 0.0026595999557930657,
+      "sigma2_min": 0.0007957033918787732,
+      "sigma2_max": 0.0031292580945395114
+    },
+    "parametros_5fold": {
+      "tau_media": 0.010269308906042775,
+      "tau_min": 0.007828362575057693,
+      "tau_max": 0.013206601004574464,
+      "lam_media": 0.7370121028834259,
+      "lam_min": 0.494966297591042,
+      "lam_max": 0.9080891027495659,
+      "sigma2_media": 0.002708371828121546,
+      "sigma2_min": 0.0011978410139074232,
+      "sigma2_max": 0.004034016757142297
     },
     "criterio_moran_ok": false,
     "criterio_mae_ok": true,

@@ -89,7 +89,7 @@ def mostrar_e_salvar(fig, nome=None, titulo=None, altura=500, largura=None):
     legenda_unica(fig)
     fig.update_layout(title=titulo, height=altura, width=largura, margin=dict(t=90 if titulo else 60))
     if nome:
-        fig.write_html(f"{output_fig_dir}/{nome}.html", include_plotlyjs="cdn")
+        fig.write_html(f"{output_fig_dir}/{nome}.html", include_plotlyjs="cdn", div_id=nome)
     fig.show()
 
 

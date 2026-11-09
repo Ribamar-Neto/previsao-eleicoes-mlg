@@ -27,7 +27,7 @@ COLUNAS_PCT_CENSO = [
 
 
 def _logit(p: pd.Series) -> pd.Series:
-    return np.log(p / (1 - p))
+    return pd.Series(np.log(p / (1 - p)), index=p.index)
 
 
 def _juntar(base: pd.DataFrame, nome: str, chave: str) -> pd.DataFrame:

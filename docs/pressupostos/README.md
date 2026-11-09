@@ -16,7 +16,8 @@
 | [10-dependencia-espacial.md](10-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito, modelo final `bb_slx`) e corte de 2022 |
 | [11-modelo-final.md](11-modelo-final.md) | Estimativas regionais e por UF do modelo final `bb_slx`, cobertura |
 | [12-krigagem-residuos.md](12-krigagem-residuos.md) | Krigagem dos resíduos (`bb_slx_krig`, rejeitada) e decomposição da correlação residual |
-| [referencias.md](referencias.md) | Referências únicas e conferidas (37, todas verificadas) |
+| [13-car-residuos.md](13-car-residuos.md) | Efeito CAR/BYM nos resíduos (`bb_slx_car`): regra, procedimento, resultado e decisão |
+| [referencias.md](referencias.md) | Referências únicas e conferidas (39, todas verificadas) |
 
 Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 [../dados/dicionario.md](../dados/dicionario.md),
@@ -36,3 +37,4 @@ Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 | `05-modelo-final` | 15 e 16 (com adendos SLX e corte 2022) | [10-dependencia-espacial.md](10-dependencia-espacial.md) |
 | `05-modelo-final` | 17 | [11-modelo-final.md](11-modelo-final.md) |
 | `05-modelo-final` | 18 | [12-krigagem-residuos.md](12-krigagem-residuos.md) |
+| `05-modelo-final` | 19 | [13-car-residuos.md](13-car-residuos.md) |

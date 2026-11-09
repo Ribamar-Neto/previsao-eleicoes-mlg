@@ -287,3 +287,44 @@ def test_moran_sem_media_do_grupo_some_com_choque_de_grupo():
     assert m["completo"] > 0.5
     assert abs(m["completo_sem_media_uf"]) < 0.15
     assert m["dentro_uf"] > m["entre_uf"]
+
+
+def _simular_car(lado=30, tau=0.5, lam=0.8, sigma=0.3, seed=1):
+    from libpysal.weights import lat2W
+
+    w = lat2W(lado, lado)
+    A = e._adjacencia_binaria(w)
+    Q = (e._precisao_leroux(A, lam) / tau).toarray()
+    rng = np.random.default_rng(seed)
+    u = np.linalg.solve(np.linalg.cholesky(Q).T, rng.normal(size=lado * lado))
+    return w, u + rng.normal(scale=sigma, size=lado * lado)
+
+
+def test_car_recupera_parametros():
+    w, r = _simular_car()
+    idx = np.arange(len(r))
+    p, _ = e.car_residuos(r, w, idx, idx[:0])
+    assert 0.3 < p["lam"] <= 0.99
+    assert 0.1 < p["tau"] < 2.0
+    assert 0.03 < p["sigma2"] < 0.3
+
+
+def test_car_sem_vazamento_do_teste():
+    w, r = _simular_car(lado=20)
+    idx = np.arange(len(r))
+    te, tr = idx[:60], idx[60:]
+    p1, a = e.car_residuos(r[tr], w, tr, te)
+    r2 = r.copy()
+    r2[te] += 50.0
+    p2, b = e.car_residuos(r2[tr], w, tr, te)
+    np.testing.assert_allclose(a, b)
+    assert p1 == p2
+
+
+def test_car_no_isolado_fica_finito():
+    from libpysal.weights import W
+
+    w = W({0: [1], 1: [0, 2], 2: [1], 3: []})
+    r = np.array([0.5, 0.4, 0.6])
+    _, prev = e.car_residuos(r, w, np.array([0, 1, 2]), np.array([3]))
+    assert np.isfinite(prev).all()

@@ -27,7 +27,9 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   SLX só baixou o I de 0,339 para 0,333. A Parte 18 decompôs o I e testou krigagem dos
   resíduos sob LOSO: rejeitada (queda do I de 0,0009 contra o mínimo de 0,05). A correlação
   não é removível com a informação disponível para uma UF nova
-  ([12](12-krigagem-residuos.md)). Resta CAR/BYM, não testado.
+  ([12](12-krigagem-residuos.md)). A Parte 19 testou CAR/BYM em dois estágios sob a mesma
+  regra: rejeitado (queda do I de 0,037; MAE por UF de 0,943, mas MAE regional pior)
+  ([13](13-car-residuos.md)). Não resta alternativa espacial na lista.
 - **[resolvida] θ não é constante por região** (DP residual de 0,80 no Sudeste a 1,40 no
   Norte). Dispersão por região e log n: máximo |DP − 1| de 0,409 para 0,095
   ([09](09-dispersao-regional.md)). Resta o Norte (DP 1,10).
@@ -71,17 +73,19 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   fica a 2e-6. O teste sintético foi removido de `tests/test_modelos.py`.
 - **[resolvida] Referências com ✔m**: `referencias.md` tem 0 ✔m (36 entradas conferidas na
   web com DOI/ISBN/URL); detalhes residuais na legenda do arquivo.
-- **Duas saídas do 02-MLG variam entre execuções.** Os coeficientes de `l1_logit` mudam na
-  ordem de 1e-5 (log-verossimilhança ±5) porque o solver `liblinear` embaralha os dados sem
-  semente. O `z_sim` de `diag_moran.csv` muda porque as 999 permutações do esda não têm
-  semente. O I de Moran e as demais tabelas não mudam. Correção: `random_state=0` no
-  `liblinear` e semente fixa nas permutações. Os números do `l1_logit` mudam, mas não a
-  seleção.
+- **[resolvida] Saídas que variavam entre execuções.** `l1_logit` (solver `liblinear` sem
+  semente, coeficientes ±1e-5) ganhou `random_state=0`. O `z_sim` de `diag_moran.csv` (999
+  permutações do esda sem semente) ganhou semente fixa. As figuras HTML trocavam o id
+  aleatório do div do Plotly a cada execução; agora o id é o nome do arquivo. Regra: duas
+  execuções seguidas dos notebooks não mudam nenhum arquivo de `results/`.
 - **Envelope da beta-binomial no 02-MLG consome a maior parte dos 7,5 min** (49 reajustes
   de ~4 s). Correção: partida a quente (warm start) e remover o passo de polimento.
-- **[resolvida] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos. A causa real
-  (`Ajuste.modelo` tipado como `object`) virou `Any`. Os 15 restantes são lacunas dos stubs
-  de statsmodels, patsy e scipy (cKDTree, `patsy.dmatrix`, LinearOperator), não bugs.
+- **[resolvida] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos, depois 15. A
+  primeira leitura ("os 15 são lacunas dos stubs") estava errada: 7 eram do nosso código
+  (Optional sem estreitamento em `exog_names` e na ligação, assinatura de `fit` diferente da
+  do statsmodels, retorno de `_logit`) e foram corrigidos. Restam 3 `ty: ignore` com motivo,
+  todos de anotação de biblioteca: `LinearOperator` do scipy e `read_json(dtype=False)` do
+  pandas (2). `ty check src/` dá 0 diagnósticos.
 - **[resolvida] Referência do SLX.** Halleck Vega e Elhorst (2015) conferida (DOI
   10.1111/jors.12188) e incluída em `referencias.md` e em
   [10](10-dependencia-espacial.md), seção 5.
