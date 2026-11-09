@@ -82,3 +82,11 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   seleção.
 - **Envelope da beta-binomial no 02-MLG consome a maior parte dos 7,5 min** (49 reajustes
   de ~4 s). Correção: partida a quente (warm start) e remover o passo de polimento.
+- **Checagem de tipos (`ty`) não rodou no commit `b94d7d1`** (SLX, Wald robusto e corte de
+  2022). Ruff e os 71 testes passaram. Efeito: erros de tipo em `src/espacial.py` e
+  `src/especificacoes.py` podem passar despercebidos. Correção: rodar `ty` em `src/` e
+  corrigir o que aparecer.
+- **Referência do SLX sem citação conferida.** Halleck Vega e Elhorst (2015), "The SLX
+  model", *Journal of Regional Science* 55(3), sustenta o termo SLX
+  ([10](10-dependencia-espacial.md)), mas não está em `referencias.md`. Correção: conferir
+  DOI e incluir em `referencias.md` e na seção do SLX.

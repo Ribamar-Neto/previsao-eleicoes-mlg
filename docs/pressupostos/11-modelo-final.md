@@ -1,6 +1,6 @@
 # Modelo final: estimativas regionais e por UF (Parte 17 do notebook 05)
 
-Células citadas contam a partir de 0 em `notebooks/05-modelo-final.ipynb` (22 a 25). Tabelas em `results/tables/final_estimativas_regionais.csv`, `final_estimativas_uf.csv`, `final_cobertura.csv` e `final_comparacao_regional.csv`; figura `results/figures/final_regional.html`. Decisões anteriores: dispersão em [09](09-dispersao-regional.md), filtro espacial e Conley em [10](10-dependencia-espacial.md).
+Células citadas contam a partir de 0 em `notebooks/05-modelo-final.ipynb` (28 a 32). Tabelas em `results/tables/final_estimativas_regionais.csv`, `final_estimativas_uf.csv`, `final_cobertura.csv` e `final_comparacao_regional.csv`; figura `results/figures/final_regional.html`. Decisões anteriores: dispersão em [09](09-dispersao-regional.md), filtro espacial e Conley em [10](10-dependencia-espacial.md).
 
 **Modelo final = `bb_slx`** (desde 2026-11-09): `bb_disp` (os 12 termos de média de `bb_backward` com dispersão por região e log n, [doc 09](09-dispersao-regional.md)) mais SLX, isto é, W·x das 12 variáveis dos vizinhos (37 parâmetros; MAE por UF no LOSO 1,0224 p.p., limite 1,1308). O filtro espacial foi rejeitado e o SLX aceito ([doc 10](10-dependencia-espacial.md)). Os EPs usados são os de Conley a 200 km, corte conferido com 2022. O SLX quase não reduz o I de Moran dos resíduos (0,339 para 0,333).
 
