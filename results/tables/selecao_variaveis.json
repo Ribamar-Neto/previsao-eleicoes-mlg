@@ -1,0 +1,54 @@
+{
+ "backward_bic": [
+  "lag",
+  "pct_dep_esq",
+  "comparecimento",
+  "log_dens",
+  "pct_mulheres",
+  "pct_16_24",
+  "pct_superior",
+  "pct_analfabeto",
+  "cobertura_pbf",
+  "pct_vab_agro",
+  "pct_evangelicos",
+  "pct_pretos_pardos"
+ ],
+ "backward_removidas": [
+  "nota_dep",
+  "delta_comp",
+  "log_pop",
+  "pct_60_mais",
+  "pib_pc",
+  "pct_urbana"
+ ],
+ "l1_mantidas": [
+  "lag",
+  "log_dens",
+  "pct_mulheres",
+  "cobertura_pbf",
+  "pct_vab_agro",
+  "pct_pretos_pardos"
+ ],
+ "l1_zeradas": [
+  "nota_dep",
+  "pct_dep_esq",
+  "comparecimento",
+  "delta_comp",
+  "log_pop",
+  "pct_16_24",
+  "pct_60_mais",
+  "pct_superior",
+  "pct_analfabeto",
+  "pib_pc",
+  "pct_evangelicos",
+  "pct_urbana",
+  "bloco_esquerda",
+  "bloco_outro",
+  "reg_Centro-Oeste",
+  "reg_Nordeste",
+  "reg_Norte",
+  "reg_Sul"
+ ],
+ "l1_C": 0.03162277660168379,
+ "l1_C_min": 100.0
+}

@@ -1,0 +1,27 @@
+covariavel,VIF_cheia,VIF_reduzida,decisao
+logit_pt_2t_2022,5.73,5.02,mantida
+nota_media_dep_2026,2.91,,"descartada: redundante com pct_dep_esq_2026 (mesmo constructo, preferimos a fração de esquerda)"
+pct_dep_esq_2026,2.4,1.23,mantida
+taxa_comparecimento_2t_2026,1.86,1.76,mantida
+delta_comparecimento_2t_2026,1.44,1.36,mantida
+log_populacao_2022,124.17,2.51,mantida
+log_densidade_2022,3.59,3.37,mantida
+log_eleitorado_2026,121.37,,descartada: quase igual a log_populacao_2022 (r~1; VIF > 100)
+pct_mulheres_2026,3.4,3.19,mantida
+pct_16_24_2026,7.33,6.87,mantida
+pct_60_mais_2026,5.53,5.46,mantida
+pct_superior_completo_2026,4.25,4.06,mantida
+pct_analfabeto_2026,4.09,3.09,mantida
+pct_ate_fund_incompleto_2026,7.05,6.2,mantida
+cobertura_pbf_2026,6.33,5.72,mantida
+log_pib_pc_2023,2.9,2.79,mantida
+pct_vab_agro_2021,2.06,2.04,mantida
+pct_evangelicos_2022,20.98,1.88,mantida
+pct_catolicos_2022,38.53,,descartada: composicional com evangélicos e sem religião (VIF 38)
+pct_sem_religiao_2022,7.68,1.61,mantida
+pct_pretos_pardos_2022,4.53,4.29,mantida
+pct_indigenas_2022,1.56,1.45,mantida
+taxa_alfabetizacao_15mais_2022,8.8,,"descartada: redundante com pct_analfabeto_2026 (mesmo constructo, mais recente e do eleitorado)"
+pct_urbana_2022,2.7,2.62,mantida
+bloco_esq_2024,1.2,1.13,mantida
+bloco_centro_2024,1.01,1.01,mantida

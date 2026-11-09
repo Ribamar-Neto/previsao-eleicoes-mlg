@@ -1,0 +1,48 @@
+sigla_partido,nome_partido,nota_brc,classe_brc,bloco,regra
+PSTU,Partido Socialista dos Trabalhadores Unificado,0.51,extrema-esquerda,esquerda,BRC2023
+PCO,Partido da Causa Operária,0.61,extrema-esquerda,esquerda,BRC2023
+PCB,Partido Comunista Brasileiro,0.91,extrema-esquerda,esquerda,BRC2023
+PSOL,Partido Socialismo e Liberdade,1.28,extrema-esquerda,esquerda,BRC2023
+PC do B,Partido Comunista do Brasil,1.92,esquerda,esquerda,BRC2023
+PCDOB,Partido Comunista do Brasil (grafia 2026),1.92,esquerda,esquerda,BRC2023
+PT,Partido dos Trabalhadores,2.97,esquerda,esquerda,BRC2023
+PDT,Partido Democrático Trabalhista,3.92,centro-esquerda,esquerda,BRC2023
+PSB,Partido Socialista Brasileiro,4.05,centro-esquerda,esquerda,BRC2023
+REDE,Rede Sustentabilidade,4.77,centro,centro,BRC2023
+PPS,Partido Popular Socialista,4.92,centro,centro,BRC2023
+CIDADANIA,Cidadania (ex-PPS),4.92,centro,centro,sucessor de PPS
+PV,Partido Verde,5.29,centro,centro,BRC2023
+PTB,Partido Trabalhista Brasileiro,6.10,centro-direita,direita,BRC2023
+AVANTE,Avante (ex-PTdoB),6.32,centro-direita,direita,BRC2023
+SOLIDARIEDADE,Solidariedade (SDD; absorveu PROS),6.50,centro-direita,direita,BRC2023 (SDD)
+PMN,Partido da Mobilização Nacional,6.88,centro-direita,direita,BRC2023
+MOBILIZA,Mobiliza (ex-PMN),6.88,centro-direita,direita,sucessor de PMN
+PMB,Partido da Mulher Brasileira,6.90,centro-direita,direita,BRC2023
+DEMOCRATA,Democrata (ex-PMB),6.90,centro-direita,direita,sucessor de PMB
+PHS,Partido Humanista da Solidariedade,6.96,centro-direita,direita,BRC2023
+MDB,Movimento Democrático Brasileiro,7.01,direita,direita,BRC2023
+PSD,Partido Social Democrático,7.09,direita,direita,BRC2023
+PSDB,Partido da Social Democracia Brasileira,7.11,direita,direita,BRC2023
+PODE,Podemos (absorveu PSC),7.24,direita,direita,BRC2023 (Podemos)
+PPL,Partido Pátria Livre,7.27,direita,direita,BRC2023
+PRTB,Partido Renovador Trabalhista Brasileiro,7.45,direita,direita,BRC2023
+PROS,Partido Republicano da Ordem Social,7.47,direita,direita,BRC2023 (Pros)
+PRP,Partido Republicano Progressista,7.59,direita,direita,BRC2023
+PRB,Partido Republicano Brasileiro,7.78,direita,direita,BRC2023
+REPUBLICANOS,Republicanos (ex-PRB),7.78,direita,direita,sucessor de PRB
+PR,Partido da República,7.78,direita,direita,BRC2023
+PL,Partido Liberal (ex-PR),7.78,direita,direita,sucessor de PR
+PTC,Partido Trabalhista Cristão,7.86,direita,direita,BRC2023
+AGIR,Agir (ex-PTC),7.86,direita,direita,sucessor de PTC
+DC,Democracia Cristã,8.11,direita,direita,BRC2023
+PSL,Partido Social Liberal,8.11,direita,direita,BRC2023
+NOVO,Partido Novo,8.13,direita,direita,BRC2023
+PP,Progressistas,8.20,direita,direita,BRC2023 (Progressistas)
+PSC,Partido Social Cristão,8.33,direita,direita,BRC2023
+PATRI,Patriota,8.55,extrema-direita,direita,BRC2023
+PATRIOTA,Patriota,8.55,extrema-direita,direita,BRC2023
+DEM,Democratas,8.57,extrema-direita,direita,BRC2023
+UNIÃO,União Brasil (DEM + PSL),8.34,,direita,sucessor de DEM+PSL (media 8.57 e 8.11; ambos direita ou mais)
+PRD,Partido Renovação Democrática (PTB + Patriota),7.33,,direita,sucessor de PTB+Patriota (media 6.10 e 8.55; ambos direita)
+UP,Unidade Popular,,,esquerda,sem_classificacao_BRC: partido socialista-comunista de esquerda radical (programa do partido); mesmo bloco de PSTU/PCB
+MISSÃO,Partido Missão (MBL),,,direita,sem_classificacao_BRC: partido liberal-conservador criado a partir do MBL (programa do partido)

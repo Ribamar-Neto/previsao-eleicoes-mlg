@@ -1,0 +1,15 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Dados baixados e intermediários (regeráveis pelos scripts de src/coleta)
+data/raw/
+data/interim/
+.ipynb_checkpoints/

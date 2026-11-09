@@ -1,0 +1,51 @@
+{
+  "disp": "regiao_logn",
+  "k_esf": 50,
+  "aceitas": {
+    "disp": true,
+    "esf": false
+  },
+  "motivos": {
+    "disp": "LRT p=2.43e-104 (< 0,01); max|DP-1| 0.409 (const) -> 0.095 (regiao_logn) (melhora); CV LOSO mae_uf=0.9951 vs limite 1.1308",
+    "esf": "k escolhido por BIC = 50; I de Moran 0.3390 (k=0) -> 0.2272 (k=50); CV LOSO mae_uf=1.4460 vs limite 1.1308"
+  },
+  "diagnostico_ok": {
+    "disp": true,
+    "esf": true
+  },
+  "mae_uf_loso": {
+    "bb_backward": 1.0003507338875397,
+    "bb_disp": 0.9951189394386776,
+    "bb_esf": 1.4460030712085725,
+    "bb_final": 1.4117039956577326
+  },
+  "limite": 1.1307676100284951,
+  "mae_uf_bb_backward": 1.0003507338875397,
+  "se_melhor_loso": 0.13041687614095546,
+  "faixa_empate_original": 1.0605455808266946,
+  "final_dentro_da_faixa_original": true,
+  "modelo_final": "bb_disp",
+  "termos_final": {
+    "vars": [
+      "lag",
+      "pct_dep_esq",
+      "comparecimento",
+      "log_dens",
+      "pct_mulheres",
+      "pct_16_24",
+      "pct_superior",
+      "pct_analfabeto",
+      "cobertura_pbf",
+      "pct_vab_agro",
+      "pct_evangelicos",
+      "pct_pretos_pardos"
+    ],
+    "lag": "livre",
+    "usa_bloco": true,
+    "regiao_x_lag": false,
+    "usa_uf": false,
+    "uf_aleatoria": false,
+    "disp": "regiao_logn",
+    "esf": 0
+  }
+}
