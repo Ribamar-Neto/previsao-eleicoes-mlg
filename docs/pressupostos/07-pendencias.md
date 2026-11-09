@@ -21,16 +21,13 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 
 ## Modelo
 
-- **[aberta, com mais evidência] Resíduos com autocorrelação espacial em todos os modelos**
-  (I de Moran ≈ 0,29 a 0,35, p = 0,001). Os EPs de Conley a 200 km (cerca de 1,8 vez os do
-  modelo) corrigem a inferência ([10](10-dependencia-espacial.md), seções 3 e 5). Dois
-  remédios válidos sob LOSO foram tentados: ESF rejeitado (LOSO 1,446 > 1,1308) e SLX aceito
-  (LOSO 1,022), mas o SLX só baixa o I de Moran de 0,339 para 0,333. **Resta:** I de Moran
-  0,333 no modelo final; Conley não corrige as estimativas pontuais. **Limitação da regra de
-  aceitação:** não tinha queda mínima do I de Moran, então um SLX que quase não muda a
-  estrutura espacial foi aceito (e o MAE por UF ficou um pouco pior que o de `bb_disp`,
-  1,022 contra 0,995). Correção possível: CAR/BYM ou outro termo espacial, a validar por UF,
-  com queda mínima do I fixada antes.
+- **[fechada como limitação] Resíduos com autocorrelação espacial em todos os modelos**
+  (I de Moran ≈ 0,29 a 0,35). Conley a 200 km corrige a inferência
+  ([10](10-dependencia-espacial.md), seções 3 e 5); ESF foi rejeitado e o SLX aceito, mas o
+  SLX só baixou o I de 0,339 para 0,333. A Parte 18 decompôs o I e testou krigagem dos
+  resíduos sob LOSO: rejeitada (queda do I de 0,0009 contra o mínimo de 0,05). A correlação
+  não é removível com a informação disponível para uma UF nova
+  ([12](12-krigagem-residuos.md)). Resta CAR/BYM, não testado.
 - **[resolvida] θ não é constante por região** (DP residual de 0,80 no Sudeste a 1,40 no
   Norte). Dispersão por região e log n: máximo |DP − 1| de 0,409 para 0,095
   ([09](09-dispersao-regional.md)). Resta o Norte (DP 1,10).
@@ -82,11 +79,9 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   seleção.
 - **Envelope da beta-binomial no 02-MLG consome a maior parte dos 7,5 min** (49 reajustes
   de ~4 s). Correção: partida a quente (warm start) e remover o passo de polimento.
-- **Checagem de tipos (`ty`) não rodou no commit `b94d7d1`** (SLX, Wald robusto e corte de
-  2022). Ruff e os 71 testes passaram. Efeito: erros de tipo em `src/espacial.py` e
-  `src/especificacoes.py` podem passar despercebidos. Correção: rodar `ty` em `src/` e
-  corrigir o que aparecer.
-- **Referência do SLX sem citação conferida.** Halleck Vega e Elhorst (2015), "The SLX
-  model", *Journal of Regional Science* 55(3), sustenta o termo SLX
-  ([10](10-dependencia-espacial.md)), mas não está em `referencias.md`. Correção: conferir
-  DOI e incluir em `referencias.md` e na seção do SLX.
+- **[resolvida] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos. A causa real
+  (`Ajuste.modelo` tipado como `object`) virou `Any`. Os 15 restantes são lacunas dos stubs
+  de statsmodels, patsy e scipy (cKDTree, `patsy.dmatrix`, LinearOperator), não bugs.
+- **[resolvida] Referência do SLX.** Halleck Vega e Elhorst (2015) conferida (DOI
+  10.1111/jors.12188) e incluída em `referencias.md` e em
+  [10](10-dependencia-espacial.md), seção 5.

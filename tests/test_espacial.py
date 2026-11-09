@@ -233,3 +233,57 @@ def test_wald_robusto_igual_statsmodels(gl_den):
     else:
         w = res.wald_test(R, cov_p=cov, scalar=True, use_f=True)
         assert est == pytest.approx(ref / 2) and gl == 2
+
+
+def _campo(N=1500, seed=5):
+    rng = np.random.default_rng(seed)
+    lat, lon = rng.uniform(-30, 0, N), rng.uniform(-60, -30, N)
+    return rng, lat, lon, rng.integers(0, 20, N)
+
+
+def test_krigagem_nucleo_zero_alem_do_corte():
+    lat = np.array([0.0, 0.0, 0.0])
+    lon = np.array([0.0, 0.5, 5.0])   # ~55 km e ~555 km do ponto 0
+    _rho, k = e.krigagem_residuos(np.array([1.0, 3.0]), lat, lon, [1, 2], [0], np.array([0, 1, 2]), 200.0)
+    np.testing.assert_allclose(k, [1.0])        # só o vizinho a 55 km pesa
+    _, k0 = e.krigagem_residuos(np.array([1.0, 3.0]), lat, lon, [1, 2], [0], np.array([0, 1, 2]), 10.0)
+    assert k0[0] == 0.0                         # sem vizinho no corte
+
+
+def test_krigagem_rho_zero_em_ruido_branco():
+    rng, lat, lon, g = _campo()
+    tr, te = np.arange(1200), np.arange(1200, 1500)
+    rho, _ = e.krigagem_residuos(rng.normal(size=1200), lat, lon, tr, te, g, 300.0)
+    assert rho < 0.15
+
+
+def test_krigagem_rho_perto_de_um_em_campo_suave():
+    _, lat, lon, g = _campo()
+    campo = np.sin(lat / 10) + np.cos(lon / 10)
+    tr, te = np.arange(1200), np.arange(1200, 1500)
+    rho, k = e.krigagem_residuos(campo[tr], lat, lon, tr, te, g, 300.0)
+    assert rho > 0.9
+    assert np.corrcoef(k, campo[te])[0, 1] > 0.95
+
+
+def test_pesos_dentro_e_entre_somam_um_por_linha():
+    geo = grade(8)
+    w = e.pesos_queen(geo)
+    g = (np.arange(64) // 8) // 4 * 2 + (np.arange(64) % 8) // 4
+    for dentro in (True, False):
+        W, mant = e._restringir_pesos(w, g, dentro)
+        np.testing.assert_allclose(np.asarray(W.sum(axis=1)).ravel(), 1.0)
+        assert W.shape == (len(mant), len(mant))
+
+
+def test_moran_sem_media_do_grupo_some_com_choque_de_grupo():
+    geo = grade(12)
+    w = e.pesos_queen(geo)
+    idx = np.arange(144)
+    g = (idx // 12) // 4 * 3 + (idx % 12) // 4          # 9 blocos 4x4
+    rng = np.random.default_rng(0)
+    r = rng.normal(size=9)[g] * 3 + rng.normal(size=144) * 0.3
+    m = e.moran_decomposto(r, w, g)
+    assert m["completo"] > 0.5
+    assert abs(m["completo_sem_media_uf"]) < 0.15
+    assert m["dentro_uf"] > m["entre_uf"]

@@ -1,6 +1,6 @@
 # Dispersão regional do beta-binomial (Parte 14 do notebook 05)
 
-Células citadas contam a partir de 0 em `notebooks/05-modelo-final.ipynb` (0 a 4 e 8 a 10). Tabelas em `results/tables/final_dispersao.csv`, `final_dp_regiao.csv`, `final_cv.csv` e `final_decisao.json`; figura em `results/figures/final_dp_regiao.html`. A parte de filtro espacial (Parte 15) fica em outro documento.
+Células citadas contam a partir de 0 em `notebooks/05-modelo-final.ipynb` (0 a 4 e 10 a 13). Tabelas em `results/tables/final_dispersao.csv`, `final_dp_regiao.csv`, `final_cv.csv` e `final_decisao.json`; figura em `results/figures/final_dp_regiao.html`. A parte de filtro espacial (Parte 15) fica em outro documento.
 
 **Objetivo.** Testar se deixar a dispersão do beta-binomial variar com região (e com o porte do município) melhora o diagnóstico sem piorar a previsão fora da amostra. O ponto de partida é `bb_backward` (12 termos, escolhido no [notebook 03](03-modelos-candidatos.md) pela regra do 1-EP). O β de `bb_backward` não muda; só a dispersão muda.
 
@@ -20,7 +20,7 @@ Modelo duplo (Smyth, 1989): a média segue o preditor de `bb_backward` e a dispe
 - **Por que log n.** A dispersão pode depender do porte do município (n); z(log n) é a versão padronizada.
 - **Escolha entre opções:** menor BIC, ajustado a todos os dados.
 
-## 2. Regra de aceitação, escrita antes do resultado (células 2 e 12)
+## 2. Regra de aceitação, escrita antes do resultado (células 2 e 16)
 
 Fixada em 2026-11-09, antes de ver os resultados da extensão. A dispersão escolhida é aceita se:
 
@@ -54,7 +54,7 @@ DP do resíduo quantílico por região:
 - **Condição 2:** o maior |DP − 1| cai de 0,409 para 0,095. Cumprida.
 - **Leitura.** `regiao` tem DP um pouco mais perto de 1 no pior caso (0,077), mas a regra escolhe por BIC, não por DP; a diferença (0,018) é pequena frente ao ganho de 0,409. O Norte continua o pior ajuste (DP 1,10).
 
-## 4. Validação cruzada da extensão (células 12 a 15)
+## 4. Validação cruzada da extensão (células 16 a 19)
 
 Candidato `bb_disp` = `bb_backward` com a dispersão `regiao_logn`. Roda em 5-fold (semente 0) e LOSO (uma UF fora por vez), sem alterar as tabelas do notebook 03.
 
@@ -71,7 +71,7 @@ Candidato `bb_disp` = `bb_backward` com a dispersão `regiao_logn`. Roda em 5-fo
 - **Decisão.** As três condições passam: `bb_disp` é aceita (`final_decisao.json`, `aceitas.disp = true`). O ganho em previsão é pequeno e dentro do ruído (0,005 p.p. no MAE por UF, EP 0,14); o MAE ponderado e o erro nacional melhoram mais no LOSO. A aceitação se apoia principalmente no diagnóstico (DP regional) sem custo de previsão, não em ganho de previsão.
 - **O que a dispersão muda.** Os termos de média são os mesmos 12 de `bb_backward`; os coeficientes são reestimados juntos com a dispersão.
 
-## 5. Teste de Wald robusto para a dispersão (adendo, células 5 e 6)
+## 5. Teste de Wald robusto para a dispersão (adendo, células 6 e 7)
 
 **Regra acrescentada em 2026-11-09, depois dos primeiros resultados do notebook** (as seções 2 a 4 foram escritas antes de ver os resultados; esta não). Razão: o LRT da seção 3 supõe municípios independentes, o que a correlação residual contradiz ([pendências](07-pendencias.md)). A regra foi fixada antes de calcular o resultado do teste.
 

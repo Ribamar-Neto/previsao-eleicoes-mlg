@@ -236,3 +236,72 @@ def moran_residuos(residuos, w, permutacoes=999, semente=0):
     finally:
         np.random.set_state(estado)
     return {"I": float(mi.I), "p_sim": float(mi.p_sim)}
+
+
+def _restringir_pesos(w, grupos, dentro):
+    """Submatriz de `w` só com vínculos dentro (ou entre) grupos, padronizada por linha.
+
+    Devolve (matriz, mantidas): linhas sem vínculo saem; a matriz só tem as mantidas.
+    """
+    g = np.asarray(grupos)
+    A = sp.coo_matrix(w.sparse)
+    ok = (g[A.row] == g[A.col]) if dentro else (g[A.row] != g[A.col])
+    A = sp.csr_matrix((A.data[ok], (A.row[ok], A.col[ok])), shape=A.shape)
+    mantidas = np.arange(A.shape[0])
+    while True:
+        A = A[mantidas][:, mantidas]
+        soma = np.asarray(A.sum(axis=1)).ravel()
+        if (soma > 0).all():
+            break
+        mantidas = mantidas[soma > 0]
+    return sp.diags(1.0 / soma) @ A, mantidas
+
+
+def _moran_i(z, W):
+    z = np.asarray(z, float)
+    z = z - z.mean()
+    return float(z @ (W @ z) / (z @ z))
+
+
+def moran_decomposto(residuos, w, grupos):
+    """I de Moran dos resíduos: W completo, só vínculos dentro do grupo, só entre grupos,
+    e W completo depois de subtrair a média do grupo. Pesos padronizados por linha.
+
+    Motivo: separar a correlação que vive dentro das UFs da que atravessa a divisa
+    e da que é só um choque comum de UF. Devolve também o nº de linhas de cada W.
+    """
+    r = pd.Series(np.asarray(residuos, float))
+    g = np.asarray(grupos)
+    out = {"completo": _moran_i(r, sp.csr_matrix(w.sparse)), "n_completo": len(r)}
+    for nome, dentro in (("dentro_uf", True), ("entre_uf", False)):
+        W, mant = _restringir_pesos(w, g, dentro)
+        out[nome], out[f"n_{nome}"] = _moran_i(r.to_numpy()[mant], W), len(mant)
+    sem = (r - r.groupby(g).transform("mean")).to_numpy()
+    out["completo_sem_media_uf"], out["n_completo_sem_media_uf"] = _moran_i(sem, sp.csr_matrix(w.sparse)), len(r)
+    return out
+
+
+def krigagem_residuos(r_treino, lat, lon, treino, teste, grupos, corte_km):
+    """Krigagem simples dos resíduos de treino com núcleo de Bartlett: (rho, k_teste).
+
+    `lat`, `lon`, `grupos` cobrem todas as linhas; `treino` e `teste` são índices e
+    `r_treino` segue a ordem de `treino`. k_i = soma K(d_ij) r_j / soma K(d_ij) sobre o
+    treino, K = 1 - d/corte para d < corte (0 sem vizinho). rho é a inclinação sem
+    intercepto de r_i em k_i, com k_i do treino calculado só com municípios de outros
+    grupos (como o teste vê só outras UFs), cortada em [0, 1].
+    """
+    tr, te = np.asarray(treino), np.asarray(teste)
+    r = np.asarray(r_treino, float)
+    todos = np.concatenate([tr, te])
+    i, j, d = _pares_ate(np.asarray(lat)[todos], np.asarray(lon)[todos], corte_km)
+    ntr = len(tr)
+    k = np.clip(1.0 - d / corte_km, 0.0, None)
+    g = np.asarray(grupos)[todos]
+    vale = (k > 0) & (j < ntr) & ((i >= ntr) | (g[i] != g[j]))   # vizinho do treino; treino só de outros grupos
+    K = sp.csr_matrix((k[vale], (i[vale], j[vale])), shape=(len(todos), ntr))
+    den = np.asarray(K.sum(axis=1)).ravel()
+    kb = np.divide(K @ r, den, out=np.zeros(len(todos)), where=den > 0)
+    k_tr = kb[:ntr]
+    s2 = float(k_tr @ k_tr)
+    rho = float(np.clip((k_tr @ r) / s2, 0.0, 1.0)) if s2 > 0 else 0.0
+    return rho, kb[ntr:]

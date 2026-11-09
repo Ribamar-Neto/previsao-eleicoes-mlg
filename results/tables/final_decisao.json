@@ -4,7 +4,8 @@
   "aceitas": {
     "disp": true,
     "esf": false,
-    "slx": true
+    "slx": true,
+    "krig": false
   },
   "motivos": {
     "disp": "Wald robusto (Conley x1, chi2): passo A (dummies de região) p=1.48e-11 -> mantido; passo B (log_n) p=4.17e-16 -> mantido. Antes (LRT/BIC): regiao_logn; CV LOSO mae_uf=0.9951 vs limite 1.1308",
@@ -249,5 +250,42 @@
   "corte_2026": 200.0,
   "corte_2022": 200.0,
   "corte_final": 200.0,
-  "motivo_corte": "CORTE_2022=200 km dentro de [100, 400]; corte de 2026 mantido"
+  "motivo_corte": "CORTE_2022=200 km dentro de [100, 400]; corte de 2026 mantido",
+  "krigagem": {
+    "regra": {
+      "queda_minima_moran": 0.05,
+      "mae_uf_max": 1.1307676100284951,
+      "corte_km": 200.0
+    },
+    "moran_oos_loso": {
+      "bb_slx": 0.42007795486639543,
+      "bb_slx_krig": 0.4191387914169587,
+      "queda": 0.0009391634494367307
+    },
+    "moran_oos_5fold": {
+      "bb_slx": 0.3128577865532739,
+      "bb_slx_krig": 0.30782673371669456
+    },
+    "mae_uf_loso": {
+      "bb_slx": 1.0223640692411986,
+      "bb_slx_krig": 1.0205249077462586
+    },
+    "mae_uf_5fold": {
+      "bb_slx": 0.7546121518738472,
+      "bb_slx_krig": 0.7459046291735127
+    },
+    "rho_loso": {
+      "media": 0.0172700553451588,
+      "min": 0.0,
+      "max": 0.07094295572860182
+    },
+    "rho_5fold": {
+      "media": 0.02003057699823737,
+      "min": 0.0,
+      "max": 0.04891005436516475
+    },
+    "criterio_moran_ok": false,
+    "criterio_mae_ok": true,
+    "aceita": false
+  }
 }

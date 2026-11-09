@@ -1,6 +1,6 @@
 # Referências
 
-Lista única das referências dos arquivos 02 a 06 e 08 a 11, sem duplicatas, em ordem de autor.
+Lista única das referências dos arquivos 02 a 06 e 08 a 12, sem duplicatas, em ordem de autor.
 
 Legenda: ✔ = conferida por busca na web (autores, ano, título, veículo), com DOI, ISBN ou URL.
 Nenhuma entrada ficou sem conferência. Detalhes que a busca não fechou: o subtítulo de Griffith
@@ -27,6 +27,7 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Gelman, A.; Carlin, J. B.; Stern, H. S.; Dunson, D. B.; Vehtari, A.; Rubin, D. B. (2013). *Bayesian Data Analysis* (3ª ed.). Chapman & Hall/CRC (distribuição preditiva posterior). ✔ https://doi.org/10.1201/b16018
 - Gelman, A.; Hill, J. (2007). *Data Analysis Using Regression and Multilevel/Hierarchical Models*. Cambridge University Press. ✔ https://doi.org/10.1017/CBO9780511790942
 - Griffith, D. A. (2003). *Spatial Autocorrelation and Spatial Filtering: Gaining Understanding Through Theory and Visualization*. Springer. ✔ https://doi.org/10.1007/978-3-540-24806-4
+- Halleck Vega, S.; Elhorst, J. P. (2015). The SLX model. *Journal of Regional Science*, 55(3), 339-363. ✔ https://doi.org/10.1111/jors.12188 (conferida em 2026-11-09 no IDEAS/RePEc e no EconPapers)
 - Hastie, T.; Tibshirani, R.; Friedman, J. (2009). *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (2ª ed.). Springer (regra de 1 erro-padrão, cap. 7). ✔ https://doi.org/10.1007/978-0-387-84858-7
 - Hyndman, R. J.; Koehler, A. B. (2006). Another look at measures of forecast accuracy. *International Journal of Forecasting*, 22(4), 679-688. ✔ https://doi.org/10.1016/j.ijforecast.2006.03.001
 - McCullagh, P.; Nelder, J. A. (1989). *Generalized Linear Models* (2ª ed.). Chapman & Hall (GLM binomial e logit empírico). ✔ ISBN 0-412-31760-5 (https://doi.org/10.1201/9780203753736, reimpressão Routledge 2019)

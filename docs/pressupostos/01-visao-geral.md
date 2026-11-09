@@ -58,7 +58,8 @@ defasadas espacialmente, SLX (LOSO 1,022 ≤ 1,1308; I de Moran dos resíduos s�
 200 km, cerca de 1,8 vez os do modelo (corte conferido com 2022;
 [10](10-dependencia-espacial.md)). Os resultados abaixo vêm do modelo final
 ([11](11-modelo-final.md)); as estimativas de `bb_backward` ficam em
-[06](06-estimativas-regionais.md).
+[06](06-estimativas-regionais.md). A Parte 18 testou krigagem dos resíduos e a rejeitou; o
+modelo final segue `bb_slx` ([12](12-krigagem-residuos.md)).
 
 Estimativas regionais do modelo final (LOSO, Conley + σ_UF), Lula %:
 

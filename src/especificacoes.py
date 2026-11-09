@@ -8,6 +8,7 @@ níveis das dummies são fixados no treino; o teste só é transformado.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -301,7 +302,7 @@ def _ajustar_glmm(X, y, n, nomes_uf, iter_ext=25):
 @dataclass
 class Ajuste:
     """Modelo ajustado + padronizador + metadados para tabela e coeficientes."""
-    modelo: object
+    modelo: Any           # resultado do statsmodels ou ModeloL1/ModeloGLMM
     pad: Padronizador
     nomes: list           # nomes dos parâmetros de `modelo.params` (quando houver)
     k: int                # parâmetros livres (para AIC/BIC)
