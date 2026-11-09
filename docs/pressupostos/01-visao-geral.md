@@ -50,11 +50,13 @@ O erro regional LOSO não é critério, porque favorece por construção as bino
 - Sem os 10 municípios mais influentes (capitais), `bb_reglag` muda no máximo 0,14 EP;
   `quasi_reglag` muda 8,4 EP.
 
-Refinamento (notebook 05): `bb_backward` virou o modelo final `bb_disp`, com a dispersão
-variando por região e log n ([09](09-dispersao-regional.md)): max |DP − 1| por região de
-0,409 para 0,095, MAE por UF no LOSO 0,995. O filtro espacial de autovetores foi rejeitado
-(LOSO 1,446 > 1,1308) e a inferência usa EPs de Conley a 200 km, cerca de 2 vezes os do
-modelo ([10](10-dependencia-espacial.md)). Os resultados abaixo vêm do modelo final
+Refinamento (notebook 05): `bb_backward` virou o modelo final `bb_slx`: dispersão por
+região e log n (`bb_disp`; [09](09-dispersao-regional.md); max |DP − 1| por região de 0,409
+para 0,095, MAE por UF no LOSO 0,995, confirmada por Wald robusto) mais covariáveis
+defasadas espacialmente, SLX (LOSO 1,022 ≤ 1,1308; I de Moran dos resíduos só de 0,339 para
+0,333). O filtro de autovetores foi rejeitado (LOSO 1,446) e a inferência usa EPs de Conley a
+200 km, cerca de 1,8 vez os do modelo (corte conferido com 2022;
+[10](10-dependencia-espacial.md)). Os resultados abaixo vêm do modelo final
 ([11](11-modelo-final.md)); as estimativas de `bb_backward` ficam em
 [06](06-estimativas-regionais.md).
 
@@ -62,12 +64,12 @@ Estimativas regionais do modelo final (LOSO, Conley + σ_UF), Lula %:
 
 | Região | Estimado | IC 95% | Real |
 |---|---|---|---|
-| Centro-Oeste | 40,12 | [38,7; 41,6] | 39,99 |
-| Nordeste | 69,40 | [68,5; 70,2] | 69,37 |
-| Norte | 49,53 | [48,1; 50,9] | 50,01 |
-| Sudeste | 47,58 | [46,0; 49,2] | 47,24 |
-| Sul | 37,02 | [35,5; 38,4] | 37,42 |
-| Brasil | 51,84 | [51,1; 52,6] | 51,78 |
+| Centro-Oeste | 40,04 | [38,6; 41,5] | 39,99 |
+| Nordeste | 69,41 | [68,5; 70,2] | 69,37 |
+| Norte | 49,52 | [48,1; 50,9] | 50,01 |
+| Sudeste | 47,86 | [46,3; 49,4] | 47,24 |
+| Sul | 37,01 | [35,8; 38,5] | 37,42 |
+| Brasil | 51,95 | [51,3; 52,6] (90%) | 51,78 |
 
 Backtest (ajuste de 2022 em 2018, previsão de 2026): a melhor variante é `C_recal`
 (participações do 1º turno de 2026, intercepto ancorado na participação nacional de 2022),

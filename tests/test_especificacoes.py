@@ -178,3 +178,27 @@ def test_extensao_exige_backward_e_offset_nao_suportado(df):
             E.CANDIDATOS["bb_backward"] = ant
     with pytest.raises(NotImplementedError):
         E.Candidato("t", "betabin", "logit", E.Termos(lag="offset", disp="regiao")).ajustar(df, MAPA)
+
+
+def test_slx_vazio_nao_altera_desenho(df):
+    mapa2 = {**MAPA, "w_lag": "w_col"}
+    d2 = df.assign(w_col=np.random.default_rng(5).normal(size=len(df)))
+    E.registrar_backward(["nota_dep", "pct_dep_esq"])
+    E.registrar_extensao("bb_disp", disp="regiao")
+    for cand in (E.CANDIDATOS["bb_backward"], E.EXTENSOES["bb_disp"]):
+        a = E.montar_X(df, MAPA, E.Padronizador(MAPA).fit(df), cand.termos)
+        b = E.montar_X(d2, mapa2, E.Padronizador(mapa2).fit(d2), cand.termos)
+        pd.testing.assert_frame_equal(a, b)
+
+
+def test_slx_coluna_w_lag_padronizada_no_treino(df):
+    d = df.assign(w_col=np.random.default_rng(5).normal(2, 3, len(df)))
+    mapa = {**MAPA, "w_lag": "w_col"}
+    tr, te = d.iloc[:400], d.iloc[400:]
+    pad = E.Padronizador(mapa).fit(tr)
+    t = E.Termos(slx=("lag",))
+    assert "w_lag" in t.vars and E.Termos(**t.__dict__).vars.count("w_lag") == 1
+    X = E.montar_X(te, mapa, pad, t)
+    esperado = (te["w_col"] - tr["w_col"].mean()) / tr["w_col"].std(ddof=0)
+    np.testing.assert_allclose(X["w_lag"].to_numpy(), esperado.to_numpy())
+    assert abs(E.montar_X(tr, mapa, pad, t)["w_lag"].mean()) < 1e-10

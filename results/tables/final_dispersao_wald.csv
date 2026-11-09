@@ -1,0 +1,11 @@
+passo,ajuste,termos,covariancia,corte_km,teste,estat,gl,gl_den,p,mantido
+A,regiao,disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul,conley_05,100.0,F,22.339818534788773,4,26.0,4.286663195251096e-08,True
+A,regiao,disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul,conley_1,200.0,chi2,56.62714489517989,4,,1.4812913003122448e-11,True
+A,regiao,disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul,conley_1,200.0,F,14.156786223794972,4,26.0,2.938341813850862e-06,True
+A,regiao,disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul,conley_2,400.0,F,14.668901653065149,4,26.0,2.1585172688927813e-06,True
+A,regiao,disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul,cluster_uf,,F,8.605793640686022,4,26.0,0.00014574816424364146,True
+B,regiao_logn,disp_log_n,conley_05,100.0,F,93.1623932534364,1,26.0,4.4089790987906334e-10,True
+B,regiao_logn,disp_log_n,conley_1,200.0,chi2,66.15383707109618,1,,4.170669527448596e-16,True
+B,regiao_logn,disp_log_n,conley_1,200.0,F,66.15383707109618,1,26.0,1.2951696434030159e-08,True
+B,regiao_logn,disp_log_n,conley_2,400.0,F,44.531911835967655,1,26.0,4.437309306092568e-07,True
+B,regiao_logn,disp_log_n,cluster_uf,,F,39.85109505681693,1,26.0,1.1042050481824935e-06,True

@@ -68,6 +68,10 @@ class Padronizador:
         for k in CONTINUAS:
             v = _coluna(df, self.mapa, k)
             self.media[k], self.desvio[k] = float(v.mean()), float(v.std(ddof=0)) or 1.0
+        for k in self.mapa:  # defasagens espaciais (SLX): padronizadas só no treino
+            if k.startswith("w_"):
+                v = _coluna(df, self.mapa, k)
+                self.media[k], self.desvio[k] = float(v.mean()), float(v.std(ddof=0)) or 1.0
         lag = _coluna(df, self.mapa, "lag")
         self.lag_min, self.lag_max = float(lag.min()), float(lag.max())
         # log n da dispersão (montar_Z): média e desvio só do treino
@@ -105,12 +109,18 @@ class Termos:
     # dispersão do beta-binomial: 'const' (theta único) | 'regiao' | 'regiao_logn'
     disp: str = "const"
     esf: int = 0                  # nº de autovetores espaciais (ev_001..) em X
+    # SLX: chaves base cuja defasagem espacial W·x entra em X como `w_<chave>`
+    slx: tuple = ()
 
     def __post_init__(self):
         if self.disp not in DISPERSOES:
             raise ValueError(f"disp deve ser um de {DISPERSOES}, veio {self.disp!r}")
         if self.esf < 0:
             raise ValueError("esf deve ser >= 0")
+        # `vars` carrega também os w_<chave>; sem duplicar quando `replace` reaproveita
+        extras = tuple(f"w_{k}" for k in self.slx if f"w_{k}" not in self.vars)
+        if extras:
+            object.__setattr__(self, "vars", tuple(self.vars) + extras)
 
     @property
     def usa_dispersao(self) -> bool:

@@ -21,20 +21,27 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 
 ## Modelo
 
-- **[resolvida para a inferência] Resíduos com autocorrelação espacial em todos os modelos**
-  (I de Moran ≈ 0,29 a 0,35, p = 0,001). Os EPs de Conley a 200 km (cerca de 2 vezes os do
-  modelo) corrigem a inferência ([10](10-dependencia-espacial.md), seção 3). O filtro de
-  autovetores foi rejeitado (LOSO 1,446 > 1,1308). **Resta:** I de Moran 0,339 no modelo
-  final; Conley não corrige as estimativas pontuais. Correção possível: CAR/BYM ou
-  defasagem espacial, a validar por UF.
+- **[aberta, com mais evidência] Resíduos com autocorrelação espacial em todos os modelos**
+  (I de Moran ≈ 0,29 a 0,35, p = 0,001). Os EPs de Conley a 200 km (cerca de 1,8 vez os do
+  modelo) corrigem a inferência ([10](10-dependencia-espacial.md), seções 3 e 5). Dois
+  remédios válidos sob LOSO foram tentados: ESF rejeitado (LOSO 1,446 > 1,1308) e SLX aceito
+  (LOSO 1,022), mas o SLX só baixa o I de Moran de 0,339 para 0,333. **Resta:** I de Moran
+  0,333 no modelo final; Conley não corrige as estimativas pontuais. **Limitação da regra de
+  aceitação:** não tinha queda mínima do I de Moran, então um SLX que quase não muda a
+  estrutura espacial foi aceito (e o MAE por UF ficou um pouco pior que o de `bb_disp`,
+  1,022 contra 0,995). Correção possível: CAR/BYM ou outro termo espacial, a validar por UF,
+  com queda mínima do I fixada antes.
 - **[resolvida] θ não é constante por região** (DP residual de 0,80 no Sudeste a 1,40 no
   Norte). Dispersão por região e log n: máximo |DP − 1| de 0,409 para 0,095
   ([09](09-dispersao-regional.md)). Resta o Norte (DP 1,10).
-- **LRT da dispersão supõe municípios independentes** ([09](09-dispersao-regional.md), seção 3),
-  o que a correlação residual contradiz. A diferença de BIC (450) e o ganho de DP seguem
-  valendo; o p-valor é indicativo.
-- **Corte de Conley (200 km) vem do correlograma de uma só eleição.** Correção: repetir com
-  2018 e 2022.
+- **[resolvida] LRT da dispersão supõe municípios independentes** ([09](09-dispersao-regional.md),
+  seção 3). O Wald robusto com Conley (e por UF) mantém `regiao` e `log n`, com p ≤ 1,5e-4
+  em todas as covariâncias ([09](09-dispersao-regional.md), seção 5).
+- **[resolvida] Corte de Conley (200 km) vinha do correlograma de uma só eleição.** O de 2022
+  dá 200 km também; mantido ([10](10-dependencia-espacial.md), seção 6).
+- **Regras adicionadas depois dos primeiros resultados do notebook 05** (Wald robusto, SLX e
+  corte de 2022, em 2026-11-09): foram fixadas antes de cada resultado, mas não antes do
+  notebook inteiro; o leitor deve pesar isso.
 - **Envelope meio-normal de `bb_reglag`: 93,9% dos pontos fora** (corpo estreito, caudas
   pesadas, curtose 3,8). Efeito: o envelope não valida a distribuição. Correção: modelo com
   caudas mais pesadas.

@@ -12,9 +12,9 @@
 | [06-estimativas-regionais.md](06-estimativas-regionais.md) | Estimativas por região e intervalos |
 | [07-pendencias.md](07-pendencias.md) | Pendências abertas, com efeito e correção possível |
 | [08-backtest.md](08-backtest.md) | Ajuste em 2018 e previsão de 2026 a partir de 2022 |
-| [09-dispersao-regional.md](09-dispersao-regional.md) | Dispersão do beta-binomial por região e porte (modelo `bb_disp`) |
-| [10-dependencia-espacial.md](10-dependencia-espacial.md) | Filtro de autovetores (rejeitado) e EPs de Conley |
-| [11-modelo-final.md](11-modelo-final.md) | Estimativas regionais e por UF do modelo final, cobertura |
+| [09-dispersao-regional.md](09-dispersao-regional.md) | Dispersão do beta-binomial por região e porte (modelo `bb_disp`), com teste de Wald robusto |
+| [10-dependencia-espacial.md](10-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito, modelo final `bb_slx`) e corte de 2022 |
+| [11-modelo-final.md](11-modelo-final.md) | Estimativas regionais e por UF do modelo final `bb_slx`, cobertura |
 | [referencias.md](referencias.md) | Referências únicas e conferidas (36, todas verificadas) |
 
 Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
@@ -31,6 +31,6 @@ Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 | `03-validacao` | 11 | [05-validacao-cruzada.md](05-validacao-cruzada.md) |
 | `03-validacao` | 12 | [06-estimativas-regionais.md](06-estimativas-regionais.md) |
 | `04-backtest` | 13 | [08-backtest.md](08-backtest.md) |
-| `05-modelo-final` | 14 | [09-dispersao-regional.md](09-dispersao-regional.md) |
-| `05-modelo-final` | 15 e 16 | [10-dependencia-espacial.md](10-dependencia-espacial.md) |
+| `05-modelo-final` | 14 (com adendo Wald) | [09-dispersao-regional.md](09-dispersao-regional.md) |
+| `05-modelo-final` | 15 e 16 (com adendos SLX e corte 2022) | [10-dependencia-espacial.md](10-dependencia-espacial.md) |
 | `05-modelo-final` | 17 | [11-modelo-final.md](11-modelo-final.md) |

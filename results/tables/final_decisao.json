@@ -3,28 +3,32 @@
   "k_esf": 50,
   "aceitas": {
     "disp": true,
-    "esf": false
+    "esf": false,
+    "slx": true
   },
   "motivos": {
-    "disp": "LRT p=2.43e-104 (< 0,01); max|DP-1| 0.409 (const) -> 0.095 (regiao_logn) (melhora); CV LOSO mae_uf=0.9951 vs limite 1.1308",
-    "esf": "k escolhido por BIC = 50; I de Moran 0.3390 (k=0) -> 0.2272 (k=50); CV LOSO mae_uf=1.4460 vs limite 1.1308"
+    "disp": "Wald robusto (Conley x1, chi2): passo A (dummies de região) p=1.48e-11 -> mantido; passo B (log_n) p=4.17e-16 -> mantido. Antes (LRT/BIC): regiao_logn; CV LOSO mae_uf=0.9951 vs limite 1.1308",
+    "esf": "k escolhido por BIC = 50; I de Moran 0.3390 (k=0) -> 0.2272 (k=50); CV LOSO mae_uf=1.4460 vs limite 1.1308",
+    "slx": "opção por BIC = W_12vars; I de Moran 0.3390 (nenhuma) -> 0.3328 (W_12vars); CV LOSO mae_uf=1.0224 vs limite 1.1308"
   },
   "diagnostico_ok": {
     "disp": true,
-    "esf": true
+    "esf": true,
+    "slx": true
   },
   "mae_uf_loso": {
     "bb_backward": 1.0003507338875397,
     "bb_disp": 0.9951189394386776,
     "bb_esf": 1.4460030712085725,
-    "bb_final": 1.4117039956577326
+    "bb_final": 1.4117039956577326,
+    "bb_slx": 1.0223640692411986
   },
   "limite": 1.1307676100284951,
   "mae_uf_bb_backward": 1.0003507338875397,
   "se_melhor_loso": 0.13041687614095546,
   "faixa_empate_original": 1.0605455808266946,
   "final_dentro_da_faixa_original": true,
-  "modelo_final": "bb_disp",
+  "modelo_final": "bb_slx",
   "termos_final": {
     "vars": [
       "lag",
@@ -38,7 +42,19 @@
       "cobertura_pbf",
       "pct_vab_agro",
       "pct_evangelicos",
-      "pct_pretos_pardos"
+      "pct_pretos_pardos",
+      "w_lag",
+      "w_pct_dep_esq",
+      "w_comparecimento",
+      "w_log_dens",
+      "w_pct_mulheres",
+      "w_pct_16_24",
+      "w_pct_superior",
+      "w_pct_analfabeto",
+      "w_cobertura_pbf",
+      "w_pct_vab_agro",
+      "w_pct_evangelicos",
+      "w_pct_pretos_pardos"
     ],
     "lag": "livre",
     "usa_bloco": true,
@@ -46,6 +62,192 @@
     "usa_uf": false,
     "uf_aleatoria": false,
     "disp": "regiao_logn",
-    "esf": 0
-  }
+    "esf": 0,
+    "slx": [
+      "lag",
+      "pct_dep_esq",
+      "comparecimento",
+      "log_dens",
+      "pct_mulheres",
+      "pct_16_24",
+      "pct_superior",
+      "pct_analfabeto",
+      "cobertura_pbf",
+      "pct_vab_agro",
+      "pct_evangelicos",
+      "pct_pretos_pardos"
+    ]
+  },
+  "dispersao_wald": {
+    "dispersao_adotada": "regiao_logn",
+    "A_mantido": true,
+    "B_mantido": true,
+    "corte_A_km": 200.0,
+    "corte_B_km": 200.0,
+    "tabela": [
+      {
+        "passo": "A",
+        "ajuste": "regiao",
+        "termos": "disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul",
+        "covariancia": "conley_05",
+        "corte_km": 100.0,
+        "teste": "F",
+        "estat": 22.339818534788773,
+        "gl": 4,
+        "gl_den": 26.0,
+        "p": 4.286663195251096e-08,
+        "mantido": true
+      },
+      {
+        "passo": "A",
+        "ajuste": "regiao",
+        "termos": "disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul",
+        "covariancia": "conley_1",
+        "corte_km": 200.0,
+        "teste": "chi2",
+        "estat": 56.62714489517989,
+        "gl": 4,
+        "gl_den": NaN,
+        "p": 1.4812913003122448e-11,
+        "mantido": true
+      },
+      {
+        "passo": "A",
+        "ajuste": "regiao",
+        "termos": "disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul",
+        "covariancia": "conley_1",
+        "corte_km": 200.0,
+        "teste": "F",
+        "estat": 14.156786223794972,
+        "gl": 4,
+        "gl_den": 26.0,
+        "p": 2.938341813850862e-06,
+        "mantido": true
+      },
+      {
+        "passo": "A",
+        "ajuste": "regiao",
+        "termos": "disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul",
+        "covariancia": "conley_2",
+        "corte_km": 400.0,
+        "teste": "F",
+        "estat": 14.668901653065149,
+        "gl": 4,
+        "gl_den": 26.0,
+        "p": 2.1585172688927813e-06,
+        "mantido": true
+      },
+      {
+        "passo": "A",
+        "ajuste": "regiao",
+        "termos": "disp_reg_Centro-Oeste;disp_reg_Nordeste;disp_reg_Norte;disp_reg_Sul",
+        "covariancia": "cluster_uf",
+        "corte_km": NaN,
+        "teste": "F",
+        "estat": 8.605793640686022,
+        "gl": 4,
+        "gl_den": 26.0,
+        "p": 0.00014574816424364146,
+        "mantido": true
+      },
+      {
+        "passo": "B",
+        "ajuste": "regiao_logn",
+        "termos": "disp_log_n",
+        "covariancia": "conley_05",
+        "corte_km": 100.0,
+        "teste": "F",
+        "estat": 93.1623932534364,
+        "gl": 1,
+        "gl_den": 26.0,
+        "p": 4.4089790987906334e-10,
+        "mantido": true
+      },
+      {
+        "passo": "B",
+        "ajuste": "regiao_logn",
+        "termos": "disp_log_n",
+        "covariancia": "conley_1",
+        "corte_km": 200.0,
+        "teste": "chi2",
+        "estat": 66.15383707109618,
+        "gl": 1,
+        "gl_den": NaN,
+        "p": 4.170669527448596e-16,
+        "mantido": true
+      },
+      {
+        "passo": "B",
+        "ajuste": "regiao_logn",
+        "termos": "disp_log_n",
+        "covariancia": "conley_1",
+        "corte_km": 200.0,
+        "teste": "F",
+        "estat": 66.15383707109618,
+        "gl": 1,
+        "gl_den": 26.0,
+        "p": 1.2951696434030159e-08,
+        "mantido": true
+      },
+      {
+        "passo": "B",
+        "ajuste": "regiao_logn",
+        "termos": "disp_log_n",
+        "covariancia": "conley_2",
+        "corte_km": 400.0,
+        "teste": "F",
+        "estat": 44.531911835967655,
+        "gl": 1,
+        "gl_den": 26.0,
+        "p": 4.437309306092568e-07,
+        "mantido": true
+      },
+      {
+        "passo": "B",
+        "ajuste": "regiao_logn",
+        "termos": "disp_log_n",
+        "covariancia": "cluster_uf",
+        "corte_km": NaN,
+        "teste": "F",
+        "estat": 39.85109505681693,
+        "gl": 1,
+        "gl_den": 26.0,
+        "p": 1.1042050481824935e-06,
+        "mantido": true
+      }
+    ],
+    "motivo": "Wald robusto (Conley x1, chi2): passo A (dummies de região) p=1.48e-11 -> mantido; passo B (log_n) p=4.17e-16 -> mantido. Antes (LRT/BIC): regiao_logn"
+  },
+  "slx": {
+    "opcao_bic": "W_12vars",
+    "bic": {
+      "nenhuma": 72344.85244881563,
+      "W_lag": 72340.17556666012,
+      "W_12vars": 72147.066259715
+    },
+    "moran": {
+      "nenhuma": 0.339041246008643,
+      "W_lag": 0.33695690334921086,
+      "W_12vars": 0.33281126975287184
+    },
+    "diagnostico_ok": true,
+    "chaves": [
+      "lag",
+      "pct_dep_esq",
+      "comparecimento",
+      "log_dens",
+      "pct_mulheres",
+      "pct_16_24",
+      "pct_superior",
+      "pct_analfabeto",
+      "cobertura_pbf",
+      "pct_vab_agro",
+      "pct_evangelicos",
+      "pct_pretos_pardos"
+    ]
+  },
+  "corte_2026": 200.0,
+  "corte_2022": 200.0,
+  "corte_final": 200.0,
+  "motivo_corte": "CORTE_2022=200 km dentro de [100, 400]; corte de 2026 mantido"
 }

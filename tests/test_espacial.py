@@ -173,3 +173,63 @@ def test_moran_residuos_reprodutivel():
     a = e.moran_residuos(x.astype(float), w, 99)
     assert a == e.moran_residuos(x.astype(float), w, 99)
     assert a["I"] > 0.5 and a["p_sim"] < 0.05
+
+
+def test_defasagem_espacial_media_dos_vizinhos():
+    from libpysal.weights import Queen
+    w = Queen.from_dataframe(grade(3), use_index=False)
+    w.transform = "r"
+    x = np.arange(9.0)
+    wx = e.defasagem_espacial(x, w)
+    # centro (4): 8 vizinhos queen; canto (0): vizinhos 1, 3, 4
+    assert wx[4] == pytest.approx(np.mean([0, 1, 2, 3, 5, 6, 7, 8]))
+    assert wx[0] == pytest.approx(np.mean([1, 3, 4]))
+
+
+def test_defasagem_ilha_recebe_vizinho_mais_proximo():
+    geo = gpd.GeoDataFrame(geometry=[box(0, 0, 1, 1), box(1, 0, 2, 1), box(5, 5, 6, 6)])
+    w = e.pesos_queen(geo)
+    wx = e.defasagem_espacial(np.array([1.0, 2.0, 10.0]), w)
+    assert wx[2] == pytest.approx(2.0)  # ilha -> KNN k=1 (célula 1)
+
+
+def test_adicionar_slx_sem_mutar():
+    import pandas as pd
+    from libpysal.weights import Queen
+    w = Queen.from_dataframe(grade(3), use_index=False)
+    w.transform = "r"
+    df = pd.DataFrame({"a": np.arange(9.0)})
+    mapa = {"lag": "a"}
+    df2, mapa2 = e.adicionar_slx(df, mapa, ["lag"], w)
+    assert list(df.columns) == ["a"] and mapa == {"lag": "a"}
+    assert mapa2["w_lag"] == "w_a"
+    assert df2["w_a"].iloc[0] == pytest.approx(np.mean([1, 3, 4]))
+
+
+def test_adicionar_slx_pib_na_escala_do_modelo():
+    import pandas as pd
+    from libpysal.weights import Queen
+    w = Queen.from_dataframe(grade(3), use_index=False)
+    w.transform = "r"
+    df = pd.DataFrame({"p": np.exp(np.arange(9.0))})
+    _, mapa2 = e.adicionar_slx(df, {"pib_pc": "p"}, ["pib_pc"], w)
+    df2, _ = e.adicionar_slx(df, {"pib_pc": "p"}, ["pib_pc"], w)
+    assert df2[mapa2["w_pib_pc"]].iloc[0] == pytest.approx(np.mean([1, 3, 4]))  # W·log(pib)
+
+
+@pytest.mark.parametrize("gl_den", [None, 40])
+def test_wald_robusto_igual_statsmodels(gl_den):
+    res, _, _ = simular()
+    rng = np.random.default_rng(1)
+    A = rng.normal(size=(2, 2))
+    cov = A @ A.T * 1e-3 + np.eye(2) * 1e-3
+    est, gl, p = e.wald_robusto(res.params, cov, [0, 1], gl_den)
+    R = np.eye(2)
+    b = res.params
+    ref = float(b @ np.linalg.solve(cov, b))
+    if gl_den is None:
+        w = res.wald_test(R, cov_p=cov, scalar=True)
+        assert est == pytest.approx(float(w.statistic)) and p == pytest.approx(float(w.pvalue))
+    else:
+        w = res.wald_test(R, cov_p=cov, scalar=True, use_f=True)
+        assert est == pytest.approx(ref / 2) and gl == 2

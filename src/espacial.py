@@ -30,6 +30,54 @@ def pesos_queen(geo):
     return w
 
 
+def defasagem_espacial(valores, w):
+    """W·x com os pesos `w` (padronizados por linha) na ordem das observações de `w`.
+
+    Com `pesos_queen` não há linha vazia (ilhas já foram ligadas ao vizinho mais
+    próximo): a ilha recebe o valor desse vizinho. Os covariáveis são conhecidos em
+    todos os municípios, então calcular uma vez nos dados completos não vaza resposta.
+    """
+    x = np.asarray(valores, float)
+    if x.shape[0] != w.n:
+        raise ValueError(f"valores tem {x.shape[0]} linhas e w tem {w.n}")
+    return np.asarray(w.sparse @ x).ravel()
+
+
+def adicionar_slx(df, mapa, chaves, w):
+    """Devolve (df2, mapa2) com a coluna W·x de cada chave e mapa2['w_<chave>'].
+
+    A defasagem é tomada na escala em que o termo entra no modelo: para `pib_pc`,
+    W·log(pib), como em `_coluna`. Não altera as entradas.
+    """
+    from src.especificacoes import _coluna
+
+    df2, mapa2 = df.copy(), dict(mapa)
+    for k in chaves:
+        col = f"w_{mapa[k]}"
+        df2[col] = defasagem_espacial(_coluna(df, mapa, k), w)
+        mapa2[f"w_{k}"] = col
+    return df2, mapa2
+
+
+def wald_robusto(params, cov, indices, gl_den=None):
+    """Wald de H0: params[indices] = 0 com a covariância `cov` dada (ex.: Conley).
+
+    Devolve (estatística, gl, p): qui-quadrado com q = len(indices) gl; com `gl_den`,
+    F = qui2/q com (q, gl_den) gl.
+    """
+    from scipy import stats
+
+    idx = np.atleast_1d(np.asarray(indices, int))
+    b = np.asarray(params, float)[idx]
+    V = np.asarray(cov, float)[np.ix_(idx, idx)]
+    q = len(idx)
+    chi2 = float(b @ np.linalg.solve(V, b))
+    if gl_den is None:
+        return chi2, q, float(stats.chi2.sf(chi2, q))
+    f = chi2 / q
+    return f, q, float(stats.f.sf(f, q, gl_den))
+
+
 def matriz_contiguidade(geo):
     """Matriz binária simétrica C (esparsa, diagonal nula): Queen + ilhas por KNN k=1.
 
