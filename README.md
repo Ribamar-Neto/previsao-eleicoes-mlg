@@ -348,6 +348,8 @@ Lista completa e conferida: [`docs/pressupostos/referencias.md`](docs/pressupost
 
 **José de Ribamar Ferreira Neto**
 
+**Matheus Finger Ramos de Oliveira**
+
 ---
 
 ## 🎓 Contexto acadêmico
