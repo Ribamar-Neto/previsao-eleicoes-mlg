@@ -8,6 +8,7 @@ níveis das dummies são fixados no treino; o teste só é transformado.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
@@ -25,12 +26,15 @@ L = sm.families.links
 LIGACOES = {"logit": L.Logit, "probit": L.Probit, "cloglog": L.CLogLog,
             "loglog": L.LogLog, "cauchit": L.Cauchy}
 
+# Regra: nenhuma covariável do 2º turno de 2026 entra no modelo, porque ela é desconhecida
+# enquanto a apuração de uma UF não chegou. Só `y` e `n` vêm de 2t_2026. Comparecimento é o do
+# 1º turno de 2026 e `delta_comp` (fora do bb_selecao) é o delta do 2º turno de 2022.
 MAPA_2026 = {
     "y": "votos_pt_2t_2026", "n": "n_2t_2026", "lag": "logit_pt_2t_2022",
     "nota_dep": "nota_media_dep_2026", "pct_dep_esq": "pct_dep_esq_2026",
     "bloco_pref": "bloco_prefeito_2024",
-    "comparecimento": "taxa_comparecimento_2t_2026",
-    "delta_comp": "delta_comparecimento_2t_2026",
+    "comparecimento": "taxa_comparecimento_1t_2026",
+    "delta_comp": "delta_comparecimento_2t_2022",
     "log_pop": "log_populacao_2022", "log_dens": "log_densidade_2022",
     "pct_mulheres": "pct_mulheres_2026", "pct_16_24": "pct_16_24_2026",
     "pct_60_mais": "pct_60_mais_2026", "pct_superior": "pct_superior_completo_2026",
@@ -40,6 +44,7 @@ MAPA_2026 = {
     "pct_pretos_pardos": "pct_pretos_pardos_2022", "pct_urbana": "pct_urbana_2022",
     "regiao": "regiao", "uf": "sigla_uf",
 }
+MAPA_2026_PRE = MAPA_2026  # apelido até os notebooks 05/06 deixarem de citá-lo
 CONTINUAS = ["lag", "nota_dep", "pct_dep_esq", "comparecimento", "delta_comp",
              "log_pop", "log_dens", "pct_mulheres", "pct_16_24", "pct_60_mais",
              "pct_superior", "pct_analfabeto", "cobertura_pbf", "pib_pc",
@@ -113,12 +118,23 @@ class Termos:
     esf: int = 0                  # nº de autovetores espaciais (ev_001..) em X
     # SLX: chaves base cuja defasagem espacial W·x entra em X como `w_<chave>`
     slx: tuple = ()
+    # níveis de região fundidos numa só dummy (ex.: (("Nordeste", "Norte"),)); a referência
+    # (Sudeste) não entra. Decisão da Parte 8 do notebook 02 (LRT de igualdade, p > 0,05).
+    regiao_fundir: tuple[tuple[str, ...], ...] = ()
+    # funde bloco esquerda + outro numa dummy só ("não direita"); só a seleção aninhada usa.
+    bloco_fundir: bool = False
 
     def __post_init__(self):
         if self.disp not in DISPERSOES:
             raise ValueError(f"disp deve ser um de {DISPERSOES}, veio {self.disp!r}")
         if self.esf < 0:
             raise ValueError("esf deve ser >= 0")
+        if self.regiao_fundir:
+            usados = [r for g in self.regiao_fundir for r in g]
+            if any(r not in REGIOES for r in usados) or len(set(usados)) != len(usados):
+                raise ValueError(f"regiao_fundir só aceita níveis não referência sem repetição: {REGIOES}")
+            if self.usa_uf or self.regiao_x_lag:
+                raise ValueError("regiao_fundir não combina com usa_uf nem regiao_x_lag")
         # `vars` carrega também os w_<chave>; sem duplicar quando `replace` reaproveita
         extras = tuple(f"w_{k}" for k in self.slx if f"w_{k}" not in self.vars)
         if extras:
@@ -145,6 +161,9 @@ def montar_X(df, mapa, padronizador, termos=Termos()) -> pd.DataFrame:
         b = df[mapa["bloco_pref"]].astype(str)
         X["bloco_esquerda"] = (b == "esquerda").astype(float).to_numpy()
         X["bloco_outro"] = (~b.isin(["esquerda", "direita"])).astype(float).to_numpy()
+        if termos.bloco_fundir:
+            X["bloco_esquerda+outro"] = X["bloco_esquerda"] + X["bloco_outro"]
+            X = X.drop(columns=["bloco_esquerda", "bloco_outro"])
     if termos.usa_uf:
         niveis = UFS if termos.uf_aleatoria else [u for u in UFS if u != UF_REF]
         g, pref = df[mapa["uf"]].astype(str), "uf_"
@@ -153,6 +172,10 @@ def montar_X(df, mapa, padronizador, termos=Termos()) -> pd.DataFrame:
     dummies = pd.DataFrame({pref + n: (g == n).astype(float).to_numpy() for n in niveis},
                            index=idx)
     X = pd.concat([X, dummies], axis=1)
+    for grupo in termos.regiao_fundir:
+        cols_g = [f"reg_{r}" for r in grupo]
+        X["reg_" + "+".join(grupo)] = X[cols_g].sum(axis=1)
+        X = X.drop(columns=cols_g)
     if termos.regiao_x_lag:
         z = padronizador.z(df, "lag")
         for n in REGIOES:
@@ -454,55 +477,31 @@ def _montar_candidatos() -> dict:
 CANDIDATOS = _montar_candidatos()
 
 
-def registrar_backward(variaveis) -> Candidato:
-    """Adiciona 'bb_backward' (beta-binomial só com as contínuas selecionadas)."""
+def registrar_selecao(variaveis: Iterable[str],
+                      regiao_fundir: tuple[tuple[str, ...], ...] = ()) -> Candidato:
+    """Adiciona 'bb_selecao' (beta-binomial só com as contínuas selecionadas).
+
+    `regiao_fundir` leva ao candidato os níveis de região que a Parte 8 do notebook 02
+    decidiu fundir (teste de igualdade de níveis).
+    """
     vs = tuple(v for v in CONTINUAS if v in set(variaveis) | {"lag"})
-    cand = Candidato("bb_backward", "betabin", "logit", Termos(vars=vs))
-    CANDIDATOS["bb_backward"] = cand
+    cand = Candidato("bb_selecao", "betabin", "logit",
+                     Termos(vars=vs, regiao_fundir=regiao_fundir))
+    CANDIDATOS["bb_selecao"] = cand
     return cand
 
 
-EXTENSOES: dict = {}  # variantes do bb_backward; fora de CANDIDATOS (o notebook 03 itera CANDIDATOS)
+EXTENSOES: dict = {}  # variantes do bb_selecao; fora de CANDIDATOS (o notebook 03 itera CANDIDATOS)
 
 
 def registrar_extensao(nome, **mudancas_em_termos) -> Candidato:
-    """Registra em EXTENSOES o bb_backward com `Termos` alterados (disp, esf, ...)."""
-    if "bb_backward" not in CANDIDATOS:
-        raise KeyError("bb_backward não registrado: chame registrar_backward antes")
-    base = CANDIDATOS["bb_backward"]
+    """Registra em EXTENSOES o bb_selecao com `Termos` alterados (disp, esf, ...)."""
+    if "bb_selecao" not in CANDIDATOS:
+        raise KeyError("bb_selecao não registrado: chame registrar_selecao antes")
+    base = CANDIDATOS["bb_selecao"]
     cand = Candidato(nome, base.familia, base.ligacao, replace(base.termos, **mudancas_em_termos))
     EXTENSOES[nome] = cand
     return cand
-
-
-def selecao_backward_bic(df, mapa=MAPA_2026, termos=Termos(), familia="betabin"):
-    """Backward por BIC: remove a contínua de menor |z| enquanto o BIC cair.
-
-    O lag, o bloco do prefeito e a região ficam sempre. Devolve (variáveis, trilha).
-    """
-    vs, trilha = list(termos.vars), []
-    N = len(df)
-
-    def bic_de(v):
-        cand = Candidato("tmp", familia, "logit", replace(termos, vars=tuple(v)))
-        aj = cand.ajustar(df, mapa)
-        z = pd.Series(np.asarray(aj.modelo.params) / np.asarray(aj.modelo.bse), index=aj.nomes)
-        return -2 * aj.loglik + aj.k * np.log(N), z
-
-    bic, z = bic_de(vs)
-    trilha.append({"removida": None, "bic": bic, "n_vars": len(vs)})
-    while True:
-        cand_rm = [v for v in vs if v != "lag"]
-        if not cand_rm:
-            break
-        pior = min(cand_rm, key=lambda v: abs(z[v]) if v in z.index else np.inf)
-        novo = [v for v in vs if v != pior]
-        bic_n, z_n = bic_de(novo)
-        if bic_n >= bic:
-            break
-        vs, bic, z = novo, bic_n, z_n
-        trilha.append({"removida": pior, "bic": bic, "n_vars": len(vs)})
-    return vs, pd.DataFrame(trilha)
 
 
 # --------------------------------------------------------------------------
@@ -554,8 +553,26 @@ def tabela_comparacao(resultados) -> pd.DataFrame:
 _DADOS_CV: dict = {}
 
 
-def definir_dados_cv(df, mapa=MAPA_2026) -> None:
-    _DADOS_CV.update(df=df, mapa=mapa)
+def n_estimado(df: pd.DataFrame, ano_ref: int = 2022, ano_alvo: int = 2026) -> np.ndarray:
+    """n̂ = eleitorado do ano-alvo x (n_2t / aptos_2t do ano de referência)."""
+    return (df[f"eleitorado_{ano_alvo}"] * df[f"n_2t_{ano_ref}"] / df[f"aptos_2t_{ano_ref}"]).to_numpy(float)
+
+
+def n_loso(df: pd.DataFrame) -> np.ndarray:
+    """n̂ do 2º turno de 2026 de uma UF ainda não apurada (regra do backtest)."""
+    return n_estimado(df, 2022, 2026)
+
+
+def validar_mapa_sem_2t_2026(mapa: dict[str, str]) -> None:
+    """Falha se algum papel além de y/n apontar para coluna do 2º turno de 2026."""
+    vazados = {k: v for k, v in mapa.items() if "2t_2026" in v and k not in ("y", "n")}
+    if vazados:
+        raise ValueError(f"covariáveis do 2º turno de 2026 no mapa: {vazados}")
+
+
+def definir_dados_cv(df: pd.DataFrame, mapa: dict[str, str] = MAPA_2026) -> None:
+    validar_mapa_sem_2t_2026(mapa)
+    _DADOS_CV.update(df=df, mapa=mapa, n_hat=n_loso(df))
 
 
 def prever_fold(nome, treino, teste):
@@ -563,7 +580,10 @@ def prever_fold(nome, treino, teste):
     df, mapa = _DADOS_CV["df"], _DADOS_CV["mapa"]
     c = {**CANDIDATOS, **EXTENSOES}[nome]
     a = c.ajustar(df.iloc[treino], mapa)
-    return np.asarray(c.prever(a, df.iloc[teste], mapa), dtype=float)
+    # A UF de teste não foi apurada: o peso n é o estimado, não o real.
+    te = df.iloc[teste].copy()
+    te[mapa["n"]] = _DADOS_CV["n_hat"][teste]
+    return np.asarray(c.prever(a, te, mapa), dtype=float)
 
 
 def parametros_ajuste(nome) -> int:

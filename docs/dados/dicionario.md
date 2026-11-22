@@ -113,3 +113,17 @@ Denominadores excluem "não informado". O perfil de 2026 foi gerado em 14/07/202
 | densidade_2022 | populacao_2022 / area_km2 | hab/km² |
 | log_densidade_2022 | ln(densidade_2022) | ln(hab/km²) |
 | cobertura_pbf_2022, cobertura_pbf_2026 | familias_pbf / domicilios_2022; sem truncar | razão |
+
+## Seções do bweb (`data/interim/tse_bweb.parquet`, fora do parquet municipal)
+
+Fonte e regras em [consolidacao.md](consolidacao.md). Uma linha por seção e ano.
+
+| Coluna | Descrição | Unidade |
+|---|---|---|
+| ano, uf, cd_municipio_tse, zona, secao | Chave da seção (código TSE do município) | |
+| id_municipio | Código IBGE; nulo em Boa Esperança do Norte | |
+| dt_bu_recebido | Recebimento do BU na totalização, horário de Brasília | timestamp |
+| aptos, comparecimento | Eleitores aptos e comparecimento da seção | pessoas |
+| votos_lula, votos_bolsonaro | Votos nominais em 13 e 22 | votos |
+| validos | votos_lula + votos_bolsonaro | votos |
+| agregadas | Seções agregadas à principal, texto da fonte | |

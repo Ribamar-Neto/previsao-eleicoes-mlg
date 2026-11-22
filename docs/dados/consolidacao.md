@@ -22,6 +22,30 @@ Classificação ideológica: ver [ideologia-partidos.md](ideologia-partidos.md).
   votos_pt / (votos_pt + votos_bolsonaro), ou seja, sobre votos nos dois candidatos.
   Não incluem exterior nem Boa Esperança do Norte.
 
+## Fonte `tse_bweb` (apuração por seção)
+
+Script: `src/coleta/tse_bweb.py`; saída `data/interim/tse_bweb.parquet` (471.010 seções em
+2022 e 497.897 em 2026), fora do `municipios.parquet`. Usada só na
+[Parte 18](../pressupostos/11-apuracao-parcial.md).
+
+- O que é: boletim de urna (BU) do 2º turno, cargo Presidente, uma linha por seção, com o
+  instante em que o BU foi recebido na totalização. Origem:
+  `https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes<ano>/buweb/bweb_2t_<UF>_<carimbo>.zip`,
+  um zip por UF; cache em `data/raw/tse_bweb/`.
+- Fuso: `dt_bu_recebido` é horário de Brasília (`America/Sao_Paulo`) em todas as UFs. Conferido:
+  o primeiro recebimento de cada UF vem depois do fechamento das 17h de Brasília, mesmo onde
+  o fuso local é 2 h atrás. `DT_ENCERRAMENTO` da fonte é local e não é usado.
+- Leiautes: 2022 traz data `dd/mm/aaaa hh:mm:ss` e `DS_AGREGADAS`; 2026 traz ISO
+  `aaaa-mm-dd hh:mm:ss` e `DS_SECOES_AGREGADAS`. Os dois entram no mesmo esquema.
+- Seções agregadas: a fonte traz só a seção principal; `agregadas` guarda a lista da fonte e
+  não há linha para as secundárias.
+- Só as 27 UFs (sem exterior). `validos` = Lula (13) + adversário (22).
+- Conferência: os totais por município fecham exatamente com `votos_pt_2t_<ano>` e
+  `n_2t_<ano>`, salvo Boa Esperança do Norte (TSE 73709), ausente do `municipios.parquet`:
+  em 2026 são 945 votos de Lula em 3.298 válidos, que entram na Parte 18.
+- Validação do esquema em Python puro (`validar_secoes`), porque Pandera não está nas
+  dependências. A virada de 2022 cai às 18:44:11, com 68,1 % recebido (TSE: 18h44).
+
 ## Escalas
 
 - O IBGE publica percentuais em 0-100; aqui todos viram fração em [0, 1], para ficarem na

@@ -19,6 +19,8 @@ def df():
     n = rng.integers(1000, 100000, N)
     p = 1 / (1 + np.exp(-(0.3 + 0.8 * d[MAPA["lag"]] + 0.4 * d[MAPA["nota_dep"]] + rng.normal(0, 0.15, N))))
     d[MAPA["n"]] = n
+    d["n_2t_2022"], d["aptos_2t_2022"] = n * 0.9, n * 1.2
+    d["eleitorado_2026"] = n * 1.25
     d[MAPA["y"]] = rng.binomial(n, p)
     return d
 
@@ -100,10 +102,17 @@ def test_tabela_comparacao(df):
     assert t.aic.dropna().is_monotonic_increasing
 
 
-def test_backward_remove_ruido(df):
-    vs, trilha = E.selecao_backward_bic(df, MAPA)
-    assert "nota_dep" in vs and "lag" in vs and len(vs) < len(E.CONTINUAS)
-    assert trilha.bic.is_monotonic_decreasing
+def test_regiao_fundir_une_dummies_e_valida(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    X0 = E.montar_X(df, MAPA, pad, E.Termos())
+    X = E.montar_X(df, MAPA, pad, E.Termos(regiao_fundir=(("Nordeste", "Norte"),)))
+    assert "reg_Nordeste" not in X and "reg_Norte" not in X
+    assert np.array_equal(X["reg_Nordeste+Norte"], X0["reg_Nordeste"] + X0["reg_Norte"])
+    assert X.shape[1] == X0.shape[1] - 1
+    with pytest.raises(ValueError):
+        E.Termos(regiao_fundir=(("Sudeste", "Sul"),))
+    with pytest.raises(ValueError):
+        E.Termos(regiao_fundir=(("Sul", "Norte"),), regiao_x_lag=True)
 
 
 # --------------------------------------------------------------------------
@@ -137,17 +146,17 @@ def test_montar_Z(df):
 
 
 @pytest.fixture
-def backward_tmp(df):
-    ant = E.CANDIDATOS.pop("bb_backward", None)
-    E.registrar_backward(["nota_dep"])
+def selecao_tmp(df):
+    ant = E.CANDIDATOS.pop("bb_selecao", None)
+    E.registrar_selecao(["nota_dep"])
     yield
     E.EXTENSOES.clear()
-    E.CANDIDATOS.pop("bb_backward", None)
+    E.CANDIDATOS.pop("bb_selecao", None)
     if ant is not None:
-        E.CANDIDATOS["bb_backward"] = ant
+        E.CANDIDATOS["bb_selecao"] = ant
 
 
-def test_extensao_prever_theta_e_prever_fold(df, backward_tmp):
+def test_extensao_prever_theta_e_prever_fold(df, selecao_tmp):
     antes = set(E.CANDIDATOS)
     c = E.registrar_extensao("bb_disp_teste", disp="regiao")
     assert "bb_disp_teste" in E.EXTENSOES and set(E.CANDIDATOS) == antes
@@ -160,7 +169,7 @@ def test_extensao_prever_theta_e_prever_fold(df, backward_tmp):
     assert list(tab.index) == a.nomes
     assert np.isfinite(E.resumo_ajuste(c, a, df, MAPA)["bic"])
     # theta único: array constante
-    a0 = E.CANDIDATOS["bb_backward"].ajustar(df, MAPA)
+    a0 = E.CANDIDATOS["bb_selecao"].ajustar(df, MAPA)
     assert np.allclose(E.prever_theta(a0, df, MAPA), a0.extra["theta"])
     E.definir_dados_cv(df, MAPA)
     pi = E.prever_fold("bb_disp_teste", np.arange(400), np.arange(400, 500))
@@ -168,14 +177,14 @@ def test_extensao_prever_theta_e_prever_fold(df, backward_tmp):
     assert E.parametros_ajuste("bb_disp_teste") == a.k
 
 
-def test_extensao_exige_backward_e_offset_nao_suportado(df):
-    ant = E.CANDIDATOS.pop("bb_backward", None)
+def test_extensao_exige_selecao_e_offset_nao_suportado(df):
+    ant = E.CANDIDATOS.pop("bb_selecao", None)
     try:
         with pytest.raises(KeyError):
             E.registrar_extensao("x", disp="regiao")
     finally:
         if ant is not None:
-            E.CANDIDATOS["bb_backward"] = ant
+            E.CANDIDATOS["bb_selecao"] = ant
     with pytest.raises(NotImplementedError):
         E.Candidato("t", "betabin", "logit", E.Termos(lag="offset", disp="regiao")).ajustar(df, MAPA)
 
@@ -183,9 +192,9 @@ def test_extensao_exige_backward_e_offset_nao_suportado(df):
 def test_slx_vazio_nao_altera_desenho(df):
     mapa2 = {**MAPA, "w_lag": "w_col"}
     d2 = df.assign(w_col=np.random.default_rng(5).normal(size=len(df)))
-    E.registrar_backward(["nota_dep", "pct_dep_esq"])
+    E.registrar_selecao(["nota_dep", "pct_dep_esq"])
     E.registrar_extensao("bb_disp", disp="regiao")
-    for cand in (E.CANDIDATOS["bb_backward"], E.EXTENSOES["bb_disp"]):
+    for cand in (E.CANDIDATOS["bb_selecao"], E.EXTENSOES["bb_disp"]):
         a = E.montar_X(df, MAPA, E.Padronizador(MAPA).fit(df), cand.termos)
         b = E.montar_X(d2, mapa2, E.Padronizador(mapa2).fit(d2), cand.termos)
         pd.testing.assert_frame_equal(a, b)
@@ -202,3 +211,49 @@ def test_slx_coluna_w_lag_padronizada_no_treino(df):
     esperado = (te["w_col"] - tr["w_col"].mean()) / tr["w_col"].std(ddof=0)
     np.testing.assert_allclose(X["w_lag"].to_numpy(), esperado.to_numpy())
     assert abs(E.montar_X(tr, mapa, pad, t)["w_lag"].mean()) < 1e-10
+
+
+def test_mapa_padrao_sem_covariavel_do_2t_2026():
+    proibidas = {k: v for k, v in E.MAPA_2026.items() if "2t_2026" in v and k not in ("y", "n")}
+    assert proibidas == {}
+    assert E.MAPA_2026_PRE is E.MAPA_2026
+    E.validar_mapa_sem_2t_2026(E.MAPA_2026)
+    with pytest.raises(ValueError):
+        E.validar_mapa_sem_2t_2026({**E.MAPA_2026, "comparecimento": "taxa_comparecimento_2t_2026"})
+
+
+def test_n_loso_formula():
+    d = pd.DataFrame({"eleitorado_2026": [1000.0, 200.0], "n_2t_2022": [700.0, 90.0],
+                      "aptos_2t_2022": [1000.0, 100.0]})
+    np.testing.assert_allclose(E.n_loso(d), [700.0, 180.0])
+
+
+def test_prever_fold_usa_n_estimado_no_teste(monkeypatch):
+    n_col = E.MAPA_2026["n"]
+    d = pd.DataFrame({n_col: [10.0, 20.0, 30.0], "eleitorado_2026": [100.0, 200.0, 300.0],
+                      "n_2t_2022": [5.0, 5.0, 5.0], "aptos_2t_2022": [10.0, 10.0, 10.0]})
+    vistos: dict = {}
+
+    class Falso:
+        def ajustar(self, df, mapa):
+            vistos["treino"] = df[mapa["n"]].to_numpy()
+
+        def prever(self, ajuste, df, mapa):
+            vistos["teste"] = df[mapa["n"]].to_numpy()
+            return np.full(len(df), 0.5)
+
+    monkeypatch.setitem(E.EXTENSOES, "falso", Falso())
+    E.definir_dados_cv(d)
+    E.prever_fold("falso", np.array([0, 1]), np.array([2]))
+    np.testing.assert_allclose(vistos["treino"], [10.0, 20.0])
+    np.testing.assert_allclose(vistos["teste"], [150.0])
+    assert d[n_col].tolist() == [10.0, 20.0, 30.0]
+
+
+def test_mapas_do_backtest_inalterados():
+    from src import backtest as B
+
+    assert B.MAPA_FIT_2022["comparecimento"] == "taxa_comparecimento_2t_2018"
+    assert B.MAPA_FIT_2022["delta_comp"] == "delta_comparecimento_2t_2022"
+    assert B.MAPA_PREV_2026["comparecimento"] == "taxa_comparecimento_2t_2022"
+    assert B.MAPA_PREV_2026["delta_comp"] == "delta_comparecimento_2t_2022"

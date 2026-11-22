@@ -16,7 +16,7 @@ def test_bfgs_padrao_chega_ao_otimo_no_modelo_final():
     """Regra: o gtol padrão do BFGS é absoluto (1e-3), não proporcional a N.
 
     A llf é SOMADA; com gtol=1e-4*N o BFGS para dezenas de unidades abaixo do
-    ótimo no bb_backward real (N=5.570, 12 contínuas + bloco + região). Um
+    ótimo no bb_selecao real (N=5.570, 12 contínuas + bloco + região). Um
     problema sintético não reproduz o mau condicionamento, por isso o teste usa
     os dados reais. O padrão deve ficar a menos de 0,5 do ótimo polido.
     """
@@ -25,10 +25,12 @@ def test_bfgs_padrao_chega_ao_otimo_no_modelo_final():
     import pandas as pd
 
     df = pd.read_parquet(PARQUET)
-    sel = set(json.loads(SELECAO.read_text())["backward_bic"])
+    registro = json.loads(SELECAO.read_text())
+    sel = set(registro["variaveis"])
+    fundir = tuple(tuple(g) for g in registro["regiao_fundir"])
     vars_ = tuple(v for v in CONTINUAS if v in sel)
     pad = Padronizador(MAPA_2026).fit(df)
-    X = montar_X(df, MAPA_2026, pad, Termos(vars=vars_))
+    X = montar_X(df, MAPA_2026, pad, Termos(vars=vars_, regiao_fundir=fundir))
     y = df[MAPA_2026["y"]].to_numpy(float)
     n = df[MAPA_2026["n"]].to_numpy(float)
     mod = m.BetaBinomial(y, X.to_numpy(float), n)

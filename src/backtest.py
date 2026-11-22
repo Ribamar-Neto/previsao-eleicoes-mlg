@@ -14,7 +14,7 @@ from scipy.optimize import brentq
 from scipy.special import expit, logit
 
 from src import modelos as M
-from src.especificacoes import CANDIDATOS, CONTINUAS, MAPA_2026
+from src.especificacoes import CANDIDATOS, CONTINUAS, MAPA_2026, n_estimado
 
 MODELOS = ["quasi_logit", "quasi_reglag", "bb_logit", "bb_reglag", "glmm_uf"]
 # Fora do ajuste ex-ante: comparecimento do próprio turno e sua variação não são conhecidos
@@ -111,7 +111,7 @@ def recalibrar(pi, n, alvo) -> tuple[np.ndarray, float]:
 
 def n_previsto(df, mapa_prev=MAPA_PREV_2026, ano_ref=2022, ano_alvo=2026):
     """n̂ = eleitorado do ano-alvo x (n_2t / aptos_2t do ano de referência)."""
-    return (df[f"eleitorado_{ano_alvo}"] * df[f"n_2t_{ano_ref}"] / df[f"aptos_2t_{ano_ref}"]).to_numpy(float)
+    return n_estimado(df, ano_ref, ano_alvo)
 
 
 def erros_grupo(pi, n_peso, y_real, n_real, grupos) -> pd.DataFrame:

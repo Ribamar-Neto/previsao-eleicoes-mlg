@@ -1,0 +1,2 @@
+modelo,mae_uf_pp_completo,se_uf_pp_completo,mae_uf_pp_aninhado,se_uf_pp_aninhado,n_ufs,melhor_modelo,se_melhor_loso,limite_1ep_aninhado,escolhido_aninhado
+bb_selecao,1.0347676896276061,0.15577566583049587,1.0870315004240017,0.1567510853879422,27,bin_probit,0.13472326237567608,1.1330912482398103,bb_selecao

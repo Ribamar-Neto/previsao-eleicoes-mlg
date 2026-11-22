@@ -6,18 +6,17 @@
 |---|---|
 | [01-visao-geral.md](01-visao-geral.md) | Problema, decisões de projeto e razões, regra de seleção, resultados finais |
 | [02-aed.md](02-aed.md) | Análise exploratória dos dados |
-| [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações e especificações candidatas |
-| [04-diagnostico.md](04-diagnostico.md) | Resíduos, influência, envelope e autocorrelação espacial |
-| [05-validacao-cruzada.md](05-validacao-cruzada.md) | Validação cruzada (5 dobras e leave-one-state-out) e regra de seleção |
-| [06-estimativas-regionais.md](06-estimativas-regionais.md) | Estimativas por região e intervalos |
-| [07-pendencias.md](07-pendencias.md) | Pendências abertas, com efeito e correção possível |
-| [08-backtest.md](08-backtest.md) | Ajuste em 2018 e previsão de 2026 a partir de 2022 |
-| [09-dispersao-regional.md](09-dispersao-regional.md) | Dispersão do beta-binomial por região e porte (modelo `bb_disp`), com teste de Wald robusto |
-| [10-dependencia-espacial.md](10-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito, modelo final `bb_slx`) e corte de 2022 |
-| [11-modelo-final.md](11-modelo-final.md) | Estimativas regionais e por UF do modelo final `bb_slx`, cobertura |
-| [12-krigagem-residuos.md](12-krigagem-residuos.md) | Krigagem dos resíduos (`bb_slx_krig`, rejeitada) e decomposição da correlação residual |
-| [13-car-residuos.md](13-car-residuos.md) | Efeito CAR/BYM nos resíduos (`bb_slx_car`): regra, procedimento, resultado e decisão |
-| [referencias.md](referencias.md) | Referências únicas e conferidas (39, todas verificadas) |
+| [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, fusão Nordeste+Norte e seleção de variáveis (`bb_selecao`) |
+| [04-diagnostico.md](04-diagnostico.md) | Resíduos, influência, envelope e autocorrelação espacial; pressupostos dos modelos escolhidos (`bb_selecao` e `bb_slx`: ligação, linearidade, variância, colinearidade, influência) |
+| [05-validacao-cruzada.md](05-validacao-cruzada.md) | Validação cruzada (5 dobras e LOSO sem vazamento), regra de 1 EP, seleção aninhada do `bb_selecao`, limite L e sensibilidade regional |
+| [06-backtest.md](06-backtest.md) | Ajuste em 2018 e previsão de 2026 a partir de 2022 |
+| [07-dispersao-regional.md](07-dispersao-regional.md) | Dispersão do beta-binomial por região e porte (`bb_disp`), com Wald robusto |
+| [08-dependencia-espacial.md](08-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito) e corte de 2022 |
+| [09-modelo-final.md](09-modelo-final.md) | Regra de informação (covariáveis pré-turno, n̂), estimativas e cobertura do `bb_slx` |
+| [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) | Krigagem e CAR/BYM nos resíduos (rejeitadas) e decomposição do I de Moran |
+| [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026) |
+| [12-pendencias.md](12-pendencias.md) | Pendências abertas, com efeito e correção possível |
+| [referencias.md](referencias.md) | Referências únicas e conferidas |
 
 Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 [../dados/dicionario.md](../dados/dicionario.md),
@@ -28,13 +27,12 @@ Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 | Notebook | Partes | Doc |
 |---|---|---|
 | `01-AED` | 1 a 4 | [02-aed.md](02-aed.md) |
-| `02-MLG` | 5 a 9 (modelos) | [03-modelos-candidatos.md](03-modelos-candidatos.md) |
-| `02-MLG` | 10 (diagnósticos) | [04-diagnostico.md](04-diagnostico.md) |
+| `02-MLG` | 5 a 9 | [03-modelos-candidatos.md](03-modelos-candidatos.md) |
+| `02-MLG` | 10 | [04-diagnostico.md](04-diagnostico.md) |
 | `03-validacao` | 11 | [05-validacao-cruzada.md](05-validacao-cruzada.md) |
-| `03-validacao` | 12 | [06-estimativas-regionais.md](06-estimativas-regionais.md) |
-| `04-backtest` | 13 | [08-backtest.md](08-backtest.md) |
-| `05-modelo-final` | 14 (com adendo Wald) | [09-dispersao-regional.md](09-dispersao-regional.md) |
-| `05-modelo-final` | 15 e 16 (com adendos SLX e corte 2022) | [10-dependencia-espacial.md](10-dependencia-espacial.md) |
-| `05-modelo-final` | 17 | [11-modelo-final.md](11-modelo-final.md) |
-| `05-modelo-final` | 18 | [12-krigagem-residuos.md](12-krigagem-residuos.md) |
-| `05-modelo-final` | 19 | [13-car-residuos.md](13-car-residuos.md) |
+| `04-backtest` | 12 | [06-backtest.md](06-backtest.md) |
+| `05-modelo-final` | 13 | [07-dispersao-regional.md](07-dispersao-regional.md) |
+| `05-modelo-final` | 14 e 15 | [08-dependencia-espacial.md](08-dependencia-espacial.md) |
+| `05-modelo-final` | 16 | [09-modelo-final.md](09-modelo-final.md) |
+| `05-modelo-final` | 17 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) |
+| `06-apuracao-parcial` | 18 | [11-apuracao-parcial.md](11-apuracao-parcial.md) |
