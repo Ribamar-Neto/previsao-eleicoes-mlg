@@ -6,6 +6,8 @@ Motivo: os resíduos de todos os modelos têm autocorrelação espacial positiva
 Referências: Griffith (2003); Tiefelsdorf & Griffith (2007); Conley (1999).
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
@@ -282,14 +284,33 @@ def moran_decomposto(residuos, w, grupos):
     return out
 
 
-def krigagem_residuos(r_treino, lat, lon, treino, teste, grupos, corte_km):
+def sd_betabinomial(pi: np.ndarray, n: np.ndarray, theta: np.ndarray) -> np.ndarray:
+    """Desvio-padrão da proporção y/n no beta-binomial: sqrt(pi (1-pi) [1 + (n-1) theta] / n).
+
+    Motivo: a variância do resíduo de resposta é cerca de 1/n, então resíduos sem
+    padronizar dão peso desigual aos municípios na krigagem, no CAR e no I de Moran.
+    """
+    p = np.clip(np.asarray(pi, float), 1e-9, 1 - 1e-9)
+    n = np.asarray(n, float)
+    return np.sqrt(p * (1 - p) * (1 + (n - 1) * np.asarray(theta, float)) / n)
+
+
+def residuo_pearson(y: np.ndarray, n: np.ndarray, pi: np.ndarray, theta: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Resíduo de Pearson beta-binomial z = (y/n - pi) / sd e o próprio sd (escala da proporção)."""
+    sd = sd_betabinomial(pi, n, theta)
+    return (np.asarray(y, float) / np.asarray(n, float) - np.asarray(pi, float)) / sd, sd
+
+
+def krigagem_residuos(r_treino, lat, lon, treino, teste, grupos, corte_km, sd_teste=None):
     """Krigagem simples dos resíduos de treino com núcleo de Bartlett: (rho, k_teste).
 
     `lat`, `lon`, `grupos` cobrem todas as linhas; `treino` e `teste` são índices e
     `r_treino` segue a ordem de `treino`. k_i = soma K(d_ij) r_j / soma K(d_ij) sobre o
     treino, K = 1 - d/corte para d < corte (0 sem vizinho). rho é a inclinação sem
     intercepto de r_i em k_i, com k_i do treino calculado só com municípios de outros
-    grupos (como o teste vê só outras UFs), cortada em [0, 1].
+    grupos (como o teste vê só outras UFs), cortada em [0, 1]. Com `sd_teste` (um por
+    município de teste), r_treino é padronizado e k_teste volta na escala do desvio-padrão
+    (k_i x sd_i); sem ele, nada muda.
     """
     tr, te = np.asarray(treino), np.asarray(teste)
     r = np.asarray(r_treino, float)
@@ -305,7 +326,8 @@ def krigagem_residuos(r_treino, lat, lon, treino, teste, grupos, corte_km):
     k_tr = kb[:ntr]
     s2 = float(k_tr @ k_tr)
     rho = float(np.clip((k_tr @ r) / s2, 0.0, 1.0)) if s2 > 0 else 0.0
-    return rho, kb[ntr:]
+    k_teste = kb[ntr:]
+    return rho, (k_teste if sd_teste is None else k_teste * np.asarray(sd_teste, float))
 
 
 def _adjacencia_binaria(w):
@@ -327,7 +349,7 @@ def _logdet_spd(M):
     return float(np.sum(np.log(np.abs(splu(M.tocsc(), permc_spec="MMD_AT_PLUS_A", diag_pivot_thresh=0.0).U.diagonal()))))
 
 
-def car_residuos(r_treino, w, treino, teste):
+def car_residuos(r_treino, w, treino, teste, sd_teste=None):
     """Efeito BYM em dois estágios nos resíduos logit: (parâmetros, previsão do teste).
 
     r = u + e, u ~ CAR de Leroux com precisão (1/tau)[(1-lam) I + lam (D - A)] na
@@ -335,7 +357,9 @@ def car_residuos(r_treino, w, treino, teste):
     verossimilhança gaussiana no subgrafo de treino, então nada do teste entra no ajuste.
     A previsão é a média a posteriori de u no grafo completo dado só r de treino; a UF
     deixada de fora só é informada pelos vizinhos de treino pela divisa. Ilhas ficam com
-    previsão 0 (mais a média removida), sem NaN.
+    previsão 0 (mais a média removida), sem NaN. Com `sd_teste` (um por município de
+    teste), r_treino é padronizado e a previsão volta multiplicada por sd_i; sem ele,
+    nada muda.
     """
     tr, te = np.asarray(treino), np.asarray(teste)
     r = np.asarray(r_treino, float)
@@ -345,6 +369,7 @@ def car_residuos(r_treino, w, treino, teste):
     Ao = A[tr][:, tr]
     n = len(tr)
     I = sp.identity(n, format="csc")
+    falhas = [0]
 
     def nll(theta):
         tau, lam, s2 = np.exp(theta[0]), 0.99 / (1 + np.exp(-theta[1])), np.exp(2 * theta[2])
@@ -353,6 +378,7 @@ def car_residuos(r_treino, w, treino, teste):
             ld = _logdet_spd(Q + I / s2) - _logdet_spd(Q) + n * np.log(s2)
             quad = rc @ rc / s2 - (rc @ splu(Q + I / s2).solve(rc)) / s2**2
         except RuntimeError:
+            falhas[0] += 1
             return 1e12
         v = 0.5 * (ld + quad)
         return v if np.isfinite(v) else 1e12
@@ -360,6 +386,12 @@ def car_residuos(r_treino, w, treino, teste):
     v0 = max(float(rc.var()), 1e-12)
     inicio = np.array([np.log(v0 / 2), 0.0, 0.5 * np.log(v0 / 2)])
     ot = minimize(nll, inicio, method="Nelder-Mead", options={"xatol": 1e-3, "fatol": 1e-4, "maxiter": 400})
+    if not ot.success:
+        warnings.warn(f"car_residuos: otimizador não convergiu em {ot.nit} iterações ({ot.message}); "
+                      "usando o melhor ponto encontrado", stacklevel=2)
+    if falhas[0]:
+        warnings.warn(f"car_residuos: {falhas[0]} avaliações da verossimilhança falharam na fatoração "
+                      "e valeram 1e12", stacklevel=2)
     tau, lam, s2 = float(np.exp(ot.x[0])), float(0.99 / (1 + np.exp(-ot.x[1]))), float(np.exp(2 * ot.x[2]))
 
     N = A.shape[0]
@@ -369,4 +401,5 @@ def car_residuos(r_treino, w, treino, teste):
     rfull[tr] = rc
     Q = _precisao_leroux(A, lam) / tau + sp.diags(Do / s2)
     m = splu(Q.tocsc()).solve(Do * rfull / s2)
-    return {"tau": tau, "lam": lam, "sigma2": s2}, m[te] + mu
+    prev = m[te] + mu
+    return {"tau": tau, "lam": lam, "sigma2": s2}, (prev if sd_teste is None else prev * np.asarray(sd_teste, float))

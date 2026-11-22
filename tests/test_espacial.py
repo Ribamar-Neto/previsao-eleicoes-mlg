@@ -328,3 +328,54 @@ def test_car_no_isolado_fica_finito():
     r = np.array([0.5, 0.4, 0.6])
     _, prev = e.car_residuos(r, w, np.array([0, 1, 2]), np.array([3]))
     assert np.isfinite(prev).all()
+
+
+def test_car_avisa_quando_otimizador_nao_converge(monkeypatch):
+    original = e.minimize
+
+    def curto(*a, **k):
+        k["options"] = {**k["options"], "maxiter": 3}
+        return original(*a, **k)
+
+    monkeypatch.setattr(e, "minimize", curto)
+    w, r = _simular_car()
+    idx = np.arange(len(r))
+    with pytest.warns(UserWarning, match="não convergiu"):
+        e.car_residuos(r, w, idx, idx[:0])
+
+
+def test_sd_betabinomial_reduz_a_binomial_sem_dispersao():
+    pi, n = np.array([0.3, 0.5]), np.array([100.0, 400.0])
+    np.testing.assert_allclose(e.sd_betabinomial(pi, n, np.zeros(2)), np.sqrt(pi * (1 - pi) / n))
+    assert (e.sd_betabinomial(pi, n, np.full(2, 0.01)) > e.sd_betabinomial(pi, n, np.zeros(2))).all()
+
+
+def test_residuo_pearson_tem_variancia_um():
+    rng = np.random.default_rng(0)
+    n = rng.integers(50, 5000, 20000).astype(float)
+    pi, th = np.full(20000, 0.4), np.full(20000, 0.002)
+    p = rng.beta(0.4 * (1 / th - 1), 0.6 * (1 / th - 1), 20000)
+    y = rng.binomial(n.astype(int), p).astype(float)
+    z, sd = e.residuo_pearson(y, n, pi, th)
+    assert 0.9 < z.var() < 1.1
+    np.testing.assert_allclose(z * sd, y / n - pi)
+
+
+def test_krigagem_sd_teste_escala_a_correcao_e_mantem_rho():
+    lat = np.array([0.0, 0.0, 0.0])
+    lon = np.array([0.0, 0.5, 5.0])
+    args = (np.array([1.0, 3.0]), lat, lon, [1, 2], [0], np.array([0, 1, 2]), 200.0)
+    rho, k = e.krigagem_residuos(*args)
+    rho2, k2 = e.krigagem_residuos(*args, sd_teste=np.array([0.05]))
+    assert rho == rho2
+    np.testing.assert_allclose(k2, k * 0.05)
+
+
+def test_car_sd_teste_escala_a_previsao():
+    w, r = _simular_car(lado=15)
+    idx = np.arange(len(r))
+    te, tr = idx[:30], idx[30:]
+    p1, a = e.car_residuos(r[tr], w, tr, te)
+    p2, b = e.car_residuos(r[tr], w, tr, te, sd_teste=np.full(30, 0.1))
+    assert p1 == p2
+    np.testing.assert_allclose(b, a * 0.1)

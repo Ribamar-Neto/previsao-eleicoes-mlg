@@ -128,3 +128,40 @@ def test_montar_base_taxa_literal_reduz_n_u() -> None:
     assert b_lit.loc[2, "n_u"] == 12.0   # 25 x 0,5 = 12,5 arredondado
     s.loc[3:4, "uf"] = "AA"   # município fora do parquet usa a taxa da UF na mesma definição
     assert A.montar_base(s, dfm, 2022, rec, "dois_candidatos").loc[3, "taxa"] == pytest.approx(150 / 300)
+
+
+def _base_nu() -> pd.DataFrame:
+    # 3 UFs de 6 municípios; r_i = n_c / (aptos_rec x taxa) varia por município e por UF
+    linhas = []
+    for j, (uf, f) in enumerate([("AA", 1.0), ("BB", 1.2), ("CC", 0.8)]):
+        for i in range(6):
+            linhas.append({"cd": 10 * j + i, "uf": uf, "n_c": 100.0 * f * (1 + 0.1 * i), "aptos_rec": 200.0,
+                           "taxa": 0.5, "n_u": 50.0})
+    return pd.DataFrame(linhas).set_index("cd")
+
+
+def test_fatores_nu_centrados_em_1_e_reproduziveis() -> None:
+    base = _base_nu()
+    k = A.fatores_nu(base, 4000, 3)
+    assert k.shape == (4000, len(base))
+    assert np.allclose(k, A.fatores_nu(base, 4000, 3))
+    assert np.median(np.log(k)) == pytest.approx(0.0, abs=0.05)
+    assert np.log(k).std() > 0
+
+
+def test_fatores_nu_sem_dispersao_vira_um() -> None:
+    base = _base_nu().assign(n_c=100.0)
+    assert np.allclose(A.fatores_nu(base, 50, 1), 1.0)
+
+
+def test_fatores_nu_uf_pequena_usa_pool_nacional_e_invalidos_recebem_fator() -> None:
+    base = _base_nu()
+    base.loc[[0, 1, 2, 3], "n_c"] = 0.0   # AA fica com 2 válidos (< 5) e 4 inválidos
+    k = A.fatores_nu(base, 100, 2)
+    assert np.isfinite(k).all() and (k > 0).all()
+
+
+def test_montar_base_aptos_rec() -> None:
+    base = A.montar_base(_secoes(), _dfm(), 2022, A.recebidas_ate(_secoes(), 5))
+    assert base.loc[1, "aptos_rec"] == 12.0 and base.loc[2, "aptos_rec"] == 0.0
+    assert base.loc[1, "aptos_rec"] + base.loc[1, "aptos_pend"] == 24.0

@@ -83,7 +83,7 @@ def montar_base(secoes: pd.DataFrame, dfm: pd.DataFrame, ano: int, recebida: pd.
                 definicao: str = DEFINICAO_TAXA) -> pd.DataFrame:
     """Uma linha por município (código TSE) das seções do `ano`, no corte `recebida`.
 
-    Colunas: uf, regiao, y_c, n_c (apurados), aptos_pend, taxa, n_u, y_final, n_final, prev
+    Colunas: uf, regiao, y_c, n_c (apurados), aptos_pend, aptos_rec, taxa, n_u, y_final, n_final, prev
     (share do 2º turno anterior; NaN sem linha no parquet) e `no_modelo`. `definicao` escolhe a taxa
     de n_u (`DEFINICOES_TAXA`); a contagem bruta não usa n_u.
     """
@@ -95,6 +95,7 @@ def montar_base(secoes: pd.DataFrame, dfm: pd.DataFrame, ano: int, recebida: pd.
     base["y_c"] = rec["votos_lula"].reindex(base.index).fillna(0).astype(float)
     base["n_c"] = rec["validos"].reindex(base.index).fillna(0).astype(float)
     base["aptos_pend"] = ap.reindex(base.index).fillna(0).astype(float)
+    base["aptos_rec"] = s[s["_rec"]].groupby("cd_municipio_tse")["aptos"].sum().reindex(base.index).fillna(0).astype(float)
     base["y_final"] = fin["votos_lula"].astype(float)
     base["n_final"] = fin["validos"].astype(float)
     m = dfm.assign(cd=dfm["id_municipio_tse"].astype("int64")).set_index("cd")
@@ -208,14 +209,71 @@ def ajustar_parcial(cand: E.Candidato, dfm: pd.DataFrame, mapa: dict[str, str], 
     )
 
 
+MIN_MUN_UF = 5   # abaixo disso a UF sorteia o resíduo municipal do pool nacional
+
+
+def _residuos_nu(base: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, float]:
+    """(válidos, e_i, sd_UF) da razão r_i = n_c / (aptos_rec x taxa), só com seções recebidas.
+
+    Válido: n_c > 0 e aptos_rec x taxa > 0. R_UF = log(Σ n_c / Σ aptos_rec x taxa) por UF e R_BR no
+    país; sd_UF = desvio (ddof 1) de R_UF - R_BR entre UFs com válidos; e_i = log r_i - R_UF.
+    """
+    esperado = base["aptos_rec"] * base["taxa"]
+    ok = ((base["n_c"] > 0) & (esperado > 0)).to_numpy()
+    uf = base["uf"].to_numpy()
+    nc, es = base["n_c"].to_numpy(float), esperado.to_numpy(float)
+    r_uf = {u: np.log(nc[ok & (uf == u)].sum() / es[ok & (uf == u)].sum()) for u in np.unique(uf[ok])}
+    r_br = np.log(nc[ok].sum() / es[ok].sum())
+    sd_uf = float(np.std([v - r_br for v in r_uf.values()], ddof=1)) if len(r_uf) > 1 else 0.0
+    e = np.full(len(base), np.nan)
+    e[ok] = np.log(nc[ok] / es[ok]) - np.array([r_uf[u] for u in uf[ok]])
+    return ok, e, sd_uf
+
+
+def sd_uf_nu(base: pd.DataFrame) -> float:
+    """Desvio entre UFs da razão n_c / (aptos_rec x taxa), em log, contra o Brasil."""
+    return _residuos_nu(base)[2]
+
+
+def fatores_nu(base: pd.DataFrame, B: int, semente: int) -> np.ndarray:
+    """Fatores k (B x municípios de `base`) da incerteza de n_u, só com seções já recebidas.
+
+    Por simulação, choque de UF ~ N(0, sd_UF²) mais resíduo municipal e_i sorteado com
+    reposição da UF (ou do pool nacional com menos de `MIN_MUN_UF` válidos), centrado pela
+    mediana do pool: k tem centro 1 em log. Ver `_residuos_nu`.
+    """
+    ok, e, sd_uf = _residuos_nu(base)
+    uf = base["uf"].to_numpy()
+    pool_br = e[ok]
+    rng = np.random.default_rng(semente)
+    ufs = np.unique(uf)
+    u = rng.normal(0.0, sd_uf, size=(B, len(ufs)))
+    k = np.empty((B, len(base)))
+    for j, g in enumerate(ufs):
+        idx = np.flatnonzero(uf == g)
+        pool = e[ok & (uf == g)]
+        if len(pool) < MIN_MUN_UF:
+            pool = pool_br
+        k[:, idx] = np.exp(u[:, [j]] + rng.choice(pool, size=(B, len(idx))) - np.median(pool))
+    return k
+
+
 def intervalos(pm: ParcialModelo, base_m: pd.DataFrame, base: pd.DataFrame, pi_uf: pd.Series,
-               ligacao: str, sigma_uf: float, B: int, semente: int) -> pd.DataFrame:
+               ligacao: str, sigma_uf: float, B: int, semente: int,
+               fatores: np.ndarray | None = None) -> pd.DataFrame:
     """IC 95 % do share por região e Brasil: votos já apurados + restante simulado.
 
     `base_m` = linhas do parquet (ordem de `pm`); município fora do modelo entra fixo no
     share de UF `pi_uf`. Choque de UF com `sigma_uf`, β com Conley, beta-binomial com θᵢ.
+    `fatores` (de `fatores_nu`, B x linhas de `base`) simula n_u por município, nos votos e no
+    denominador; sem ele, n_u é fixo.
     """
     n_u = base_m["n_u"].to_numpy(float)
+    nu_b = None
+    if fatores is not None:
+        nu_b = np.rint(base["n_u"].to_numpy(float)[None, :] * fatores)
+        pos = base.index.get_indexer(base_m.index)
+        n_u = np.where(pos[None, :] >= 0, nu_b[:, np.maximum(pos, 0)], n_u[None, :])
     sims = M.simular_votos_grupo(pm.beta, pm.cov, pm.X, n_u, base_m["uf"].to_numpy(),
                                  link=E.LIGACOES[ligacao], theta=pm.theta, sigma=sigma_uf,
                                  B=B, rng=semente)
@@ -225,12 +283,19 @@ def intervalos(pm: ParcialModelo, base_m: pd.DataFrame, base: pd.DataFrame, pi_u
     mat = np.array([[1.0 if reg_da_uf[u] == r else 0.0 for r in regs] for u in ufs])
     votos = sims @ mat
     fora = base[~base["no_modelo"]]
-    fixo = (fora["y_c"] + fora["uf"].map(pi_uf).astype(float) * fora["n_u"]).groupby(fora["regiao"]).sum()
+    # y_c de `fora` já está em `apurado`; aqui entra só o restante projetado com π da UF
+    fixo = (fora["uf"].map(pi_uf).astype(float) * fora["n_u"]).groupby(fora["regiao"]).sum()
     apurado = base["y_c"].groupby(base["regiao"]).sum()
     den = (base["n_c"] + base["n_u"]).groupby(base["regiao"]).sum()
-    votos = votos + (apurado.reindex(regs) + fixo.reindex(regs).fillna(0.0)).to_numpy()[None, :]
-    share = np.column_stack([votos / den.reindex(regs).to_numpy()[None, :],
-                             votos.sum(1) / float(den.sum())])
+    fixo_r = fixo.reindex(regs).fillna(0.0).to_numpy()[None, :]
+    den_r = den.reindex(regs).to_numpy()[None, :]
+    if nu_b is not None:
+        reg_mat = (base["regiao"].to_numpy()[:, None] == np.array(regs)[None, :]).astype(float)
+        peso_fora = (~base["no_modelo"].to_numpy()) * base["uf"].map(pi_uf).astype(float).fillna(0.0).to_numpy()
+        fixo_r = fixo_r + ((nu_b - base["n_u"].to_numpy(float)[None, :]) * peso_fora[None, :]) @ reg_mat
+        den_r = den_r + (nu_b - base["n_u"].to_numpy(float)[None, :]) @ reg_mat
+    votos = votos + (apurado.reindex(regs).to_numpy()[None, :] + fixo_r)
+    share = np.column_stack([votos / den_r, votos.sum(1) / den_r.sum(1)])
     q = np.quantile(share, [0.025, 0.5, 0.975], axis=0)
     return pd.DataFrame({"q025": q[0], "q50": q[1], "q975": q[2]}, index=regs + ["Brasil"])
 

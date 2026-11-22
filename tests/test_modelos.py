@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -232,3 +234,29 @@ def test_residuos_quantilicos_rapido_theta_vetor():
     ref = m.residuos_quantilicos(y, n, pi, theta=th, rng=5)
     assert np.abs(r - ref).max() < 0.1
     assert np.allclose(rap(y, n, pi, theta=200.0, rng=5), rap(y, n, pi, theta=np.full(200, 200.0), rng=5))
+
+
+def test_cov_psd_mantem_matriz_psd():
+    c = np.array([[2.0, 0.5], [0.5, 1.0]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        np.testing.assert_allclose(m.cov_psd(c), c)
+
+
+def test_cov_psd_corta_indefinida_e_avisa():
+    c = np.array([[1.0, 2.0], [2.0, 1.0]])
+    with pytest.warns(UserWarning, match="não PSD"):
+        r = m.cov_psd(c)
+    assert np.linalg.eigvalsh(r).min() >= -1e-12
+
+
+def test_simular_votos_grupo_aceita_n_por_simulacao():
+    X = np.ones((3, 1))
+    n1 = np.array([100, 100, 100])
+    n2 = np.vstack([n1 * 0, n1 * 0])
+    beta, cov = np.array([0.0]), np.zeros((1, 1))
+    g = np.array(["a", "a", "b"])
+    a = m.simular_votos_grupo(beta, cov, X, n1, g, B=2, rng=1)
+    b = m.simular_votos_grupo(beta, cov, X, np.vstack([n1, n1]), g, B=2, rng=1)
+    assert np.allclose(a, b)
+    assert (m.simular_votos_grupo(beta, cov, X, n2.astype(int)[:, :3], g, B=2, rng=1) == 0).all()

@@ -42,6 +42,11 @@ Resíduos de `bb_slx`, dentro da amostra:
 - [deduced] Os vínculos dentro da UF carregam mais correlação (0,34) que os entre UFs (0,16). Tirar a média da UF reduz o I em cerca de um quinto (0,336 para 0,268). Parte da correlação é, então, um choque no nível da UF, já coberto por σ_UF nos intervalos da Parte 16 ([09](09-modelo-final.md)). O resto é agrupamento local dentro das UFs, que as covariáveis e as UFs vizinhas não explicam.
 - [deduced] O I dos resíduos LOSO (0,42) fica acima do de dentro da amostra (0,34) porque todos os municípios da UF deixada de fora compartilham o mesmo erro de extrapolação.
 
+- **Limitação.** O corte do correlograma vem dos resíduos dentro da amostra com todos os
+  dados (notebook 05, c. 20) e é reusado como alcance da krigagem (c. 33): vazamento leve
+  que favorece aceitar a krigagem. Ela foi rejeitada, então a decisão não muda
+  ([12](12-pendencias.md)).
+
 ## 4. Efeito espacial CAR/BYM nos resíduos
 
 - **Modelo.** Em dois estágios: `bb_slx` é ajustado em cada dobra e o resíduo logit é r (o mesmo da krigagem). Depois r = u + ε, com u CAR de Leroux (precisão (1/τ)[(1 − λ)I + λ(D − A)], A a adjacência rainha binária e simétrica) e ε ruído iid N(0, σ²). É a estrutura BYM: parte espacial mais parte sem estrutura, com λ entre elas.
@@ -75,9 +80,42 @@ Parâmetros estimados no treino (por dobra):
 - [deduced] No 5-fold o CAR tem muito ganho (MAE por UF 0,846 para 0,474; I de −0,04) porque cada município de teste tem vizinhos de treino. Esse esquema não imita a previsão de uma UF nova e não entra na decisão.
 - [deduced] Um λ mínimo de 0,495 em algumas dobras está perto do ponto de partida do otimizador (λ ≈ 0,5); a verossimilhança é plana em λ nessas dobras ou a busca parou cedo. Não foi investigado, e a decisão (queda de 0,027 contra 0,05) não é sensível a um ajuste fino de λ de forma conhecida [assumed].
 
+- **Limitação (krigagem e CAR).** ρ e o ajuste do CAR usam resíduos sem peso, embora a
+  variância deles seja cerca de 1/n; o I de Moran fora da amostra também é sem peso. A
+  sensibilidade ponderada está na seção 6: as decisões ficam.
+
 ## 5. Consequência
 
 A correlação residual não é removível com a informação disponível para uma UF nova. Fica como limitação documentada, tratada por Conley ([08](08-dependencia-espacial.md), seção 4) na inferência e por σ_UF nos intervalos ([09](09-modelo-final.md)). Não resta alternativa espacial na lista.
+
+## 6. Sensibilidade ponderada (informativa, 2026-11-22)
+
+**Motivo.** A variância do resíduo da proporção é cerca de 1/n, então municípios pequenos pesam
+como os grandes em ρ, no CAR e no I de Moran.
+
+**Especificação (fixada antes do resultado).**
+
+- Resíduo de Pearson beta-binomial z = (y/n − π̂)/sd, sd² = π̂(1 − π̂)[1 + (n − 1)θ]/n, com θ por
+  município. Mesmo π̂ e mesmo n dos resíduos atuais (dentro da amostra no treino; fora da amostra
+  no I de Moran). Os resíduos atuais são logit; aqui se padroniza a versão na escala da proporção.
+- ρ, krigagem LOSO e CAR rodam sobre z, com o mesmo corte, W, dobras e sementes. A correção volta à
+  proporção como ẑ·sd, somada a π̂.
+- Mesmos critérios de antes (queda do I >= 0,05; MAE por UF LOSO <= limite 1,2217 p.p.).
+
+**Resultado** (`results/tables/sensibilidade_ponderada_krig_car.csv`, LOSO).
+
+| Métrica | Krigagem atual | Krigagem ponderada | CAR atual | CAR ponderado |
+|---|---|---|---|---|
+| ρ médio / λ médio | 0,0050 | 0,0075 | 0,798 | 0,896 |
+| MAE por UF (p.p.) | 1,077 | 1,079 | 1,004 | 0,989 |
+| MAE regional (p.p.) | 0,428 | 0,624 | 0,563 | 0,607 |
+| I de Moran fora da amostra, base | 0,4224 | 0,3728 | 0,4224 | 0,3728 |
+| Queda do I (exige 0,05) | 0,0003 | −0,0091 | 0,0275 | 0,0251 |
+
+[fact] Nenhuma decisão muda: o critério do MAE passa e o do I de Moran falha, nas duas versões, para
+krigagem e CAR. [fact] Padronizar derruba o I do modelo base de 0,4224 para 0,3728: parte da
+correlação espacial vem dos municípios pequenos. [deduced] O MAE regional piora com a correção
+ponderada, como já piorava no CAR atual.
 
 ## Referências
 

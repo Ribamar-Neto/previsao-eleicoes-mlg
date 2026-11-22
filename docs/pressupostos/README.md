@@ -13,8 +13,8 @@
 | [07-dispersao-regional.md](07-dispersao-regional.md) | Dispersão do beta-binomial por região e porte (`bb_disp`), com Wald robusto |
 | [08-dependencia-espacial.md](08-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito) e corte de 2022 |
 | [09-modelo-final.md](09-modelo-final.md) | Regra de informação (covariáveis pré-turno, n̂), estimativas e cobertura do `bb_slx` |
-| [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) | Krigagem e CAR/BYM nos resíduos (rejeitadas) e decomposição do I de Moran |
-| [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026) |
+| [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) | Krigagem e CAR/BYM nos resíduos (rejeitadas, também com peso por n), decomposição do I de Moran |
+| [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026), incerteza de n_u e cobertura por unidade |
 | [12-pendencias.md](12-pendencias.md) | Pendências abertas, com efeito e correção possível |
 | [referencias.md](referencias.md) | Referências únicas e conferidas |
 

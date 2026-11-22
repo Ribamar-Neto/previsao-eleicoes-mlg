@@ -6,6 +6,8 @@ votos, validação cruzada, métricas, resíduos quantílicos e intervalos.
 """
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
@@ -15,6 +17,24 @@ from scipy.special import betaln, digamma, expit, gammaln, xlogy
 from statsmodels.base.model import GenericLikelihoodModel
 
 _EPS = 1e-12
+AVISO_NAO_PSD = "Covariância não PSD"
+
+
+def cov_psd(cov: np.ndarray, tol: float = 1e-8) -> np.ndarray:
+    """Simetriza `cov` e zera autovalores negativos (a covariância de Conley não garante PSD).
+
+    Negativo dentro de tol x maior autovalor é ruído numérico e é cortado em silêncio; abaixo
+    disso avisa com a razão mín/máx. Só para amostrar: os erros-padrão reportados não mudam.
+    """
+    c = np.asarray(cov, float)
+    c = (c + c.T) / 2
+    val, vet = np.linalg.eigh(c)
+    if val[0] >= 0:
+        return c
+    if val[0] < -tol * val[-1]:
+        warnings.warn(f"{AVISO_NAO_PSD} (autovalor mín/máx = {val[0] / val[-1]:.3g}); "
+                      "autovalores negativos cortados em 0 para amostrar", stacklevel=2)
+    return (vet * np.clip(val, 0.0, None)) @ vet.T
 
 
 def _link(link):
@@ -325,11 +345,12 @@ def simular_agregado(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
     feitos = 0
     while feitos < B:
         b = min(lote, B - feitos)
-        betas = rng.multivariate_normal(beta_hat, cov_beta, size=b)
+        betas = rng.multivariate_normal(beta_hat, cov_psd(cov_beta), size=b)
         pi = _pi_de_eta(betas @ X.T, link)
         if theta is not None:
             pi = rng.beta(pi * theta, (1 - pi) * theta)
-        Y = rng.binomial(n[None, :], pi)
+        nb = n[feitos:feitos + b] if n.ndim == 2 else n[None, :]
+        Y = rng.binomial(nb, pi)
         partes.append((G.T @ Y.T.astype(float)).T / den)
         feitos += b
     sh = np.vstack(partes)
@@ -349,17 +370,18 @@ def simular_votos_grupo(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
     pi = g^-1(X beta + delta); Y ~ Bin(n, pi) ou, com theta, BetaBin(n, pi*theta,
     (1-pi)*theta). Devolve a contagem de votos (não o share), para somar grupos
     (regiões, Brasil) antes de dividir pelo total de votos. `offset` (opcional) é
-    somado ao preditor linear sem coeficiente (modelos com defasagem fixa).
+    somado ao preditor linear sem coeficiente (modelos com defasagem fixa). `n` pode ter
+    forma (B, municípios): um total de votos por simulação (incerteza do restante).
     """
     rng = np.random.default_rng(rng)
     link = _link(link)
     X, n = np.asarray(X, float), np.asarray(n, np.int64)
     nomes, cods = np.unique(np.asarray(grupos), return_inverse=True)
-    G = sp.csr_matrix((np.ones(len(n)), (np.arange(len(n)), cods)), shape=(len(n), len(nomes)))
+    G = sp.csr_matrix((np.ones(X.shape[0]), (np.arange(X.shape[0]), cods)), shape=(X.shape[0], len(nomes)))
     partes, feitos = [], 0
     while feitos < B:
         b = min(lote, B - feitos)
-        eta = rng.multivariate_normal(beta_hat, cov_beta, size=b) @ X.T
+        eta = rng.multivariate_normal(beta_hat, cov_psd(cov_beta), size=b) @ X.T
         if offset is not None:
             eta = eta + np.asarray(offset, float)[None, :]
         if sigma > 0:
@@ -367,7 +389,8 @@ def simular_votos_grupo(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
         pi = _pi_de_eta(eta, link)
         if theta is not None:
             pi = rng.beta(pi * theta, (1 - pi) * theta)
-        Y = rng.binomial(n[None, :], pi)
+        nb = n[feitos:feitos + b] if n.ndim == 2 else n[None, :]
+        Y = rng.binomial(nb, pi)
         partes.append((G.T @ Y.T.astype(float)).T)
         feitos += b
     return np.vstack(partes)

@@ -8,7 +8,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   totais reais em `results/tables/resultado_*.csv` vêm das linhas modeladas. Efeito:
   incluir o município muda o Centro-Oeste em −0,004 p.p. Correção: reportar à parte (já é).
 - **Bolsa Família 2022** vem do arquivo de saques do Portal da Transparência: 20,07 M de
-  famílias, cerca de 2,8% abaixo da referência. Efeito: cobertura subestimada. Correção:
+  famílias pagas, 2,81% abaixo dos 20,65 M de famílias da folha de setembro de 2022 do
+  Ministério da Cidadania (nota de 16/09/2022, [referências](referencias.md)). A base da
+  comparação é família na folha, não NIS distinto pago. O texto original no gov.br não foi
+  encontrado; a fonte achada é a republicação do TNH1. Efeito: cobertura subestimada. Correção:
   usar o agregado oficial do MDS, hoje indisponível.
 - **Perfil do eleitorado 2026** gerado em 14/07/2026, sem confirmação de ser o perfil
   fechado. Efeito: pequenas diferenças de cadastro. Correção: rebaixar o perfil fechado.
@@ -98,6 +101,28 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **σ_UF e corte de Conley de 2026 reusados na apuração parcial de 2022** (sem LOSO próprio).
   Correção: ajustar σ_UF e o corte para 2022 ([11](11-apuracao-parcial.md)).
 
+- **Krigagem: o corte do correlograma (CORTE) vem dos resíduos dentro da amostra com todos
+  os dados** (notebook 05, c. 20) e é reusado como alcance da krigagem (c. 33). Efeito:
+  vazamento leve que favorece aceitar a krigagem; ela foi rejeitada, então a decisão não
+  muda ([10](10-extensoes-rejeitadas.md), seção 3). Correção: estimar o corte dentro de
+  cada dobra.
+- **[resolvida] ρ e o CAR usavam resíduos sem peso, embora a variância deles seja cerca de
+  1/n**; o I de Moran fora da amostra também. Sensibilidade com resíduos de Pearson
+  (beta-binomial), só informativa: nenhuma decisão muda. A queda do Moran fica abaixo de 0,05
+  (krigagem −0,009, CAR 0,025) e o MAE por UF passa nas duas versões
+  ([10](10-extensoes-rejeitadas.md), seção 6).
+- **Moran sem peso superestima a correlação residual.** Padronizado, o I de Moran base cai de
+  0,4224 para 0,3728: parte da dependência espacial vem de municípios pequenos. Com peso, o MAE
+  regional piora (krigagem 0,624 contra 0,428 p.p.; CAR 0,607 contra 0,563).
+- **[resolvida] Intervalos da apuração parcial tratavam n_u como fixo.** n_u passou a ser
+  sorteado (choque de UF mais resíduo municipal, só com seções recebidas) e a cobertura é
+  reportada por unidade e ano. Resultado: nenhuma cobertura mudou e as larguras variam menos de
+  0,05 p.p. ([11](11-apuracao-parcial.md), seções 3 e 6).
+- **Descasamento de θ na apuração parcial**: θ é avaliado em log(n_u), fora da faixa de
+  log n do ajuste (n apurado); o erro de θ é ignorado (só o bloco β da covariância de
+  Conley é sorteado); σ_UF da Parte 16 é reusado, não reestimado por corte
+  ([11](11-apuracao-parcial.md), seção 8).
+
 ## Backtest
 
 - **Sem perfil do eleitorado de 2018**: o ajuste usa o perfil de 2022.
@@ -118,6 +143,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   permutações do esda sem semente) ganhou semente fixa. As figuras HTML trocavam o id
   aleatório do div do Plotly a cada execução; agora o id é o nome do arquivo. Regra: duas
   execuções seguidas dos notebooks não mudam nenhum arquivo de `results/`.
+- **[resolvida] Votos apurados contados duas vezes nos intervalos.** Nos municípios fora do
+  modelo, o termo fixo somava y_c, que já estava no apurado. Só afetava 2026 (Boa Esperança do
+  Norte): limites de Centro-Oeste e Brasil até 0,01 p.p.; nenhuma cobertura mudou
+  ([11](11-apuracao-parcial.md), seção 6).
 - **Envelope da beta-binomial no 02-MLG consome a maior parte dos 7,5 min** (49 reajustes
   de ~4 s). Correção: partida a quente (warm start) e remover o passo de polimento.
 - **[resolvida] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos, depois 15. A

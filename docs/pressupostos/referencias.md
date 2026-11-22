@@ -1,6 +1,6 @@
 # Referências
 
-Lista única das referências dos arquivos 02 a 12 (45 entradas), sem duplicatas, em ordem de autor.
+Lista única das referências dos arquivos 02 a 12 (46 entradas), sem duplicatas, em ordem de autor.
 
 Legenda: ✔ = conferida por busca na web (autores, ano, título, veículo), com DOI, ISBN ou URL.
 Nenhuma entrada ficou sem conferência. Detalhes que a busca não fechou: o subtítulo de Griffith
@@ -35,6 +35,7 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Hyndman, R. J.; Koehler, A. B. (2006). Another look at measures of forecast accuracy. *International Journal of Forecasting*, 22(4), 679-688. ✔ https://doi.org/10.1016/j.ijforecast.2006.03.001
 - Leroux, B. G.; Lei, X.; Breslow, N. (2000). Estimation of disease rates in small areas: a new mixed model for spatial dependence. In Halloran, M. E.; Berry, D. (orgs.), *Statistical Models in Epidemiology, the Environment, and Clinical Trials*. Springer, 179-191. ✔ https://doi.org/10.1007/978-1-4612-1284-3_4 (conferida em 2026-11-09 na Springer)
 - McCullagh, P.; Nelder, J. A. (1989). *Generalized Linear Models* (2ª ed.). Chapman & Hall (GLM binomial e logit empírico). ✔ ISBN 0-412-31760-5 (https://doi.org/10.1201/9780203753736, reimpressão Routledge 2019)
+- Ministério da Cidadania (16/09/2022). Nota sobre a folha de setembro de 2022 do Auxílio Brasil ("Das 20,65 milhões de famílias beneficiadas..."; 20,65 milhões de famílias na folha). Original no gov.br não encontrado; texto republicado em TNH1, "Nordeste reúne 46,39% das famílias contempladas pelo Auxílio Brasil em setembro". https://www.tnh1.com.br/noticia/nid/nordeste-reune-4639-das-familias-contempladas-pelo-auxilio-brasil-em-setembro/
 - Moral, R. A.; Hinde, J.; Demétrio, C. G. B. (2017). Half-normal plots and overdispersed models in R: the hnp package. *Journal of Statistical Software*, 81(10), 1-23. ✔ https://doi.org/10.18637/jss.v081.i10
 - Moran, P. A. P. (1950). Notes on continuous stochastic phenomena. *Biometrika*, 37(1-2), 17-23. ✔ https://doi.org/10.1093/biomet/37.1-2.17
 - Papke, L. E.; Wooldridge, J. M. (1996). Econometric methods for fractional response variables with an application to 401(k) plan participation rates. *Journal of Applied Econometrics*, 11(6), 619-632. ✔ https://doi.org/10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1

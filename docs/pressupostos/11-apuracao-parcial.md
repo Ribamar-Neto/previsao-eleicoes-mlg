@@ -47,6 +47,17 @@ leituras foi feita olhando o erro contra o n final. n_u ainda subestima o restan
 a 4,8 % (2026), conforme o corte (antes, 3,8 % em 2026). O veredito da regra é o mesmo nas duas
 definições de n_u (2022 4 de 6; 2026 5 de 6).
 
+**Incerteza de n_u nos intervalos (seção 6).** O centro de n_u não muda (estimativas e regra de
+utilidade iguais); só os intervalos o sorteiam. Regra fixada antes do resultado, usando só as
+seções já recebidas (sem dado do resultado final): por município, r = n_c / (aptos recebidos x
+taxa), válido onde n_c > 0 e o denominador > 0; R_UF e R_BR são o log da razão das somas na UF e no
+país; sd_UF é o desvio de R_UF - R_BR entre UFs; o resíduo municipal é e = log r - R_UF. Em cada
+simulação, n_u do município é multiplicado por k = exp(choque da UF ~ N(0, sd_UF²) + e sorteado
+com reposição da UF, centrado pela mediana do pool). UF com menos de 5 municípios válidos sorteia
+do pool nacional. k tem centro 1 em log; o desvio entre UFs capta o erro de nível regional da taxa
+e o resíduo, o erro municipal. O n_u simulado entra nos votos e no denominador do share; θ
+continua avaliado no n_u fixo. Vale também para municípios fora do modelo.
+
 ## 4. Resultados
 
 Erro absoluto do Brasil / MAE regional (p.p.). Em negrito, o menor de cada coluna do corte.
@@ -88,7 +99,29 @@ Restante simulado pelo beta-binomial com grupos por UF e covariância de Conley 
 | 2026 | 0,50 | 1,00 | 1,00 | 1,00 | 0,83 | 0,83 |
 
 O Brasil fica dentro do intervalo nos 12 cortes. Largura do Brasil: no máximo 2,0 p.p. (2022 a 5 %; 1,9 em 2026) e no mínimo
-0,25 p.p. (2022 a 90 %). Antes da revisão da cobertura de 2026 era 0,50/0,83/1,00/1,00/1,00/0,83. Com 6 itens por célula, a cobertura é grosseira; não prova calibração.
+0,25 p.p. (2022 a 90 %).
+
+**Cobertura por unidade e ano, n_u fixo contra n_u simulado** (cortes cobertos de 6; variação mediana da largura em p.p.;
+`results/tables/apuracao_cobertura_unidade.csv`). Os 6 cortes são aninhados no tempo e as unidades são correlacionadas:
+a tabela é descritiva, não um teste de calibração, e não se soma entre unidades.
+
+| Unidade | 2022 fixo | 2022 simulado | Δ largura | 2026 fixo | 2026 simulado | Δ largura |
+|---|---|---|---|---|---|---|
+| Brasil | 6 | 6 | +0,023 | 6 | 6 | +0,022 |
+| Centro-Oeste | 6 | 6 | -0,023 | 5 | 5 | -0,036 |
+| Nordeste | 3 | 3 | +0,025 | 5 | 5 | +0,022 |
+| Norte | 4 | 4 | +0,012 | 3 | 3 | +0,049 |
+| Sudeste | 6 | 6 | -0,030 | 6 | 6 | -0,045 |
+| Sul | 6 | 6 | +0,011 | 6 | 6 | -0,006 |
+
+Resultado: a incerteza de n_u quase não muda os intervalos (|Δ| < 0,05 p.p. contra larguras de 0,25 a 2,0 p.p.) e nenhuma
+cobertura mudou. sd_UF no corte de 50 %: 0,031 (2022) e 0,044 (2026). A cobertura baixa do Nordeste (2022) e do Norte
+vem de outra fonte que n_u (θ, σ_UF reusado, representatividade, seção 7). A contagem agregada antiga (0,83/1,00/... por corte)
+foi substituída por esta tabela.
+
+Os votos já apurados dos municípios fora do modelo entram uma vez só, no apurado; o termo fixo
+desses municípios é só π_UF x n_u. Antes eram somados duas vezes (só Boa Esperança do Norte, MT,
+em 2026): os limites de Centro-Oeste e Brasil em 2026 mudaram até 0,01 p.p. e nenhuma cobertura mudou.
 
 ## 7. Representatividade das seções apuradas
 
@@ -108,7 +141,12 @@ reais do restante, nos 20 maiores municípios (capitais e grandes cidades) contr
 - σ_UF = 0,0564 (Parte 16) e o corte de Conley (200 km, Parte 15) vêm de 2026 e foram reusados em 2022, que não tem
   LOSO próprio. [assumed] que valham; a cobertura menor de 2022 nos cortes tardios sugere que não.
 - σ_UF e o corte também foram ajustados nas mesmas 27 UFs ([12](12-pendencias.md)).
-- A dispersão por log(n) é ajustada com n apurado e usada para prever com n_u (descasamento).
+- A dispersão por log(n) é ajustada com n apurado e usada para prever com n_u (descasamento):
+  θ é avaliado em log(n_u), fora da faixa de log n do ajuste; o erro de θ é ignorado (só o
+  bloco β da covariância de Conley é sorteado); σ_UF da Parte 16 é reusado, não reestimado
+  por corte ([12](12-pendencias.md)).
+- n_u é sorteado nos intervalos (seção 3), mas θ segue avaliado no n_u fixo. A cobertura é
+  reportada por unidade e ano, de forma descritiva (seção 6).
 - Escolha do n_u feita olhando o n final (seção 3).
 - Boa Esperança do Norte (TSE 73709) existe só nos dados do bweb de 2026; entra no apurado e no
   alvo, e seu restante usa a parcela e a taxa de válidos no nível da UF.

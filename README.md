@@ -393,7 +393,7 @@ Demais limitações:
 * **Pouca base regional:** só 5 regiões e 27 UFs para avaliar o erro; o erro regional não escolhe modelo;
 * **Regras tardias:** o Wald robusto, o SLX e o corte de Conley foram fixados antes de cada resultado, mas não antes do notebook 05 inteiro; uma versão anterior da validação vazava informação da UF de teste (corrigida);
 * **Covariáveis defasadas:** o comparecimento é o do 1º turno e nenhuma covariável do 2º turno entra; `pct_vab_agro` usa 2021;
-* **Dados:** Bolsa Família 2022 cerca de 2,8% abaixo da referência oficial; a API do MDS está indisponível e a fonte é a CGU;
+* **Dados:** Bolsa Família 2022 com 20,07 milhões de famílias, 2,81% abaixo dos 20,65 milhões da folha de setembro de 2022 (Ministério da Cidadania, nota de 16/09/2022, republicada pelo TNH1; o original no gov.br não foi encontrado; a base é família na folha, não NIS distinto pago); a API do MDS está indisponível e a fonte é a CGU;
 * **Apuração parcial:** o desempenho em 5% das urnas não supera o swing.
 
 Pendências abertas, com efeito e correção possível: [`docs/pressupostos/12-pendencias.md`](docs/pressupostos/12-pendencias.md).
