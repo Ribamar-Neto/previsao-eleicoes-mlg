@@ -28,6 +28,7 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from scipy import stats
+from statsmodels.stats.contingency_tables import StratifiedTable
 from scipy.special import expit, gammaln
 from threadpoolctl import threadpool_limits
 
@@ -35,6 +36,9 @@ from src import especificacoes as E
 from src import modelos as M
 from src.especificacoes import (
     _COL_OFFSET,
+    BLOCOS,
+    REGIAO_REF,
+    REGIOES,
     CONTINUAS,
     LIGACOES,
     Candidato,
@@ -399,12 +403,95 @@ def fundir(X: pd.DataFrame, cols: list[str], prefixo: str) -> pd.DataFrame:
     return Xn
 
 
+def _niveis_do_fator(df: pd.DataFrame, coluna: str) -> pd.Series:
+    """Níveis como texto; ausente vira "NA" (ou "False", se a coluna só tem booleanos)."""
+    v = df[coluna]
+    so_bool = v.dropna().map(lambda x: isinstance(x, (bool, np.bool_))).all()
+    return v.map(lambda x: str(bool(x)) if so_bool and pd.notna(x) else x).fillna(
+        "False" if so_bool else "NA").astype(str)
+
+
+def tabela_descritiva(df: pd.DataFrame, coluna: str, ref: str, y_col: str,
+                      n_col: str) -> pd.DataFrame:
+    """Uma linha por nível: totais, % de votos, logit empírico, mediana/IQR municipal e psi.
+
+    psi = razão de chances do nível contra `ref` sobre os totais de votos, com IC95% de
+    Woolf. Esses IC ignoram a superdispersão entre municípios e são só descritivos
+    (Paula 2.10.5, 4.4). Ausente vira o nível "NA".
+    """
+    g = _niveis_do_fator(df, coluna)
+    y, n = df[y_col].astype(float), df[n_col].astype(float)
+    pct = 100 * y / n
+    por = pd.DataFrame({"g": g, "y": y, "n": n, "pct": pct}).groupby("g")
+    soma_y, soma_n = por["y"].sum(), por["n"].sum()
+    t = pd.DataFrame({"municipios": por.size(), "soma_y": soma_y, "soma_n": soma_n})
+    t["pct_lula"] = 100 * soma_y / soma_n
+    t["logit_emp"] = np.log(soma_y / (soma_n - soma_y))
+    t["mediana_pct"] = por["pct"].median()
+    t["iqr_pct"] = por["pct"].quantile(0.75) - por["pct"].quantile(0.25)
+    ln_psi = t["logit_emp"] - t.loc[ref, "logit_emp"]
+    ep = np.sqrt(1 / soma_y + 1 / (soma_n - soma_y)
+                 + 1 / soma_y[ref] + 1 / (soma_n[ref] - soma_y[ref]))
+    t["psi"] = np.exp(ln_psi)
+    t["psi_inf95"] = np.exp(ln_psi - 1.96 * ep)
+    t["psi_sup95"] = np.exp(ln_psi + 1.96 * ep)
+    t.loc[ref, ["psi", "psi_inf95", "psi_sup95"]] = [1.0, np.nan, np.nan]
+    return t
+
+
+def teste_univariado(df: pd.DataFrame, mapa: dict[str, str], chave: str,
+                     ref: str) -> dict[str, float]:
+    """LRT do fator sozinho (const + dummies dos níveis) contra só a constante (Paula 4.6.5, passo 1)."""
+    g = _niveis_do_fator(df, mapa[chave])
+    y, n = df[mapa["y"]].to_numpy(float), df[mapa["n"]].to_numpy(float)
+    X0 = pd.DataFrame({"const": np.ones(len(df))})
+    X = X0.copy()
+    for nivel in sorted(set(g) - {ref}):
+        X[f"{chave}_{nivel}"] = (g == nivel).to_numpy(float)
+    res = ajuste_bb(X, y, n)
+    d, gl, p = lrt(res, X, X0, y, n)
+    return {"delta": d, "gl": float(gl), "p": p, "loglik": float(res.llf)}
+
+
+def mantel_haenszel(df: pd.DataFrame, binaria: str, estrato: str, y_col: str,
+                    n_col: str) -> dict[str, float]:
+    """OR bruto (Woolf), OR de Mantel-Haenszel por `estrato` (IC de Robins-Breslow-Greenland)
+    e teste de homogeneidade dos estratos (Breslow-Day), sobre totais de votos.
+
+    Ausente (None) na binária conta como False. IC sem correção de superdispersão. Estrato
+    com linha ou coluna vazia (ex.: região sem nenhum exposto) não informa sobre a OR e fica
+    fora do MH e do Breslow-Day, que seria indefinido; o OR bruto usa todos os estratos.
+    """
+    flag = df[binaria].map(lambda x: bool(x) if pd.notna(x) else False).to_numpy()
+    y, n = df[y_col].to_numpy(float), df[n_col].to_numpy(float)
+    est = df[estrato].astype(str).to_numpy()
+    tabelas = []
+    for e in sorted(set(est)):
+        m = est == e
+        tabelas.append(np.array([[y[m & flag].sum(), (n - y)[m & flag].sum()],
+                                 [y[m & ~flag].sum(), (n - y)[m & ~flag].sum()]]))
+    bruta = np.sum(tabelas, axis=0)
+    or_b = (bruta[0, 0] * bruta[1, 1]) / (bruta[0, 1] * bruta[1, 0])
+    ep_b = np.sqrt((1 / bruta).sum())
+    informativas = [t for t in tabelas if (t.sum(axis=0) > 0).all() and (t.sum(axis=1) > 0).all()]
+    st = StratifiedTable(informativas)
+    inf, sup = st.oddsratio_pooled_confint()
+    return {"or_bruto": float(or_b), "or_bruto_inf95": float(or_b * np.exp(-1.96 * ep_b)),
+            "or_bruto_sup95": float(or_b * np.exp(1.96 * ep_b)),
+            "or_mh": float(st.oddsratio_pooled), "or_mh_inf95": float(inf),
+            "or_mh_sup95": float(sup),
+            "p_homogeneidade": float(st.test_equal_odds().pvalue),
+            "estratos_usados": len(informativas)}
+
+
 def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str],
                    rotulo: str, prefixo: str, p_fusao: float = 0.05,
-                   verbose: bool = True) -> tuple[pd.DataFrame, Any, list[str]]:
+                   verbose: bool = True, fundir_na_referencia: bool = True,
+                   ref: str = "ref") -> tuple[pd.DataFrame, Any, list[str]]:
     """Tabela por nível, LRT de retirar o fator e fusão sequencial (regra: p > p_fusao).
 
-    Em cada passo funde-se o par de níveis de maior p de igualdade, se p > p_fusao, e
+    Candidatos a cada passo: todo par de níveis e, com `fundir_na_referencia`, todo nível
+    na referência `ref` (retira sua dummy). Funde-se o de maior p se p > p_fusao e
     reajusta-se. Devolve (X com as fusões, ajuste final, colunas do fator).
     """
     res, passo = ajuste_bb(X, y, n), 0
@@ -412,16 +499,22 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
         if verbose:
             print(f"=== {rotulo}, passo {passo}: {len(cols)} níveis fora da referência; loglik = {res.llf:,.2f}")
             print(tabela_niveis(res, X, cols).round(4).to_string())
+        if not cols:
+            break
         d, gl, p = lrt(res, X, X.drop(columns=cols), y, n)
         if verbose:
             print(f"LRT (todos os níveis = 0, gl={gl}): Δ = {d:.1f}, p = {p:.2e}")
-        if len(cols) < 2:
+        candidatos: list[tuple[tuple[str, ...], pd.DataFrame]] = [
+            (par, fundir(X, list(par), prefixo)) for par in itertools.combinations(cols, 2)]
+        if fundir_na_referencia:
+            candidatos += [((c,), X.drop(columns=c)) for c in cols]
+        if not candidatos:
             break
-        pares = list(itertools.combinations(cols, 2))
         linhas = []
-        for a, b in pares:
-            d2, gl2, p2 = lrt(res, X, fundir(X, [a, b], prefixo), y, n)
-            linhas.append({"nivel_a": a[len(prefixo):], "nivel_b": b[len(prefixo):],
+        for alvo, X_red in candidatos:
+            d2, gl2, p2 = lrt(res, X, X_red, y, n)
+            linhas.append({"nivel_a": alvo[0][len(prefixo):],
+                           "nivel_b": alvo[1][len(prefixo):] if len(alvo) > 1 else ref,
                            "delta": d2, "gl": gl2, "p": p2})
         T = pd.DataFrame(linhas)
         if verbose:
@@ -430,14 +523,14 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
         i = int(T.p.idxmax())
         if T.p[i] <= p_fusao:
             if verbose:
-                print(f"Nenhum par com p > {p_fusao}: nenhum nível é fundido.")
+                print(f"Nenhum candidato com p > {p_fusao}: nenhum nível é fundido.")
             break
-        a, b = pares[i]
+        alvo, X_novo = candidatos[i]
         if verbose:
-            print(f"Funde {a[len(prefixo):]} e {b[len(prefixo):]} (p = {T.p[i]:.3f} > {p_fusao}) e reajusta.")
-        X = fundir(X, [a, b], prefixo)
-        cols = ([c for c in X.columns if c.startswith(prefixo)] if prefixo == "reg_"
-                else [c for c in cols if c not in (a, b)] + [X.columns[-1]])
+            print(f"Funde {T.nivel_a[i]} e {T.nivel_b[i]} (p = {T.p[i]:.3f} > {p_fusao}) e reajusta.")
+        novas = [c for c in X_novo.columns if c not in X.columns]
+        cols = [c for c in cols if c not in alvo] + novas
+        X = X_novo
         res, passo = ajuste_bb(X, y, n), passo + 1
     return X, res, cols
 
@@ -473,20 +566,27 @@ def _melhor_bic(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
 
 
 def _fusoes(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-            p_fusao: float) -> tuple[tuple[tuple[str, ...], ...], bool]:
-    """(grupos de regiões fundidas, bloco esquerda+outro fundido) pelos LRT do notebook 02.
+            p_fusao: float) -> tuple[tuple[tuple[str, ...], ...], tuple[tuple[str, ...], ...]]:
+    """(grupos de regiões, grupos de níveis do bloco) pela regra de fusão por LRT.
 
-    Os testes usam o modelo cheio (todas as contínuas de `termos.vars`), como a Parte 8.1.
+    Região e bloco partem dos níveis brutos; níveis sem efeito vão para a referência (bloco
+    em `Termos.bloco_grupos`). Os testes usam o modelo cheio, como a Parte 8.1.
     """
     y, n = df[mapa["y"]].to_numpy(float), df[mapa["n"]].to_numpy(float)
     pad = Padronizador(mapa).fit(df)
-    X = montar_X(df, mapa, pad, termos)
+    X = montar_X(df, mapa, pad, replace(termos, bloco_grupos=tuple((b,) for b in BLOCOS)))
     cols_reg = [c for c in X.columns if c.startswith("reg_")]
-    X_reg, _, cols_reg = analisar_fator(X, y, n, cols_reg, "Região", "reg_", p_fusao, verbose=False)
+    X_reg, _, cols_reg = analisar_fator(X, y, n, cols_reg, "Região", "reg_", p_fusao,
+                                        verbose=False, ref="Sudeste")
     grupos = tuple(tuple(c[4:].split("+")) for c in cols_reg if "+" in c)
-    _, _, cols_blo = analisar_fator(X_reg, y, n, ["bloco_esquerda", "bloco_outro"], "Bloco",
-                                    "bloco_", p_fusao, verbose=False)
-    return grupos, any("+" in c for c in cols_blo)
+    presentes = {r for c in cols_reg for r in c[4:].split("+")}
+    na_ref = tuple(r for r in REGIOES if r not in presentes)
+    if na_ref:
+        grupos += ((*na_ref, REGIAO_REF),)
+    cols_b = [f"bloco_{b}" for b in BLOCOS]
+    _, _, cols_blo = analisar_fator(X_reg, y, n, cols_b, "Bloco", "bloco_", p_fusao,
+                                    verbose=False, ref="direita")
+    return grupos, tuple(tuple(c[6:].split("+")) for c in cols_blo)
 
 
 def selecao_aninhada_loso(df: pd.DataFrame, mapa: dict[str, str], uf_retida: str,
@@ -510,8 +610,8 @@ def selecao_aninhada_loso(df: pd.DataFrame, mapa: dict[str, str], uf_retida: str
     for fase in ("fusoes", *METODOS_BIC, "previsao"):
         log(f"PLAN {uf_retida}:{fase}")
     log(f"STEP {uf_retida}:fusoes [{_agora()}]")
-    grupos, bloco_fundido = _fusoes(df_tr, mapa, termos, p_fusao)
-    termos_fus = replace(termos, regiao_fundir=grupos, bloco_fundir=bloco_fundido)
+    grupos, grupos_bloco = _fusoes(df_tr, mapa, termos, p_fusao)
+    termos_fus = replace(termos, regiao_fundir=grupos, bloco_grupos=grupos_bloco)
     metodo, vs, bic = _melhor_bic(df_tr, mapa, termos_fus, candidatas, n_jobs, uf_retida, log)
     variaveis = ("lag", *vs)
     log(f"STEP {uf_retida}:previsao [{_agora()}]")
@@ -528,7 +628,7 @@ def selecao_aninhada_loso(df: pd.DataFrame, mapa: dict[str, str], uf_retida: str
     obs = float(df[mapa["y"]].to_numpy(float)[teste].sum() / df[mapa["n"]].to_numpy(float)[teste].sum())
     return {"uf": uf_retida, "metodo": metodo, "variaveis": ",".join(vs), "n_vars": len(vs),
             "bic_treino": bic, "fusao_regiao": ";".join("+".join(g) for g in grupos),
-            "fusao_bloco": bloco_fundido, "prev_pct": prev * 100, "obs_pct": obs * 100,
+            "fusao_bloco": ";".join("+".join(g) for g in grupos_bloco), "prev_pct": prev * 100, "obs_pct": obs * 100,
             "erro_pp": (prev - obs) * 100, "erro_abs_pp": abs(prev - obs) * 100,
             "tempo_s": time.time() - t0}
 

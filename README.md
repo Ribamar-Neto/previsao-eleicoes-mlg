@@ -319,7 +319,7 @@ O passo a passo por BIC (backward, forward e both) dá o mesmo modelo: 11 contí
 melhor              bin_probit = 0,998  (EP 0,135)
 limite de 1 EP      1,133   (13 de 18 modelos dentro)
 escolhido           bb_selecao = 1,035  (k = 19, menor número de parâmetros dentro do limite)
-limite de aceitação L = 1,0870 (aninhado) + 0,1347 = 1,2217
+limite de aceitação L = 1,1168 (aninhado) + 0,1347 = 1,2515
 bb_disp = 1,035 (aceito)   bb_slx = 1,078 (aceito, final)   bb_esf = 1,484 (rejeitado)
 ```
 
@@ -338,7 +338,7 @@ Leitura: a dispersão varia por região (o Norte tem θ menor, isto é, mais var
 
 ```text
 I de Moran dos resíduos: 0,342 (sem termo espacial) -> 0,336 (SLX)
-filtro de autovetores (k = 50): LOSO 1,484 > 1,2217 -> rejeitado
+filtro de autovetores (k = 50): LOSO 1,484 > 1,2515 -> rejeitado
 krigagem LOSO dos resíduos e CAR/BYM: rejeitadas
 ```
 

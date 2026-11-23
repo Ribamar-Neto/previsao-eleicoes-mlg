@@ -39,7 +39,7 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Moral, R. A.; Hinde, J.; Demétrio, C. G. B. (2017). Half-normal plots and overdispersed models in R: the hnp package. *Journal of Statistical Software*, 81(10), 1-23. ✔ https://doi.org/10.18637/jss.v081.i10
 - Moran, P. A. P. (1950). Notes on continuous stochastic phenomena. *Biometrika*, 37(1-2), 17-23. ✔ https://doi.org/10.1093/biomet/37.1-2.17
 - Papke, L. E.; Wooldridge, J. M. (1996). Econometric methods for fractional response variables with an application to 401(k) plan participation rates. *Journal of Applied Econometrics*, 11(6), 619-632. ✔ https://doi.org/10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1
-- Paula, G. A. (2013). *Modelos de Regressão com Apoio Computacional*. São Paulo: IME-USP.
+- Paula, G. A. (2013). *Modelos de Regressão com Apoio Computacional*. São Paulo: IME-USP. Seções usadas: 2.10.2 e 2.10.5 (tabelas descritivas e razão de chances), capítulo 3 (exemplo das turbinas), 4.2 a 4.4 (tabelas 2×2, Mantel-Haenszel, fator de k níveis) e 4.6.5 (passo 1 de Hosmer-Lemeshow).
 - Pregibon, D. (1980). Goodness of link tests for generalized linear models. *Applied Statistics*, 29(1), 15-24. ✔ https://doi.org/10.2307/2346405 (conferida em 2026-11-18 no Crossref; a última página, 24, vem de busca na web e não de página do veículo)
 - Pregibon, D. (1981). Logistic regression diagnostics. *The Annals of Statistics*, 9(4), 705-724. ✔ https://doi.org/10.1214/aos/1176345513
 - Rey, S. J.; Anselin, L. (2010). PySAL: a Python library of spatial analytical methods. In Fischer, M. M.; Getis, A. (orgs.), *Handbook of Applied Spatial Analysis*. Springer, 175-193. ✔ https://doi.org/10.1007/978-3-642-03647-7_11

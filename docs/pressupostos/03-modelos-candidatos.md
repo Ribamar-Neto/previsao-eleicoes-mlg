@@ -111,6 +111,18 @@ Este notebook compara e **não escolhe** o modelo final: a escolha é por valida
 - [deduced] O AIC e os subconjuntos têm LOSO melhor que o BIC (1,003 e 1,000 contra 1,035), mas a diferença fica dentro de 1 EP ([05](05-validacao-cruzada.md)); o BIC segue como critério por parcimônia.
 - L1: C(1 EP) = 0,03 mantém 6 de 24 (lag, log_dens, pct_mulheres, cobertura_pbf, pct_vab_agro, pct_pretos_pardos). O C de menor perda de CV (100) está na borda da grade e não encolhe nada: a CV pede pouca penalização. A versão esparsa ajusta mal (erro ponderado ≈ 2,4 p.p.).
 
+### 8.1 Categóricas e binária: regra de fusão de níveis
+Roteiro de Paula (2013, seções 2.10.2, 4.2 a 4.4 e 4.6.5). A regra foi fixada antes de ver os resultados, para a fusão não depender do que se queria achar. As tabelas por nível que propõem os testes estão em [02](02-aed.md), seção 3.1.
+- **Regra.** Cada fator parte dos níveis brutos (região: referência Sudeste; bloco: referência direita). A cada passo os candidatos são todos os pares de níveis fora da referência e cada nível fora da referência fundido na referência. Funde-se o de maior p do LRT se p > 0,05, reajusta-se e repete-se até nenhum candidato ter p > 0,05.
+- **Binária.** `prefeito_suplementar_2024` entra só se o LRT de adicioná-la, depois das fusões, der p ≤ 0,05.
+- **Onde testar.** Todos os LRT são no beta-binomial completo (18 contínuas), porque o ψ bruto e o LRT univariado confundem o fator com as demais covariáveis. Os EP de Wald ignoram a correlação espacial; a significância sob essa correlação é checada com EP de Conley ([08](08-dependencia-espacial.md)).
+- **Resultado nos dados completos.**
+  - Região: retirar o fator inteiro custa Δ = 233,4 (4 gl). Nordeste = Norte não é rejeitada (p = 0,921) e é o maior p do passo, então se fundem. Depois, Nordeste+Norte contra o Sudeste dá p = 0,018 e todos os outros candidatos têm p < 1e-8: a regra para. A log-verossimilhança não muda (-36.327,71 para -36.327,72).
+  - Bloco: esquerda fica separada (OR 0,984; esquerda = direita rejeitada, p < 1e-4). Centro = sem_prefeito não é rejeitada (p = 0,466), então se fundem; o grupo contra a direita dá p = 0,046 e a regra para. Isso reproduz o agrupamento anterior (esquerda; centro+sem_prefeito). Com 49 e 16 municípios o teste tem pouco poder para separar centro de sem_prefeito.
+  - Suplementar: OR 0,992, p = 0,649: fica fora do modelo.
+  - Consequência: `CANDIDATOS` e os notebooks 04 a 06 não mudam.
+- **Seleção aninhada no LOSO.** As fusões são refeitas em cada dobra, para o erro de validação não depender de uma fusão escolhida com a região de teste; contagens por dobra em [05](05-validacao-cruzada.md).
+
 ## Parte 9 - Comparação
 
 **Função.** Reúne todos os candidatos em `comparacao_modelos.csv`.

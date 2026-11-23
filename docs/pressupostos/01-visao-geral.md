@@ -46,7 +46,7 @@ resultados e agregar as previsões às 5 regiões.
    AIC, Hosmer-Lemeshow e todos os subconjuntos são comparações ([03](03-modelos-candidatos.md)).
 5. Uma extensão do modelo escolhido só é aceita se melhora o seu diagnóstico **e** o MAE por UF
    no LOSO não passa de L = MAE aninhado de `bb_selecao` (seleção refeita em cada dobra) + EP do melhor modelo LOSO =
-   1,0870 + 0,1347 = **1,2217 p.p.** (1,1695 sem aninhar; 1,1308 no LOSO vazado).
+   1,1168 + 0,1347 = **1,2515 p.p.** (1,1695 sem aninhar; 1,1308 no LOSO vazado).
 
 O erro regional LOSO não é critério, porque favorece por construção as binomiais canônicas
 ([05](05-validacao-cruzada.md), seção 6).
@@ -62,7 +62,7 @@ O erro regional LOSO não é critério, porque favorece por construção as bino
 
 Refinamento (notebook 05): `bb_selecao` virou o modelo final `bb_slx` (36 parâmetros):
 dispersão por região e log n (`bb_disp`; [07](07-dispersao-regional.md); aceita, LOSO 1,0345,
-confirmada por Wald robusto) mais covariáveis defasadas espacialmente, SLX (LOSO 1,078 ≤ 1,2217,
+confirmada por Wald robusto) mais covariáveis defasadas espacialmente, SLX (LOSO 1,078 ≤ 1,2515,
 acima do 1,035 de `bb_selecao`; I de Moran dos resíduos só de 0,342 para 0,336). O filtro de
 autovetores foi rejeitado (LOSO 1,484) e a inferência usa EPs de Conley a 200 km, corte
 conferido com 2022 ([08](08-dependencia-espacial.md)). Krigagem e CAR nos resíduos foram

@@ -9,9 +9,9 @@
     "car": false
   },
   "motivos": {
-    "disp": "Wald robusto (Conley x1, chi2): passo A (dummies de região) p=1.03e-11 -> mantido; passo B (log_n) p=8.26e-16 -> mantido. Antes (LRT/BIC): regiao_logn; CV LOSO mae_uf=1.0345 vs limite 1.2218",
-    "esf": "k escolhido por BIC = 50; I de Moran 0.3424 (k=0) -> 0.2296 (k=50); CV LOSO mae_uf=1.4842 vs limite 1.2218",
-    "slx": "opção por BIC = W_12vars; I de Moran 0.3424 (nenhuma) -> 0.3361 (W_12vars); CV LOSO mae_uf=1.0777 vs limite 1.2218"
+    "disp": "Wald robusto (Conley x1, chi2): passo A (dummies de região) p=1.03e-11 -> mantido; passo B (log_n) p=8.26e-16 -> mantido. Antes (LRT/BIC): regiao_logn; CV LOSO mae_uf=1.0345 vs limite 1.2515",
+    "esf": "k escolhido por BIC = 50; I de Moran 0.3424 (k=0) -> 0.2296 (k=50); CV LOSO mae_uf=1.4842 vs limite 1.2515",
+    "slx": "opção por BIC = W_12vars; I de Moran 0.3424 (nenhuma) -> 0.3361 (W_12vars); CV LOSO mae_uf=1.0777 vs limite 1.2515"
   },
   "diagnostico_ok": {
     "disp": true,
@@ -25,8 +25,8 @@
     "bb_final": 1.453770788216977,
     "bb_slx": 1.0777066171415395
   },
-  "limite": 1.2217547627996777,
-  "mae_uf_bb_selecao": 1.0870315004240017,
+  "limite": 1.2514921889195791,
+  "mae_uf_bb_selecao": 1.1167689265439031,
   "mae_uf_bb_selecao_sem_aninhar": 1.0347676896276061,
   "limite_sem_aninhar": 1.1694909520032821,
   "se_melhor_loso": 0.13472326237567608,
@@ -87,7 +87,16 @@
         "Norte"
       ]
     ],
-    "bloco_fundir": false
+    "bloco_grupos": [
+      [
+        "esquerda"
+      ],
+      [
+        "centro",
+        "sem_prefeito"
+      ]
+    ],
+    "usa_suplementar": false
   },
   "dispersao_wald": {
     "dispersao_adotada": "regiao_logn",
@@ -264,7 +273,7 @@
   "krigagem": {
     "regra": {
       "queda_minima_moran": 0.05,
-      "mae_uf_max": 1.2217547627996777,
+      "mae_uf_max": 1.2514921889195791,
       "corte_km": 200.0
     },
     "moran_oos_loso": {
@@ -301,7 +310,7 @@
   "car": {
     "regra": {
       "queda_minima_moran": 0.05,
-      "mae_uf_max": 1.2217547627996777
+      "mae_uf_max": 1.2514921889195791
     },
     "moran_oos_loso": {
       "bb_slx": 0.4224078859052208,

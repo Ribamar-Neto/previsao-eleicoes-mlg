@@ -110,9 +110,20 @@ def test_regiao_fundir_une_dummies_e_valida(df):
     assert np.array_equal(X["reg_Nordeste+Norte"], X0["reg_Nordeste"] + X0["reg_Norte"])
     assert X.shape[1] == X0.shape[1] - 1
     with pytest.raises(ValueError):
-        E.Termos(regiao_fundir=(("Sudeste", "Sul"),))
+        E.Termos(regiao_fundir=(("Marte", "Sul"),))
+    with pytest.raises(ValueError):
+        E.Termos(regiao_fundir=(("Sul", "Norte"), ("Norte", "Sudeste")))
     with pytest.raises(ValueError):
         E.Termos(regiao_fundir=(("Sul", "Norte"),), regiao_x_lag=True)
+
+
+def test_regiao_fundir_na_referencia_retira_as_dummies(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    X0 = E.montar_X(df, MAPA, pad, E.Termos())
+    X = E.montar_X(df, MAPA, pad, E.Termos(regiao_fundir=(("Norte", "Sudeste"), ("Nordeste", "Sul"))))
+    assert "reg_Norte" not in X and not any("Sudeste" in c for c in X.columns)
+    assert np.array_equal(X["reg_Nordeste+Sul"], X0["reg_Nordeste"] + X0["reg_Sul"])
+    assert X.shape[1] == X0.shape[1] - 2
 
 
 # --------------------------------------------------------------------------
@@ -257,3 +268,72 @@ def test_mapas_do_backtest_inalterados():
     assert B.MAPA_FIT_2022["delta_comp"] == "delta_comparecimento_2t_2022"
     assert B.MAPA_PREV_2026["comparecimento"] == "taxa_comparecimento_2t_2022"
     assert B.MAPA_PREV_2026["delta_comp"] == "delta_comparecimento_2t_2022"
+
+
+def _montar_X_antigo(df, pad):
+    """Codificação anterior do bloco (3 linhas), para o teste de regressão."""
+    X = E.montar_X(df, MAPA, pad, E.Termos(usa_bloco=False))
+    b = df[MAPA["bloco_pref"]].astype(str)
+    X.insert(X.columns.get_loc("reg_Centro-Oeste"), "bloco_esquerda",
+             (b == "esquerda").astype(float).to_numpy())
+    X.insert(X.columns.get_loc("reg_Centro-Oeste"), "bloco_outro",
+             (~b.isin(["esquerda", "direita"])).astype(float).to_numpy())
+    return X
+
+
+def test_montar_X_padrao_identico_a_codificacao_antiga(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    novo = E.montar_X(df, MAPA, pad, E.Termos())
+    antigo = _montar_X_antigo(df, pad)
+    assert list(novo.columns) == list(antigo.columns)
+    pd.testing.assert_frame_equal(novo, antigo)
+
+
+def test_bloco_grupos_fundidos_antigo_bloco_fundir(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    X = E.montar_X(df, MAPA, pad, E.Termos(bloco_grupos=(("esquerda", "centro", "sem_prefeito"),)))
+    b = df[MAPA["bloco_pref"]]
+    assert "bloco_esquerda+outro" in X.columns and "bloco_outro" not in X.columns
+    assert (X["bloco_esquerda+outro"] == (b != "direita")).all()
+
+
+def test_bloco_grupos_niveis_brutos(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    X = E.montar_X(df, MAPA, pad, E.Termos(
+        bloco_grupos=(("esquerda",), ("centro",), ("sem_prefeito",))))
+    b = df[MAPA["bloco_pref"]]
+    assert (X["bloco_centro"] == (b == "centro")).all()
+    assert (X["bloco_sem_prefeito"] == (b == "sem_prefeito")).all()
+
+
+def test_bloco_grupos_nivel_na_referencia_e_ausente(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    X = E.montar_X(df, MAPA, pad, E.Termos(bloco_grupos=(("esquerda",),)))
+    assert [c for c in X.columns if c.startswith("bloco_")] == ["bloco_esquerda"]
+    X2 = E.montar_X(df, MAPA, pad, E.Termos(bloco_grupos=(("esquerda",), ("direita", "centro"))))
+    assert [c for c in X2.columns if c.startswith("bloco_")] == ["bloco_esquerda"]
+
+
+def test_bloco_valor_inesperado_vai_ao_grupo_de_sem_prefeito(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    d = df.copy()
+    d[MAPA["bloco_pref"]] = d[MAPA["bloco_pref"]].astype(object)
+    d.iloc[0, d.columns.get_loc(MAPA["bloco_pref"])] = None
+    X = E.montar_X(d, MAPA, pad, E.Termos())
+    assert X["bloco_outro"].iloc[0] == 1.0
+
+
+@pytest.mark.parametrize("grupos", [(("xx",),), (("esquerda",), ("esquerda", "centro")),
+                                    (("esquerda", "esquerda"),)])
+def test_bloco_grupos_invalido(grupos):
+    with pytest.raises(ValueError):
+        E.Termos(bloco_grupos=grupos)
+
+
+def test_usa_suplementar_adiciona_coluna(df):
+    pad = E.Padronizador(MAPA).fit(df)
+    d = df.copy()
+    d[MAPA["suplementar"]] = pd.array([True, False, None] + [False] * (len(d) - 3), dtype=object)
+    X = E.montar_X(d, MAPA, pad, E.Termos(usa_suplementar=True))
+    assert X["prefeito_suplementar"].iloc[:3].tolist() == [1.0, 0.0, 0.0]
+    assert "prefeito_suplementar" not in E.montar_X(d, MAPA, pad, E.Termos()).columns

@@ -58,7 +58,7 @@ DP do resíduo quantílico por região:
 
 Candidato `bb_disp` = `bb_selecao` com a dispersão `regiao_logn`. Roda em 5-fold (semente 0) e LOSO (uma UF fora por vez), sem alterar as tabelas do notebook 03.
 
-**Limite L.** MAE por UF aninhado de `bb_selecao` (1,0870 p.p., seleção refeita em cada dobra; [05](05-validacao-cruzada.md), seção 8) + erro-padrão do melhor modelo LOSO do notebook 03 (`bin_probit`, 0,1347) = **1,2217 p.p.** (1,1695 com o 1,0348 sem aninhar; 1,1308 no LOSO que vazava o 2º turno da UF retida). É o EP da regra do 1-EP usada para escolher `bb_selecao`, para que a tolerância seja a mesma da escolha original. O MAE por UF e o MAE regional (`mae_uf_pp`, `mae_reg_pp`) ponderam as previsões por n̂, como nos notebooks 03 e 05; `mae_pond_pp` e `erro_nacional_pp` ponderam pelo n real.
+**Limite L.** MAE por UF aninhado de `bb_selecao` (1,1168 p.p., seleção refeita em cada dobra; [05](05-validacao-cruzada.md), seção 8) + erro-padrão do melhor modelo LOSO do notebook 03 (`bin_probit`, 0,1347) = **1,2515 p.p.** (1,1695 com o 1,0348 sem aninhar; 1,1308 no LOSO que vazava o 2º turno da UF retida). É o EP da regra do 1-EP usada para escolher `bb_selecao`, para que a tolerância seja a mesma da escolha original. O MAE por UF e o MAE regional (`mae_uf_pp`, `mae_reg_pp`) ponderam as previsões por n̂, como nos notebooks 03 e 05; `mae_pond_pp` e `erro_nacional_pp` ponderam pelo n real.
 
 | esquema | modelo | MAE por UF (p.p.) | EP | MAE ponderado (p.p.) | erro nacional (p.p.) |
 |---|---|---|---|---|---|
@@ -67,7 +67,7 @@ Candidato `bb_disp` = `bb_selecao` com a dispersão `regiao_logn`. Roda em 5-fol
 | 5-fold | `bb_selecao` | 0,8550 | 0,148 | 1,150 | -0,066 |
 | 5-fold | `bb_disp` | 0,8630 | 0,159 | 1,139 | -0,078 |
 
-- **Condição 3:** 1,0345 ≤ 1,2217. Cumprida.
+- **Condição 3:** 1,0345 ≤ 1,2515. Cumprida.
 - **Decisão.** As três condições passam: `bb_disp` é aceita (`final_decisao.json`, `aceitas.disp = true`). O ganho em previsão é pequeno e dentro do ruído (0,0003 p.p. no MAE por UF, EP 0,16); o MAE ponderado e o erro nacional melhoram mais no LOSO. A aceitação se apoia principalmente no diagnóstico (DP regional) sem custo de previsão, não em ganho de previsão.
 - **O que a dispersão muda.** Os termos de média são os mesmos de `bb_selecao`; os coeficientes são reestimados juntos com a dispersão.
 

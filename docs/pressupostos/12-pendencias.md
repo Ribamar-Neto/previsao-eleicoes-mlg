@@ -27,7 +27,7 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **[fechada como limitação] Resíduos com autocorrelação espacial em todos os modelos**
   (I de Moran ≈ 0,34). Conley a 200 km corrige a inferência
   ([08](08-dependencia-espacial.md), seções 4 e 5); ESF foi rejeitado (LOSO 1,484 contra o
-  limite 1,2217) e o SLX aceito, mas o SLX só baixou o I de 0,342 para 0,336. A Parte 17
+  limite 1,2515) e o SLX aceito, mas o SLX só baixou o I de 0,342 para 0,336. A Parte 17
   decompôs o I e testou krigagem dos resíduos sob LOSO: rejeitada (queda do I de 0,0003
   contra o mínimo de 0,05). Testou também CAR/BYM em dois estágios sob a mesma regra:
   rejeitado (queda do I de 0,0275; MAE por UF de 1,004, mas MAE regional pior)
@@ -81,20 +81,20 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **13 modelos dentro de 1 EP**: os dados não os separam com clareza [deduced]. A escolha
   de `bb_selecao` repousa na regra de parcimônia, não numa vantagem demonstrada.
   O modelo final `bb_slx` (LOSO 1,078) fica acima de `bb_selecao` (1,035), dentro da
-  tolerância de 1,2217.
+  tolerância de 1,2515.
 
 - **[resolvida] LOSO vazava o 2º turno da UF retida** (comparecimento e n reais de 2026).
   Agora o modelo usa só covariáveis anteriores ao turno e o LOSO pesa a UF retida por n̂
   ([09](09-modelo-final.md), seção 1); as métricas dos notebooks 03 e 05 são ponderadas
-  por n̂. O limite de aceitação passou de 1,1308 para 1,1695 e, com a seleção aninhada, para 1,2217.
+  por n̂. O limite de aceitação passou de 1,1308 para 1,1695 e, com a seleção aninhada, para 1,2515.
 - **σ_UF (0,0564) também é ajustado nas mesmas 27 UFs**; mesma limitação da cobertura
   otimista acima. Correção: validação aninhada.
 - **[resolvida] Seleção de variáveis e fusão Nordeste + Norte usavam o 2º turno de todas as UFs**,
-  o que tornava otimista o LOSO do `bb_selecao` (1,0348). Refeitas dentro de cada dobra: 1,0870;
-  a escolha não muda e L passa a 1,2217 ([05](05-validacao-cruzada.md), seção 8).
+  o que tornava otimista o LOSO do `bb_selecao` (1,0348). Refeitas dentro de cada dobra: 1,1168;
+  a escolha não muda e L passa a 1,2515 ([05](05-validacao-cruzada.md), seção 8).
 - **Extensões com a seleção dos dados completos.** `bb_disp`, `bb_slx` e as rejeitadas herdam
   as variáveis do `bb_selecao` escolhidas com todas as UFs; contra um L aninhado o limite é
-  mais folgado. Nenhuma decisão está perto dele (`bb_slx` 1,078 contra 1,2217). Correção:
+  mais folgado. Nenhuma decisão está perto dele (`bb_slx` 1,078 contra 1,2515). Correção:
   refazer a seleção dentro de cada dobra para as extensões.
 - **[resolvida] Cenário de apuração parcial (ordem real das seções)**: Parte 18, em
   [11](11-apuracao-parcial.md).
@@ -158,3 +158,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **[resolvida] Referência do SLX.** Halleck Vega e Elhorst (2015) conferida (DOI
   10.1111/jors.12188) e incluída em `referencias.md` e em
   [08](08-dependencia-espacial.md), seção 3.
+- **Agrupamento por UF não feito.** A seleção aninhada funde só níveis de região e de bloco de
+  prefeito; UFs com comportamento parecido não são agrupadas. Correção: testar a fusão de UFs
+  dentro de cada dobra, se o erro por UF justificar.
+- **Binária `suplementar` (prefeito eleito em eleição suplementar).** Entra só se o LRT de adição
+  der p <= 0,05 (`usa_suplementar`, `src/especificacoes.py`). Município sem o valor é tratado
+  como 0 (não suplementar). Conferir quantos municípios estão sem o valor e se tratá-los como 0
+  distorce o coeficiente.

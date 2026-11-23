@@ -53,6 +53,16 @@ padrão regional, não o contorno exato.
   - `nota_media_dep_2026`: mede o mesmo que `pct_dep_esq_2026` (VIF 2,9 e 2,4 na lista cheia); preferida a fração, que é mais interpretável e já é parcela binomial.
 - **Atenção**: cinco variáveis ficam entre 5 e 7 de VIF (moderado). Aceitável para previsão; para inferência, conferir a estabilidade dos coeficientes. O fator `bloco_prefeito_2024` tem só 49 municípios no centro e 16 sem prefeito (agrupar com a direita se der instabilidade).
 
+### 3.1 Categóricas e binárias, nível a nível
+Roteiro de Paula (2013): tabela descritiva por nível (seção 2.10.5), razão de chances ψ de cada nível contra uma referência, sem dicotomizar sem motivo (4.4), tabela 2×2 e Mantel-Haenszel por estrato para a binária (4.2 e 4.3) e LRT univariado como passo 1 de Hosmer-Lemeshow (4.6.5). Referências: região Sudeste, bloco direita.
+- **ψ e IC são só descritivos.** São calculados sobre os totais de votos e ignoram a superdispersão entre municípios, então os IC ficam estreitos demais. O teste formal é o LRT no beta-binomial ([03](03-modelos-candidatos.md), seção 8.1).
+- **ψ brutos.** Região contra o Sudeste: Nordeste 2,529, Norte 1,117, Centro-Oeste 0,744, Sul 0,668. Bloco contra a direita (4.770 municípios): esquerda 1,706, centro 1,049 (49 municípios), sem_prefeito 0,904 (16). Norte e centro/sem_prefeito, com ψ perto de 1 ou poucos municípios, viram candidatos a fusão.
+- **UF só descreve.** ψ de 0,443 (RR) a 3,670 (PI); UFs vizinhas parecem parecidas, o que sugere que a região explica parte da UF. As UFs não são agrupadas ([12](12-pendencias.md)).
+- **Mantel-Haenszel.** Estrato com linha ou coluna vazia sai do cálculo, porque o estimador não existe nele: o Norte não tem prefeito suplementar, então o MH da suplementar por região usa 4 estratos. OR bruto 0,955 e OR de MH 0,881.
+- **Breslow-Day.** Rejeita a homogeneidade entre regiões (p ≈ 0), mas com contagens de votos e sem correção de superdispersão ele rejeita diferenças pequenas: é só um sinal, não decide nada.
+- **Confusão.** O ψ bruto pode enganar: a esquerda pode estar concentrada em regiões que já votam mais em Lula (hipótese não checada) e a defasagem de 2022 pode absorver parte do bloco. Por isso os agrupamentos sugeridos pelo ψ são só hipóteses, e a decisão vem do LRT no beta-binomial completo, com todas as covariáveis.
+- **Suplementar.** 27 municípios (25 de direita, 2 de esquerda); os 16 sem prefeito contam como não suplementar. LRT univariado p = 0,096: sem evidência de efeito apesar de IC de Woolf (sem superdispersão) que parecem excluir 1.
+
 ## Parte 4: Espacial
 - **Pesos** (`graficos.pesos_queen`): Queen de `libpysal`, ilhas ligadas ao vizinho mais próximo (`KNN k=1`, `attach_islands`), padronização por linha. Alinhado a `municipios.parquet` por `id_municipio`. Média de 5,79 vizinhos.
 - **Moran's I global** (`esda.Moran`, 999 permutações, semente 2026): pressupõe estacionariedade e a mesma matriz de pesos para todos.

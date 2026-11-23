@@ -6,7 +6,7 @@ Notebook `notebooks/05-modelo-final.ipynb`. Tabelas em `results/tables/final_esf
 
 ## 1. Regra comum de aceitação, escrita antes do resultado
 
-Fixada em 2026-11-09, antes de ver os resultados das extensões. Toda extensão mantém os termos de média de `bb_selecao` e é aceita só se (1) o seu diagnóstico melhora **e** (2) o MAE por UF no LOSO é no máximo o limite L = MAE por UF aninhado de `bb_selecao` + EP do melhor modelo LOSO = 1,0870 + 0,1347 = **1,2217 p.p.** (1,1695 com o 1,0348 sem aninhar; antes, com o LOSO que vazava o 2º turno da UF retida, 1,1308; mesmo limite do [doc 07](07-dispersao-regional.md), seção 4). Razão: o ganho de diagnóstico não pode custar previsão fora da amostra, que é o objetivo do projeto. As métricas são ponderadas por n̂.
+Fixada em 2026-11-09, antes de ver os resultados das extensões. Toda extensão mantém os termos de média de `bb_selecao` e é aceita só se (1) o seu diagnóstico melhora **e** (2) o MAE por UF no LOSO é no máximo o limite L = MAE por UF aninhado de `bb_selecao` + EP do melhor modelo LOSO = 1,1168 + 0,1347 = **1,2515 p.p.** (1,1695 com o 1,0348 sem aninhar; antes, com o LOSO que vazava o 2º turno da UF retida, 1,1308; mesmo limite do [doc 07](07-dispersao-regional.md), seção 4). Razão: o ganho de diagnóstico não pode custar previsão fora da amostra, que é o objetivo do projeto. As métricas são ponderadas por n̂.
 
 ## 2. Filtro espacial de autovetores de Moran, ESF (Parte 14)
 
@@ -23,7 +23,7 @@ Fixada em 2026-11-09, antes de ver os resultados das extensões. Toda extensão 
 | 100 | -35530,3 | 124 | 72130,1 | 0,197 |
 
 - **BIC escolhe k = 50.** O I de Moran cai de 0,342 para 0,230 (p simulado 0,001 em todos os k): o filtro tira parte da dependência, mas não toda.
-- **Condição 1 cumprida** (I cai). **Condição 2 falha:** MAE por UF no LOSO = 1,484 p.p. (ponderado 4,78) contra o limite 1,2217. Na validação de 5 dobras o filtro melhora (0,645 contra 0,855).
+- **Condição 1 cumprida** (I cai). **Condição 2 falha:** MAE por UF no LOSO = 1,484 p.p. (ponderado 4,78) contra o limite 1,2515. Na validação de 5 dobras o filtro melhora (0,645 contra 0,855).
 - **Combinação `bb_final`** (dispersão + ESF): LOSO 1,454, também acima do limite.
 - **Razão da divergência [deduced].** Numa UF deixada de fora, os coeficientes dos autovetores extrapolam um padrão espacial ajustado nas outras 26 UFs; nas 5 dobras os vizinhos continuam no treino, e o padrão local se transfere. O filtro captura estrutura que a validação por UF mostra não ser transferível.
 - **Decisão: ESF rejeitado** (`final_decisao.json`, `aceitas.esf = false`). Com só o ESF fora, o modelo final seria `bb_disp`; ele foi superado pelo SLX (seção 3).
@@ -35,7 +35,7 @@ O SLX acrescenta ao preditor as covariáveis médias dos vizinhos, sem termo aut
 **Regra acrescentada em 2026-11-09, depois dos primeiros resultados do notebook**, e fixada antes de ver o resultado do SLX. Razão: o ESF falhou no LOSO porque carrega para a UF deixada de fora um padrão espacial ajustado em y. O SLX usa W·x, as covariáveis dos vizinhos, que são conhecidas numa UF nova; não carrega padrão de y.
 
 - **Construção.** W = rainha com linhas padronizadas (ilhas ligadas ao vizinho mais próximo). Opções, escolhidas por BIC: nenhuma, W·lag, ou W·(as 12 variáveis do modelo-base). W·pib estaria na escala log.
-- **Aceitação.** A mesma regra da seção 1: o I de Moran dos resíduos cai **e** o MAE por UF no LOSO é no máximo 1,2217 p.p. Aceito, o modelo final passa a `bb_disp` + SLX (`bb_slx`).
+- **Aceitação.** A mesma regra da seção 1: o I de Moran dos resíduos cai **e** o MAE por UF no LOSO é no máximo 1,2515 p.p. Aceito, o modelo final passa a `bb_disp` + SLX (`bb_slx`).
 
 | opção | BIC | I de Moran | parâmetros |
 |---|---|---|---|
@@ -43,7 +43,7 @@ O SLX acrescenta ao preditor as covariáveis médias dos vizinhos, sem termo aut
 | W·lag | 72375,4 | 0,3399 | 25 |
 | W·12 variáveis | **72175,5** | 0,3361 | 36 |
 
-- **Resultado.** O BIC escolhe W·12 variáveis. LOSO: MAE por UF de `bb_slx` = 1,078 ≤ 1,2217, **aceito** (`aceitas.slx = true`, `modelo_final = "bb_slx"`). Esse valor fica **acima** do de `bb_selecao` (1,035) e de `bb_disp` (1,0345): o SLX custa previsão, dentro da tolerância. 5 dobras: 0,846.
+- **Resultado.** O BIC escolhe W·12 variáveis. LOSO: MAE por UF de `bb_slx` = 1,078 ≤ 1,2515, **aceito** (`aceitas.slx = true`, `modelo_final = "bb_slx"`). Esse valor fica **acima** do de `bb_selecao` (1,035) e de `bb_disp` (1,0345): o SLX custa previsão, dentro da tolerância. 5 dobras: 0,846.
 - **Leitura honesta.** A regra não fixou queda mínima do I de Moran. A queda é de 0,006 (0,342 para 0,336): o SLX quase não muda a estrutura espacial dos resíduos, e a aceitação vem do critério formal (I cai e LOSO dentro do limite), não de um ganho material. O fechamento do item (decomposição do I e testes de krigagem e CAR nos resíduos, ambos rejeitados) está no [doc 10](10-extensoes-rejeitadas.md). O BIC melhora em 207, mas esse BIC supõe independência. A dependência residual segue tratada por Conley; ver [pendências](12-pendencias.md).
 
 ## 4. EPs espaciais de Conley (Parte 15)

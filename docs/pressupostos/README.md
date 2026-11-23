@@ -5,8 +5,8 @@
 | Arquivo | Conteúdo |
 |---|---|
 | [01-visao-geral.md](01-visao-geral.md) | Problema, decisões de projeto e razões, regra de seleção, resultados finais |
-| [02-aed.md](02-aed.md) | Análise exploratória dos dados |
-| [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, fusão Nordeste+Norte e seleção de variáveis (`bb_selecao`) |
+| [02-aed.md](02-aed.md) | Análise exploratória dos dados, incluindo a leitura nível a nível das categóricas e binárias (seção 3.1) |
+| [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, regra de fusão de níveis (seção 8.1; Nordeste+Norte) e seleção de variáveis (`bb_selecao`) |
 | [04-diagnostico.md](04-diagnostico.md) | Resíduos, influência, envelope e autocorrelação espacial; pressupostos dos modelos escolhidos (`bb_selecao` e `bb_slx`: ligação, linearidade, variância, colinearidade, influência) |
 | [05-validacao-cruzada.md](05-validacao-cruzada.md) | Validação cruzada (5 dobras e LOSO sem vazamento), regra de 1 EP, seleção aninhada do `bb_selecao`, limite L e sensibilidade regional |
 | [06-backtest.md](06-backtest.md) | Ajuste em 2018 e previsão de 2026 a partir de 2022 |
@@ -16,7 +16,7 @@
 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) | Krigagem e CAR/BYM nos resíduos (rejeitadas, também com peso por n), decomposição do I de Moran |
 | [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026), incerteza de n_u e cobertura por unidade |
 | [12-pendencias.md](12-pendencias.md) | Pendências abertas, com efeito e correção possível |
-| [referencias.md](referencias.md) | Referências únicas e conferidas |
+| [referencias.md](referencias.md) | Referências únicas e conferidas (Paula, com as seções usadas) |
 
 Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 [../dados/dicionario.md](../dados/dicionario.md),

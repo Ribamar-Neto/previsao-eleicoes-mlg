@@ -43,16 +43,21 @@ MAPA_2026 = {
     "pct_vab_agro": "pct_vab_agro_2021", "pct_evangelicos": "pct_evangelicos_2022",
     "pct_pretos_pardos": "pct_pretos_pardos_2022", "pct_urbana": "pct_urbana_2022",
     "regiao": "regiao", "uf": "sigla_uf",
+    "suplementar": "prefeito_suplementar_2024",
 }
 MAPA_2026_PRE = MAPA_2026  # apelido até os notebooks 05/06 deixarem de citá-lo
 CONTINUAS = ["lag", "nota_dep", "pct_dep_esq", "comparecimento", "delta_comp",
              "log_pop", "log_dens", "pct_mulheres", "pct_16_24", "pct_60_mais",
              "pct_superior", "pct_analfabeto", "cobertura_pbf", "pib_pc",
              "pct_vab_agro", "pct_evangelicos", "pct_pretos_pardos", "pct_urbana"]
-REGIOES = ["Centro-Oeste", "Nordeste", "Norte", "Sul"]  # referência: Sudeste
+REGIOES = ["Centro-Oeste", "Nordeste", "Norte", "Sul"]
+REGIAO_REF = "Sudeste"
 UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT",
        "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
 UF_REF = "SP"
+# níveis brutos do bloco do prefeito fora da referência (referência: direita)
+BLOCOS = ["esquerda", "centro", "sem_prefeito"]
+BLOCOS_PADRAO: tuple[tuple[str, ...], ...] = (("esquerda",), ("centro", "sem_prefeito"))
 _COL_OFFSET = "lag_offset"
 
 
@@ -118,11 +123,16 @@ class Termos:
     esf: int = 0                  # nº de autovetores espaciais (ev_001..) em X
     # SLX: chaves base cuja defasagem espacial W·x entra em X como `w_<chave>`
     slx: tuple = ()
-    # níveis de região fundidos numa só dummy (ex.: (("Nordeste", "Norte"),)); a referência
-    # (Sudeste) não entra. Decisão da Parte 8 do notebook 02 (LRT de igualdade, p > 0,05).
+    # níveis de região fundidos numa só dummy (ex.: (("Nordeste", "Norte"),)); um grupo com a
+    # referência (Sudeste) funde seus níveis na referência (as dummies saem), porque a regra de
+    # fusão da Parte 8.1 do notebook 02 aceita fundir um nível na referência.
     regiao_fundir: tuple[tuple[str, ...], ...] = ()
-    # funde bloco esquerda + outro numa dummy só ("não direita"); só a seleção aninhada usa.
-    bloco_fundir: bool = False
+    # grupos de níveis do bloco, uma dummy por grupo. Nível fora de todos os grupos, ou grupo
+    # com "direita", vai para a referência. O padrão (esquerda; centro+sem_prefeito) é a
+    # codificação histórica; a seleção por LRT parte dos níveis brutos e decide os grupos.
+    bloco_grupos: tuple[tuple[str, ...], ...] = BLOCOS_PADRAO
+    # prefeito eleito em eleição suplementar (binária); entra só se o LRT de adição der p <= 0,05.
+    usa_suplementar: bool = False
 
     def __post_init__(self):
         if self.disp not in DISPERSOES:
@@ -131,10 +141,14 @@ class Termos:
             raise ValueError("esf deve ser >= 0")
         if self.regiao_fundir:
             usados = [r for g in self.regiao_fundir for r in g]
-            if any(r not in REGIOES for r in usados) or len(set(usados)) != len(usados):
-                raise ValueError(f"regiao_fundir só aceita níveis não referência sem repetição: {REGIOES}")
+            if any(r not in REGIOES + [REGIAO_REF] for r in usados) or len(set(usados)) != len(usados):
+                raise ValueError(f"regiao_fundir só aceita níveis de {REGIOES + [REGIAO_REF]} sem repetição")
             if self.usa_uf or self.regiao_x_lag:
                 raise ValueError("regiao_fundir não combina com usa_uf nem regiao_x_lag")
+        usados_b = [b for g in self.bloco_grupos for b in g]
+        if (any(b not in BLOCOS + ["direita"] for b in usados_b)
+                or len(set(usados_b)) != len(usados_b)):
+            raise ValueError(f"bloco_grupos só aceita níveis de {BLOCOS} sem repetição")
         # `vars` carrega também os w_<chave>; sem duplicar quando `replace` reaproveita
         extras = tuple(f"w_{k}" for k in self.slx if f"w_{k}" not in self.vars)
         if extras:
@@ -159,11 +173,21 @@ def montar_X(df, mapa, padronizador, termos=Termos()) -> pd.DataFrame:
         X = pd.concat([X, padronizador.spline_lag(df).set_axis(idx)], axis=1)
     if termos.usa_bloco:
         b = df[mapa["bloco_pref"]].astype(str)
-        X["bloco_esquerda"] = (b == "esquerda").astype(float).to_numpy()
-        X["bloco_outro"] = (~b.isin(["esquerda", "direita"])).astype(float).to_numpy()
-        if termos.bloco_fundir:
-            X["bloco_esquerda+outro"] = X["bloco_esquerda"] + X["bloco_outro"]
-            X = X.drop(columns=["bloco_esquerda", "bloco_outro"])
+        for grupo in termos.bloco_grupos:
+            if "direita" in grupo:
+                continue
+            # valor fora dos quatro níveis (inclusive NaN) cai no grupo de sem_prefeito
+            # (regra histórica: bloco_outro = tudo que não é esquerda nem direita)
+            pertence = b.isin(grupo)
+            if "sem_prefeito" in grupo:
+                pertence = pertence | ~b.isin(["esquerda", "centro", "sem_prefeito", "direita"])
+            nome = "+".join(grupo)
+            if "centro" in grupo and "sem_prefeito" in grupo:
+                nome = "+".join("outro" if g == "centro" else g for g in grupo
+                                if g != "sem_prefeito")
+            X["bloco_" + nome] = pertence.astype(float).to_numpy()
+    if termos.usa_suplementar:
+        X["prefeito_suplementar"] = (df[mapa["suplementar"]] == True).astype(float).to_numpy()
     if termos.usa_uf:
         niveis = UFS if termos.uf_aleatoria else [u for u in UFS if u != UF_REF]
         g, pref = df[mapa["uf"]].astype(str), "uf_"
@@ -173,8 +197,9 @@ def montar_X(df, mapa, padronizador, termos=Termos()) -> pd.DataFrame:
                            index=idx)
     X = pd.concat([X, dummies], axis=1)
     for grupo in termos.regiao_fundir:
-        cols_g = [f"reg_{r}" for r in grupo]
-        X["reg_" + "+".join(grupo)] = X[cols_g].sum(axis=1)
+        cols_g = [f"reg_{r}" for r in grupo if r != REGIAO_REF]
+        if REGIAO_REF not in grupo:
+            X["reg_" + "+".join(grupo)] = X[cols_g].sum(axis=1)
         X = X.drop(columns=cols_g)
     if termos.regiao_x_lag:
         z = padronizador.z(df, "lag")

@@ -26,14 +26,17 @@ REGIAO_UF = {"AC": "Norte", "AM": "Norte", "BA": "Nordeste", "CE": "Nordeste",
              "SP": "Sudeste", "PR": "Sul", "GO": "Centro-Oeste", "MT": "Centro-Oeste"}
 
 
-def _dados(n_mun: int = 700, seed: int = 11) -> pd.DataFrame:
-    """Norte e Nordeste com o mesmo efeito (0); Sul (-0,5) e Centro-Oeste (+0,5) diferem; bloco sem efeito."""
+def _dados(n_mun: int = 700, seed: int = 11, efeito_co: float = 0.5) -> pd.DataFrame:
+    """Norte e Nordeste com o mesmo efeito (+0,3, distinto da referência Sudeste); Sul (-0,5) e
+    Centro-Oeste (+0,5) diferem; bloco sem efeito. Com a fusão na referência, Norte e Nordeste
+    precisam diferir de Sudeste para se fundirem entre si."""
     rng = np.random.default_rng(seed)
     df = pd.DataFrame({MAPA_2026[k]: rng.normal(size=n_mun) for k in CONTINUAS})
     df[MAPA_2026["pib_pc"]] = np.exp(df[MAPA_2026["pib_pc"]])
     uf = rng.choice(UFS_TESTE, n_mun)
     reg = np.array([REGIAO_UF[u] for u in uf])
-    efeito = np.where(reg == "Sul", -0.5, np.where(reg == "Centro-Oeste", 0.5, 0.0))
+    efeito = np.where(reg == "Sul", -0.5, np.where(reg == "Centro-Oeste", efeito_co,
+                      np.where(np.isin(reg, ["Norte", "Nordeste"]), 0.3, 0.0)))
     z = {k: df[MAPA_2026[k]].to_numpy() for k in CONTINUAS}
     p = expit(0.2 + 0.5 * z["lag"] + 0.6 * z["nota_dep"] - 0.6 * z["pct_dep_esq"] + efeito)
     n = rng.integers(300, 3000, n_mun).astype(float)
@@ -86,13 +89,14 @@ def test_fold_aninhado_usa_so_treino_e_replica_convencao_do_loso(df: pd.DataFram
     assert r["uf"] == "BA"
     assert {"nota_dep", "pct_dep_esq"} <= set(r["variaveis"].split(","))
     assert r["fusao_regiao"] == "Nordeste+Norte"
-    assert r["fusao_bloco"] is True  # o bloco não tem efeito nos dados sintéticos
+    # o bloco não tem efeito nos dados sintéticos: todos os níveis vão para a referência
+    assert r["fusao_bloco"] == ""
     # previsão idêntica à de prever_fold com a mesma especificação
     vs = ("lag", *r["variaveis"].split(","))
     E.definir_dados_cv(df, MAPA_2026)
     E.EXTENSOES["_t"] = E.Candidato("_t", "betabin", "logit",
                                     Termos(vars=vs, regiao_fundir=(("Nordeste", "Norte"),),
-                                           bloco_fundir=True))
+                                           bloco_grupos=()))
     try:
         uf = df[MAPA_2026["uf"]].to_numpy()
         pi = E.prever_fold("_t", np.flatnonzero(uf != "BA"), np.flatnonzero(uf == "BA"))
@@ -123,3 +127,58 @@ def test_driver_grava_status_e_e_retomavel(df: pd.DataFrame, tmp_path: Path,
     assert any(l.startswith("t BA OK ja_pronto") for l in linhas)
     assert any(l.startswith("t CE OK") for l in linhas)
     assert mae_uf_pp(r2) == pytest.approx(r2["erro_abs_pp"].mean())
+
+
+def _fator(seed: int = 5, n_mun: int = 1500) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+    """Fator A/B/C/D (ref A): B e C com o mesmo efeito (+0,6), D sem efeito, sobre beta-binomial."""
+    rng = np.random.default_rng(seed)
+    nivel = rng.choice(["A", "B", "C", "D"], n_mun)
+    ef = {"A": 0.0, "B": 0.6, "C": 0.6, "D": 0.0}
+    p = expit(0.1 + np.array([ef[v] for v in nivel]))
+    n = rng.integers(500, 3000, n_mun).astype(float)
+    p = rng.beta(p * 300, (1 - p) * 300)
+    y = rng.binomial(n.astype(int), p).astype(float)
+    X = pd.DataFrame({"const": 1.0, **{f"f_{k}": (nivel == k).astype(float) for k in "BCD"}})
+    return X, y, n
+
+
+def test_analisar_fator_nivel_sem_efeito_funde_na_referencia() -> None:
+    X, y, n = _fator()
+    Xr, _, cols = analisar_fator(X, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05, verbose=False)
+    assert "f_D" not in Xr.columns and "f_D" not in cols
+    assert "f_B+C" in cols
+
+
+def test_analisar_fator_sem_fundir_na_referencia_mantem_nivel() -> None:
+    X, y, n = _fator()
+    _, _, cols = analisar_fator(X, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05,
+                                 verbose=False, fundir_na_referencia=False)
+    assert "f_D" in cols and "f_B+C" in cols
+
+
+def test_analisar_fator_dois_niveis_iguais_fundem_em_par() -> None:
+    X, y, n = _fator()
+    X = X.drop(columns="f_D")
+    _, _, cols = analisar_fator(X, y, n, ["f_B", "f_C"], "F", "f_", 0.05, verbose=False)
+    assert cols == ["f_B+C"]
+
+
+def test_analisar_fator_imprime_candidatos_na_referencia(capsys: pytest.CaptureFixture[str]) -> None:
+    X, y, n = _fator()
+    analisar_fator(X, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05, ref="A")
+    assert "A" in capsys.readouterr().out
+
+
+def test_fusoes_bloco_parte_dos_niveis_brutos(df: pd.DataFrame) -> None:
+    from src.selecao import _fusoes
+    grupos_reg, grupos_blo = _fusoes(df, MAPA_2026, TERMOS, 0.05)
+    assert grupos_reg == (("Nordeste", "Norte"),)
+    assert grupos_blo == ()  # bloco sem efeito: tudo vai à referência
+
+
+def test_fusoes_regiao_sem_efeito_vai_para_a_referencia() -> None:
+    """Centro-Oeste sem efeito (igual a Sudeste): o grupo de fusão inclui a referência."""
+    from src.selecao import _fusoes
+    grupos_reg, _ = _fusoes(_dados(efeito_co=0.0), MAPA_2026, TERMOS, 0.05)
+    assert ("Nordeste", "Norte") in grupos_reg
+    assert ("Centro-Oeste", "Sudeste") in grupos_reg
