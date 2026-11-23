@@ -6,6 +6,7 @@ repete esse swing; `recalibrar` o remove, fixando a média nacional prevista no 
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import replace
 
 import numpy as np
@@ -134,3 +135,19 @@ def resumo_erros(pi, n_peso, y_real, n_real, regiao, uf) -> dict:
             "mae_regiao_pp": float(er.drop("Brasil")["erro_pp"].abs().mean()),
             "mae_uf_pp": float(eu.drop("Brasil")["erro_pp"].abs().mean()),
             "mae_mun_pond_pp": m["mae_pond_pp"]}
+
+
+def tabelar(pi_por: Mapping[tuple[str, str], np.ndarray], n_prev: np.ndarray, n_real: np.ndarray,
+            y_real: np.ndarray, regiao: np.ndarray, uf: np.ndarray) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Resumo, erros por região e por UF de cada (variante, modelo), com os dois pesos (n previsto e n real)."""
+    linhas: list[dict] = []
+    reg: list[pd.DataFrame] = []
+    ufs: list[pd.DataFrame] = []
+    for (var, nome), pi in pi_por.items():
+        for peso, w in (("n_prev", n_prev), ("n_real", n_real)):
+            linhas.append({"variante": var, "modelo": nome, "peso": peso,
+                           **resumo_erros(pi, w, y_real, n_real, regiao, uf)})
+            for g, saida in ((regiao, reg), (uf, ufs)):
+                t = erros_grupo(pi, w, y_real, n_real, g).drop("Brasil").reset_index(names="grupo")
+                saida.append(t.assign(variante=var, modelo=nome, peso=peso))
+    return pd.DataFrame(linhas), pd.concat(reg), pd.concat(ufs)

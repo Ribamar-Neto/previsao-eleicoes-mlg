@@ -194,7 +194,23 @@ Estimativa do resultado com parte das urnas apuradas (cortes de 5% a 90%), compa
 
 ### `src/`
 
-Coleta (`src/coleta/`, um módulo por fonte e o consolidador), especificações dos modelos (`especificacoes.py`: todo modelo é ajustado por `Candidato.ajustar`, reusado pelos notebooks 03 e 04), modelos próprios (quase-binomial, GLMM por PQL), componentes espaciais e backtest.
+Os notebooks não definem funções: toda função auxiliar fica em `src/`, e a célula mostra só o passo estatístico.
+
+```text
+src/
+├── coleta/          # um módulo por fonte e o consolidador
+├── especificacoes.py # candidatos; todo modelo é ajustado por `Candidato.ajustar` (reusado pelos notebooks 03 e 04)
+├── modelos.py       # modelos próprios (quase-binomial, beta-binomial, GLMM por PQL)
+├── selecao.py       # seleção de variáveis (AIC/BIC, Hosmer-Lemeshow, todos os subconjuntos)
+├── pressupostos.py  # diagnóstico dos pressupostos de um modelo já ajustado
+├── validacao.py     # validação cruzada (5 dobras e LOSO) e erros por UF e região
+├── backtest.py      # backtest 2018 -> 2022 -> 2026
+├── espacial.py      # autovetores de Moran, Conley, SLX, krigagem e CAR
+├── apuracao.py      # apuração parcial e simulação das participações
+├── dados.py         # carga comum dos notebooks 05 e 06
+├── graficos.py      # gráficos Plotly
+└── saidas.py        # gravação padronizada de tabelas, figuras e JSON
+```
 
 ### `data/`
 
@@ -202,7 +218,7 @@ Dados baixados ficam em cache em `data/raw/<fonte>/`; cada fonte grava um `data/
 
 ### `notebooks/`
 
-Rode nesta ordem (o `02` roda duas vezes: o Passo 6 dele lê `results/tables/final_decisao.json`, escrito pelo `05`, e sem o json o corte de Conley cai em silêncio para 200 km; o `05` lê `cv_loso_aninhado.csv`, escrito pelo `03`):
+Cada valor é calculado em um só notebook; os seguintes o leem de `results/` e citam a origem. Rode nesta ordem (o `02` roda duas vezes: o Passo 6 dele lê os termos do `bb_slx` em `results/tables/final_decisao.json`, escrito pelo `05`, e sem o json só `bb_selecao` entra no passo; o `03` lê `loso_bb_selecao.parquet`, escrito pelo `02`; o `05` lê `cv_loso_aninhado.csv` e `sensibilidade_regional.csv`, escritos pelo `03`, e completa `diag_final_moran.csv`, do `02`, com a linha do `bb_slx`):
 
 1. `01-AED.ipynb`: análise exploratória (Partes 1 a 4);
 2. `02-MLG.ipynb`: modelos candidatos e diagnóstico (Partes 5 a 10);

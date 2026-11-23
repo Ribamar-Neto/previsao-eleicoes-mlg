@@ -60,3 +60,17 @@ def test_preparar_e_ajuste_rapido():
     aj, pi = B.ajustar_e_prever("quasi_logit", amostra, B.MAPA_FIT_2022, B.MAPA_PREV_2026)
     assert pi.shape == (1500,) and ((pi > 0) & (pi < 1)).all()
     assert 0.5 < B.coef_lag(aj) < 1.2
+
+
+def test_tabelar_uma_linha_por_variante_modelo_peso() -> None:
+    rng = np.random.default_rng(1)
+    k = 12
+    regiao = np.array(["N", "S"] * (k // 2))
+    uf = np.array(["A", "B", "C", "D"] * (k // 4))
+    n_real = rng.integers(100, 500, k).astype(float)
+    y_real = np.round(n_real * rng.uniform(0.3, 0.7, k))
+    pi_por = {("v1", "m1"): rng.uniform(0.3, 0.7, k), ("v2", "m2"): rng.uniform(0.3, 0.7, k)}
+    res, reg, ufs = B.tabelar(pi_por, n_real * 1.1, n_real, y_real, regiao, uf)
+    assert len(res) == 4 and set(res["peso"]) == {"n_prev", "n_real"}
+    assert len(reg) == 4 * 2 and len(ufs) == 4 * 4
+    assert "Brasil" not in set(reg["grupo"]) | set(ufs["grupo"])

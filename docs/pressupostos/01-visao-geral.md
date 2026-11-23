@@ -37,6 +37,25 @@ resultados e agregar as previsões às 5 regiões.
 - **Quase-binomial com φ de Pearson próprio**, porque `scale='X2'` do statsmodels erra com
   endog de 2 colunas.
 
+## Organização dos notebooks
+
+- **Sem funções nos notebooks.** Toda função auxiliar fica em `src/` (testada em `tests/`); a
+  célula mostra só o passo estatístico. Razão: o leitor vê o método sem o código de apoio.
+- **Cada valor é calculado uma vez.** O notebook que calcula um valor o grava em `results/`;
+  os seguintes o leem e citam a origem, sem refazer o ajuste. Exemplos: o LOSO do
+  `bb_selecao` (02 → 03), a sensibilidade regional (03 → 05), o I de Moran do `bb_slx`
+  (calculado no 05, Parte 14, e gravado também em `diag_final_moran.csv`, do 02) e os
+  ajustes parciais da apuração (um só laço no 06).
+- **Sem leitura de saída posterior para parâmetro.** O corte de Conley do Passo 6 do 02 é o
+  valor fixo de 200 km decidido no 05 (Parte 14), citado no código, para o 02 não depender
+  em silêncio de um arquivo do 05. Só os termos do `bb_slx` vêm de `final_decisao.json`.
+- **Ajustes repetidos de propósito.** Os reajustes do `bb_slx` por dobra no 05 (Partes 16 e
+  17) ficam em cada parte, porque rodam em processos paralelos e o compartilhamento dos
+  ajustes não foi testado.
+- **Refatoração sem efeito nos números.** A mudança para `src/` foi conferida contra uma
+  execução de referência: todas as tabelas e figuras de `results/` ficaram idênticas byte a
+  byte.
+
 ## Regra de seleção (fixada antes dos resultados)
 
 1. Menor erro absoluto médio da participação por UF no LOSO (ponderado por n̂, nos notebooks 03 e 05).

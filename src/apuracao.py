@@ -18,8 +18,11 @@ Regras de negócio:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import cast
+from typing import Any, cast
+
+from statsmodels.genmod.families.links import Link
 
 import numpy as np
 import pandas as pd
@@ -359,3 +362,50 @@ def aplicar_regra(tab: pd.DataFrame, minimo: int = MINIMO_VITORIAS) -> pd.DataFr
         linhas.append({"ano": ano, "cortes": len(cortes), "vitorias_modelo": vit,
                        "minimo": minimo, "util": vit >= minimo})
     return pd.DataFrame(linhas)
+
+
+# --------------------------------------------------------------------------
+# Estimativas do modelo final por UF e região (notebook 05, Parte 16)
+# --------------------------------------------------------------------------
+
+def simular_f(partes: Mapping[str, Mapping[str, Any]], chave: str, sigma: float, *, nhat: np.ndarray,
+              link: type[Link], B: int = 1000, seed: int = 7) -> np.ndarray:
+    """Votos simulados da UF retida, uma coluna por UF (ordem de `partes`), com o n̂ do LOSO.
+
+    `chave` escolhe a covariância de β (`cov_conley` ou `cov_modelo`); `sigma` é o choque de UF.
+    O gerador é um só para todas as UFs: a mesma semente reproduz os mesmos sorteios.
+    """
+    rng = np.random.default_rng(seed)
+    return np.column_stack([
+        M.simular_votos_grupo(v["beta"], v[chave], v["X"], nhat[v["te"]], np.zeros(len(v["te"])), link=link,
+                              theta=v["theta"], sigma=sigma, B=B, rng=rng)[:, 0]
+        for v in partes.values()])
+
+
+def resumo_f(votos: np.ndarray, *, ufs: list[str], regs: list[str], n_uf: np.ndarray, uf_reg: np.ndarray,
+             obs_uf: pd.Series, obs_reg: pd.Series, obs_brasil: float, prev_uf: pd.Series) -> pd.DataFrame:
+    """Ponto (previsão LOSO agregada com n̂) e quantis dos votos simulados, por UF, região e Brasil."""
+    linhas: dict[tuple[str, str], tuple[np.ndarray, float, float]] = {}
+    for i, u in enumerate(ufs):
+        linhas[("uf", u)] = (votos[:, i], n_uf[i], obs_uf[u])
+    for r in regs:
+        m = uf_reg == r
+        linhas[("regiao", r)] = (votos[:, m].sum(1), n_uf[m].sum(), obs_reg[r])
+    linhas[("regiao", "Brasil")] = (votos.sum(1), n_uf.sum(), obs_brasil)
+    prev_n = prev_uf[ufs].to_numpy() * n_uf
+    out = []
+    for (nivel, nome), (v, nn, real) in linhas.items():
+        q = np.quantile(v / nn, [0.025, 0.05, 0.5, 0.95, 0.975])
+        if nivel == "regiao" and nome != "Brasil":
+            pt = prev_n[uf_reg == nome].sum() / nn
+        else:
+            pt = prev_uf[nome] if nivel == "uf" else prev_n.sum() / nn
+        out.append({"nivel": nivel, "nome": nome, "lula_pct": pt * 100, "q025": q[0] * 100, "q05": q[1] * 100, "q50": q[2] * 100,
+                    "q95": q[3] * 100, "q975": q[4] * 100, "real_pct": real * 100})
+    d = pd.DataFrame(out)
+    d["erro_pp"] = d.lula_pct - d.real_pct
+    d["dentro_ic95"] = (d.real_pct >= d.q025) & (d.real_pct <= d.q975)
+    d["dentro_ic90"] = (d.real_pct >= d.q05) & (d.real_pct <= d.q95)
+    d["largura_pp"] = d.q975 - d.q025
+    d["largura90_pp"] = d.q95 - d.q05
+    return d

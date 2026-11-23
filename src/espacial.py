@@ -7,13 +7,25 @@ Referências: Griffith (2003); Tiefelsdorf & Griffith (2007); Conley (1999).
 """
 
 import warnings
+from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from scipy.optimize import minimize
+from scipy.special import expit, logit
 from scipy.sparse.linalg import LinearOperator, eigsh, splu
 from scipy.spatial import KDTree
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from libpysal.weights import W
+
+    from src.especificacoes import Ajuste
 
 R_TERRA_KM = 6371.0088
 
@@ -238,7 +250,7 @@ def moran_residuos(residuos, w, permutacoes=999, semente=0):
         mi = esda.Moran(np.asarray(residuos, float), w, permutations=permutacoes)
     finally:
         np.random.set_state(estado)
-    return {"I": float(mi.I), "p_sim": float(mi.p_sim)}
+    return {"I": float(mi.I), "p_sim": float(mi.p_sim), "esperado": float(mi.EI), "z_sim": float(mi.z_sim)}
 
 
 def _restringir_pesos(w, grupos, dentro):
@@ -403,3 +415,161 @@ def car_residuos(r_treino, w, treino, teste, sd_teste=None):
     m = splu(Q.tocsc()).solve(Do * rfull / s2)
     prev = m[te] + mu
     return {"tau": tau, "lam": lam, "sigma2": s2}, (prev if sd_teste is None else prev * np.asarray(sd_teste, float))
+
+
+# --------------------------------------------------------------------------
+# Notebook 05: Wald da dispersão, krigagem/CAR/ponderação por dobra e Moran fora da amostra
+# --------------------------------------------------------------------------
+
+LIMIAR_CORRELACAO = 0.05   # o corte de Conley é a 1ª faixa em que a correlação dos resíduos cai abaixo disto
+
+
+def corte_de(cg: pd.DataFrame) -> float:
+    """Corte de Conley (km): início da 1ª faixa com correlação < 0,05; sem faixa assim, o fim da última."""
+    abaixo = cg[cg.correlacao < LIMIAR_CORRELACAO]
+    return float(abaixo.iloc[0]["ini_km"]) if len(abaixo) else float(cg.iloc[-1]["fim_km"])
+
+
+def passo_wald(passo: str, nome: str, ajuste: "Ajuste", residuos: np.ndarray, sel: Callable[[str], bool],
+               lat: np.ndarray, lon: np.ndarray, uf: np.ndarray, faixas: list[float]) -> tuple[pd.DataFrame, float]:
+    """Wald dos termos de `ajuste` escolhidos por `sel`, sob Conley (x0,5, x1, x2) e conglomerado por UF.
+
+    O corte vem do correlograma dos resíduos do próprio ajuste. O qui-quadrado só sai com Conley x1;
+    as demais covariâncias vão como F com (nº de UFs - 1) gl no denominador.
+    """
+    mod = ajuste.modelo
+    nm = list(ajuste.nomes)
+    ind = [i for i, s in enumerate(nm) if sel(s)]
+    corte = corte_de(correlograma(residuos, lat, lon, faixas))
+    covs = {"conley_05": cov_conley(mod, lat, lon, corte * 0.5), "conley_1": cov_conley(mod, lat, lon, corte),
+            "conley_2": cov_conley(mod, lat, lon, corte * 2), "cluster_uf": cov_cluster(mod, uf, correcao=True)}
+    fator = {"conley_05": 0.5, "conley_1": 1, "conley_2": 2}
+    linhas = []
+    for tag, cv in covs.items():
+        for tipo, gd in ([("chi2", None)] if tag == "conley_1" else []) + [("F", len(np.unique(uf)) - 1)]:
+            est, gl, p = wald_robusto(mod.params, cv, ind, gl_den=gd)
+            linhas.append({"passo": passo, "ajuste": nome, "termos": ";".join(nm[i] for i in ind), "covariancia": tag,
+                           "corte_km": corte * fator[tag] if tag != "cluster_uf" else np.nan,
+                           "teste": tipo, "estat": est, "gl": gl, "gl_den": gd if gd else np.nan, "p": p})
+    return pd.DataFrame(linhas), corte
+
+
+def ep(cov: "npt.ArrayLike") -> np.ndarray:
+    """Erro-padrão (raiz da diagonal) de uma matriz de covariância."""
+    return np.sqrt(np.diag(np.asarray(cov, float)))
+
+
+def substituir_linha_csv(arq: Path, linha: dict[str, Any], chave: str = "modelo") -> pd.DataFrame:
+    """Põe `linha` no fim do CSV, trocando a que tem a mesma `chave` (idempotente) e mantendo o cabeçalho."""
+    d = pd.read_csv(arq, float_precision="round_trip")
+    d = pd.concat([d[d[chave] != linha[chave]], pd.DataFrame([linha])[list(d.columns)]], ignore_index=True)
+    d.to_csv(arq, index=False)
+    return d
+
+
+# Contexto dos workers: ProcessPoolExecutor com fork herda este dicionário, então
+# `definir_contexto_dobras` roda no processo principal antes de criar o pool.
+_CTX: dict[str, Any] = {}
+COLUNAS_EXTENSAO = {"krig": ["rho"], "car": ["tau", "lam", "sigma2"]}
+
+
+def definir_contexto_dobras(**contexto: object) -> None:
+    """Guarda o que as dobras leem: cand, df, mapa e, conforme a dobra, y, n, lz, lat, lon, uf, corte, w, nhat."""
+    _CTX.clear()
+    _CTX.update(contexto)
+
+
+def _dobra_extensao(args: tuple[np.ndarray, np.ndarray]) -> tuple[list[float], np.ndarray]:
+    """Uma dobra de krigagem ou CAR nos resíduos logit; devolve (parâmetros, π de teste corrigido)."""
+    tr, te = args
+    c = _CTX
+    cand, df, mapa = c["cand"], c["df"], c["mapa"]
+    a = cand.ajustar(df.iloc[tr], mapa)
+    pi_tr = np.asarray(cand.prever(a, df.iloc[tr], mapa), float)
+    r = c["lz"][tr] - logit(pi_tr)
+    if c["metodo"] == "krig":
+        rho, k = krigagem_residuos(r, c["lat"], c["lon"], tr, te, c["uf"], c["corte"])
+        par, u = [rho], rho * k
+    else:
+        p, u = car_residuos(r, c["w"], tr, te)
+        par = [p["tau"], p["lam"], p["sigma2"]]
+    pi_te = np.asarray(cand.prever(a, df.iloc[te], mapa), float)
+    return par, expit(logit(pi_te) + u)
+
+
+def rodar_extensao(metodo: str, folds: list[tuple[np.ndarray, np.ndarray]], arq: Path, recalcular: bool,
+                   max_workers: int) -> tuple[np.ndarray, np.ndarray]:
+    """π corrigido e parâmetros por município (uma linha por dobra) da krigagem ('krig') ou do CAR ('car').
+
+    Lê o cache `arq` salvo ao fim da 1ª rodada, a menos que `recalcular`. Exige `definir_contexto_dobras`.
+    """
+    cols = COLUNAS_EXTENSAO[metodo]
+    if arq.exists() and not recalcular:
+        d = pd.read_parquet(arq)
+        return d["pi"].to_numpy(), d[cols].to_numpy()
+    _CTX["metodo"] = metodo
+    with ProcessPoolExecutor(max_workers=max_workers, mp_context=get_context("fork")) as ex:
+        res = list(ex.map(_dobra_extensao, folds))
+    N = len(_CTX["df"])
+    pi, P = np.full(N, np.nan), np.full((N, len(cols)), np.nan)
+    for (_, te), (par, p_) in zip(folds, res, strict=True):
+        pi[te], P[te] = p_, par
+    pd.DataFrame({"pi": pi, **{c: P[:, j] for j, c in enumerate(cols)}}).to_parquet(arq)
+    return pi, P
+
+
+def parametros_dobra(nome_uf: str) -> dict[str, Any]:
+    """LOSO do modelo final: β, covariâncias do bloco β, X e θ da UF retida (peso n estimado `nhat`)."""
+    from src import especificacoes as E
+
+    c = _CTX
+    cand, df, mapa, uf = c["cand"], c["df"], c["mapa"], c["uf"]
+    tr, te = np.flatnonzero(uf != nome_uf), np.flatnonzero(uf == nome_uf)
+    a = cand.ajustar(df.iloc[tr], mapa)
+    dte = df.iloc[te].copy()
+    dte[mapa["n"]] = c["nhat"][te]   # UF retida não apurada: peso n estimado
+    X = E.montar_X(dte, mapa, a.pad, cand.termos)
+    nb_ = a.extra["n_beta"]
+    assert X.shape[1] == nb_
+    th = E.prever_theta(a, dte, mapa)
+    cm = np.asarray(a.modelo.cov_params(), float)[:nb_, :nb_]
+    cc = np.asarray(cov_conley(a.modelo, c["lat"][tr], c["lon"][tr], c["corte"]), float)[:nb_, :nb_]
+    return {"beta": np.asarray(a.modelo.params, float)[:nb_], "cov_modelo": cm, "cov_conley": cc,
+            "X": X.to_numpy(float), "theta": th, "te": te}
+
+
+def dobra_ponderada(args: tuple[np.ndarray, np.ndarray]) -> dict[str, Any]:
+    """Uma dobra de krigagem e CAR em resíduos de Pearson (padronizados pelo sd beta-binomial)."""
+    from src import especificacoes as E
+
+    tr, te = args
+    c = _CTX
+    cand, df, mapa, y, n = c["cand"], c["df"], c["mapa"], c["y"], c["n"]
+    with warnings.catch_warnings(record=True) as avisos:
+        warnings.simplefilter("always")
+        a = cand.ajustar(df.iloc[tr], mapa)
+        pi_tr = np.asarray(cand.prever(a, df.iloc[tr], mapa), float)
+        z_tr, _ = residuo_pearson(y[tr], n[tr], pi_tr, E.prever_theta(a, df.iloc[tr], mapa))
+        pi_te = np.asarray(cand.prever(a, df.iloc[te], mapa), float)
+        th_te = E.prever_theta(a, df.iloc[te], mapa)
+        sd_te = sd_betabinomial(pi_te, n[te], th_te)
+        rho, k = krigagem_residuos(z_tr, c["lat"], c["lon"], tr, te, c["uf"], c["corte"], sd_teste=sd_te)
+        par, u = car_residuos(z_tr, c["w"], tr, te, sd_teste=sd_te)
+    return {"rho": rho, "lam": par["lam"], "pi": pi_te, "th": th_te, "krig": np.clip(pi_te + k, 1e-6, 1 - 1e-6),
+            "car": np.clip(pi_te + u, 1e-6, 1 - 1e-6), "avisos": sorted({str(w.message)[:90] for w in avisos})}
+
+
+def moran_oos(lz: np.ndarray, pi: np.ndarray, w: "W") -> float:
+    """I de Moran (999 permutações, semente 0) do resíduo logit fora da amostra."""
+    return moran_residuos(lz - logit(pi), w, permutacoes=999, semente=0)["I"]
+
+
+def moran_z(y: np.ndarray, n: np.ndarray, pi: np.ndarray, theta: np.ndarray, w: "W") -> float:
+    """I de Moran (999 permutações, semente 0) do resíduo de Pearson beta-binomial."""
+    return moran_residuos(residuo_pearson(y, n, pi, theta)[0], w, permutacoes=999, semente=0)["I"]
+
+
+def linha_sens(modelo: str, metrica: str, atual: float, pond: float, ca: bool | None = None,
+               cp: bool | None = None) -> dict[str, Any]:
+    """Linha da tabela de sensibilidade: valor atual contra ponderado, com o critério de cada um (se houver)."""
+    return {"modelo": modelo, "metrica": metrica, "atual": atual, "ponderado": pond, "criterio_atual": ca, "criterio_ponderado": cp}

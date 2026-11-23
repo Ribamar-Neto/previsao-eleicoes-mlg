@@ -80,3 +80,12 @@ def test_reajuste_sem_remove_observacoes() -> None:
     r2 = P.reajuste_sem(res, np.array([0, 1, 2]))
     assert r2.model.endog.shape[0] == 197
     np.testing.assert_allclose(P.mudanca_em_ep(res.params, res.params, np.eye(3)), 0)
+
+
+def test_vif_bruto_detecta_colinearidade() -> None:
+    rng = np.random.default_rng(0)
+    a = rng.normal(size=300)
+    X = pd.DataFrame({"a": a, "b": a + 0.05 * rng.normal(size=300), "c": rng.normal(size=300)})
+    v = P.vif(X)
+    assert list(v.index) == ["a", "b", "c"] and v.name == "VIF"
+    assert v["a"] > 100 and v["b"] > 100 and v["c"] < 1.5

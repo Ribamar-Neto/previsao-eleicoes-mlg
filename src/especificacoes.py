@@ -7,8 +7,10 @@ níveis das dummies são fixados no treino; o teste só é transformado.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+import time
 from collections.abc import Iterable
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -615,3 +617,40 @@ def parametros_ajuste(nome) -> int:
     """Número de parâmetros livres (k) do candidato ajustado a todos os dados."""
     df, mapa = _DADOS_CV["df"], _DADOS_CV["mapa"]
     return int({**CANDIDATOS, **EXTENSOES}[nome].ajustar(df, mapa).k)
+
+
+def ajustar_candidato(nome: str, df: pd.DataFrame, mapa: dict[str, str],
+                      pasta_tabelas: Path | None = None) -> tuple[Ajuste, dict]:
+    """Ajusta `CANDIDATOS[nome]` em todos os dados e devolve (ajuste, linha-resumo).
+
+    Com `pasta_tabelas`, grava `coef_<nome>.csv` (coeficientes do ajuste).
+    """
+    c = CANDIDATOS[nome]
+    a = c.ajustar(df, mapa)
+    linha = resumo_ajuste(c, a, df, mapa)
+    if pasta_tabelas is not None:
+        tabela_coeficientes(a).to_csv(Path(pasta_tabelas) / f"coef_{nome}.csv", index_label="termo")
+    return a, linha
+
+
+def montar_diagnostico(cand: Candidato, ajuste: Ajuste | None, df: pd.DataFrame,
+                       mapa: dict[str, str], seg_ajuste: float | None = None) -> dict:
+    """Tudo que os testes de pressupostos pedem de um modelo ajustado em todos os dados.
+
+    Com `ajuste` dado, o modelo não é reajustado (o chamador já o tem) e `seg_ajuste`
+    é o tempo daquele ajuste; sem `ajuste`, ajusta aqui e mede o tempo.
+    """
+    t0 = time.time()
+    a = ajuste if ajuste is not None else cand.ajustar(df, mapa)
+    seg = seg_ajuste if seg_ajuste is not None else time.time() - t0
+    return {"cand": cand, "aj": a, "res": a.modelo, "df": df, "mapa": mapa,
+            "pi": np.asarray(cand.prever(a, df, mapa), float), "theta": prever_theta(a, df, mapa),
+            "seg_ajuste": seg}
+
+
+def descrever_diagnostico(nome: str, m: dict, y: np.ndarray, n: np.ndarray) -> str:
+    """Uma linha: nº de parâmetros, tempo do ajuste, phi de Pearson e theta mediano."""
+    pi, k = m["pi"], len(m["res"].params)
+    phi = np.sum((y - n * pi) ** 2 / (n * pi * (1 - pi))) / (len(y) - k)
+    return (f"{nome}: {k} parâmetros | {m['seg_ajuste']:.1f} s por ajuste | phi de Pearson = "
+            f"{phi:.1f} | theta mediano = {np.median(m['theta']):.0f}")

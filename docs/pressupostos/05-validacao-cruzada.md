@@ -118,7 +118,7 @@ A escolha das 11 contínuas e a fusão Nordeste + Norte usaram o 2º turno de 20
 - **Estabilidade por dobra.** 10 a 13 contínuas (mediana 11); só 9 das 27 dobras repetem o conjunto do registro. Nordeste + Norte fundidos em 17 dobras e, em 7, também com o Sudeste (referência); GO, MA e BA têm fusões próprias ou nenhuma (1 dobra cada). Blocos: esquerda e centro + sem prefeito fundidos em 16 dobras, só esquerda em 10 e esquerda e sem prefeito em 1. Maiores erros: AP -3,17, DF -2,59, GO +2,45.
 - **Fusão na referência.** A fusão de região na região de referência (Sudeste) agora é mantida dentro de cada dobra; antes era descartada (erro corrigido), e por isso os números acima mudaram.
 - **Ressalva.** As extensões (`bb_disp`, `bb_slx`) seguem com a seleção dos dados completos; contra um L aninhado o limite fica mais folgado do que numa comparação em pé de igualdade. Nenhuma decisão está perto do limite (o mais próximo, `bb_slx`, 1,078 contra 1,2515).
-- **Ordem de execução.** O notebook 03 grava `cv_loso_aninhado.csv` e o 05 o lê; o 05 grava `final_decisao.json` e o Passo 6 do 02 o lê. Por isso a ordem é 02, 03, 05 e de novo 02.
+- **Ordem de execução.** O 02 grava o LOSO do `bb_selecao` (`loso_bb_selecao.parquet`) e o 03 o lê, sem reajustar; o 03 grava `cv_loso_aninhado.csv` e `sensibilidade_regional.csv` e o 05 os lê; o 05 grava `final_decisao.json` e o Passo 6 do 02 o lê. Por isso a ordem é 02, 03, 05 e de novo 02 ([01](01-visao-geral.md), seção Organização dos notebooks).
 
 ## Referências
 

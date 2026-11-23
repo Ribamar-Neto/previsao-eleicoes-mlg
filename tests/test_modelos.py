@@ -224,10 +224,7 @@ def test_theta_vetor_em_residuos_e_simulacao():
 
 
 def test_residuos_quantilicos_rapido_theta_vetor():
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "notebooks"))
-    from graficos_diagnostico import residuos_quantilicos_rapido as rap
+    from src.pressupostos import residuos_quantilicos_rapido as rap
     X, y, n, Z, th = _simular_disp(N=200)
     pi = m._pi_de_eta(X @ np.array([-0.3, 0.8]), m._link(None))
     r = rap(y, n, pi, theta=th, rng=5)

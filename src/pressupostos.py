@@ -6,14 +6,21 @@ observações. Os testes de Wald usam a covariância dada (Conley ou do modelo).
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
+from scipy import stats
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 from . import espacial as S
 from . import modelos as M
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
+    from .especificacoes import Ajuste, Candidato
 
 Matriz = np.ndarray
 
@@ -142,6 +149,15 @@ def medias_por_faixa(x: np.ndarray, v: np.ndarray, peso: np.ndarray, faixas: int
     return pd.DataFrame(linhas)
 
 
+def vif(X: pd.DataFrame) -> pd.Series:
+    """VIF de cada covariável bruta, padronizada, com constante (não é o da matriz do modelo: ver `gvif`)."""
+    cols = list(X.columns)
+    Z = (X - X.mean()) / X.std()
+    Z.insert(0, "const", 1.0)
+    return pd.Series([variance_inflation_factor(Z.values, i + 1) for i in range(len(cols))],
+                     index=cols, name="VIF")
+
+
 def gvif(X: pd.DataFrame, grupos: dict[str, Sequence[str]] | None = None) -> pd.DataFrame:
     """VIF por coluna e GVIF^(1/(2 gl)) por fator, sobre a matriz de correlação sem a constante.
 
@@ -196,3 +212,66 @@ def reajuste_sem(res: Any, indices: np.ndarray) -> Any:
     manter = np.ones(len(res.model.endog), bool)
     manter[np.asarray(indices, int)] = False
     return reajustar(res, res.model.exog, manter)
+
+
+def residuos_quantilicos_rapido(y: npt.ArrayLike, n: npt.ArrayLike, pi: npt.ArrayLike,
+                                theta: npt.ArrayLike | None = None,
+                                rng: int | np.random.Generator | None = None, base: int = 400,
+                                c: int = 32) -> np.ndarray:
+    """Resíduo quantílico aleatorizado (Dunn & Smyth) com a FDA beta-binomial por quadratura.
+
+    A `scipy.stats.betabinom.cdf` soma a pmf termo a termo (~9 s para 5.570 municípios).
+    Aqui F(k) = E_p[Binomial(k; n, p)], p ~ Beta(pi*theta, (1-pi)*theta), integrada nos
+    quantis do meio da beta. A binomial é um degrau de largura sqrt(p(1-p)/n) em p; por isso o
+    número de pontos cresce com n: J = max(base, c*sqrt(n/theta)), arredondado para base*2^k.
+    Erro máximo da FDA ~2e-4 (conferido contra a scipy no notebook). theta=None: binomial.
+    """
+    rng = np.random.default_rng(rng)
+    y, n = np.asarray(y).astype(np.int64), np.asarray(n).astype(np.int64)
+    pi = np.clip(np.asarray(pi, float), 1e-9, 1 - 1e-9)
+    if theta is None:
+        F = lambda k: stats.binom.cdf(k, n, pi)
+    else:
+        theta = np.asarray(theta, float)  # escalar ou um theta por linha
+        J = np.maximum(base, np.ceil(c * np.sqrt(n / theta))).astype(int)
+        nivel = base * 2 ** np.ceil(np.log2(J / base)).astype(int)
+
+        def F(k: np.ndarray) -> np.ndarray:
+            out = np.empty(len(k))
+            for Jb in np.unique(nivel):
+                i = np.where(nivel == Jb)[0]
+                th = theta if theta.ndim == 0 else theta[i]
+                p = stats.beta.ppf(((np.arange(Jb) + 0.5) / Jb)[:, None], pi[i] * th, (1 - pi[i]) * th)
+                out[i] = stats.binom.cdf(k[i][None, :], n[i][None, :], p).mean(axis=0)
+            return out
+    lo, hi = F(y - 1), F(y)
+    u = np.clip(lo + rng.uniform(size=y.shape) * (hi - lo), 1e-10, 1 - 1e-10)
+    return stats.norm.ppf(u)
+
+
+def envelope_do_modelo(cand: Candidato, df: pd.DataFrame, mapa: dict[str, str],
+                       theta_fn: Callable[[Ajuste], float | np.ndarray | None], B: int, seed: int) -> dict:
+    """Envelope meio-normal por bootstrap paramétrico de um candidato (`Candidato`).
+
+    `theta_fn(ajuste)` dá a precisão do beta-binomial (escalar ou um theta por município)
+    ou None para a binomial pura. Os resíduos de cada reajuste usam o y simulado daquele
+    reajuste, não o observado.
+    """
+    y, n = df[mapa["y"]].to_numpy(float), df[mapa["n"]].to_numpy(float)
+    estado = {"y": y}
+
+    def ajustar_fn(ys: np.ndarray | None = None) -> Ajuste:
+        estado["y"] = y if ys is None else ys
+        return cand.ajustar(df if ys is None else df.assign(**{mapa["y"]: ys}), mapa)
+
+    def residuos_fn(a: Ajuste) -> np.ndarray:
+        return residuos_quantilicos_rapido(estado["y"], n, cand.prever(a, df, mapa), theta=theta_fn(a), rng=0)
+
+    def simular_fn(a: Ajuste, rng: np.random.Generator) -> np.ndarray:
+        pi_ = cand.prever(a, df, mapa)
+        th = theta_fn(a)
+        if th is not None:
+            pi_ = rng.beta(pi_ * th, (1 - pi_) * th)
+        return rng.binomial(n.astype(int), pi_).astype(float)
+
+    return M.envelope_meio_normal(residuos_fn, simular_fn, ajustar_fn, B=B, rng=seed)
