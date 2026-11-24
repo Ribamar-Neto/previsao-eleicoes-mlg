@@ -57,3 +57,4 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Williams, D. A. (1987). Generalized linear model diagnostics using the deviance and single case deletions. *Applied Statistics (JRSS C)*, 36(2), 181-191. ✔ https://doi.org/10.2307/2347550
 - Cardoso, A. *projetor-apuracao*: backtest de projeções de apuração em tempo real com os boletins de urna do TSE (swing por seção contra a eleição anterior, com bandas de incerteza). Repositório de código, citado como abordagem comparável; nenhum código copiado. ✔ https://github.com/amycardoso/projetor-apuracao
 - TSE. Boletim de urna (bweb) do 2º turno de 2022 e 2026, cargo Presidente, por seção, com instante de recebimento. Dados abertos. ✔ https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2022/buweb/ (padrão completo em [consolidacao.md](../dados/consolidacao.md))
+- Shmueli, G. (2010). To Explain or to Predict? *Statistical Science*, 25(3), 289-310. https://doi.org/10.1214/10-STS330

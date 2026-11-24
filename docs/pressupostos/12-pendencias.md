@@ -49,6 +49,13 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   resultados anteriores; o leitor deve pesar isso. A busca em todos os subconjuntos
   (triagem quase-binomial e reajuste dos 200 melhores) não achou o ótimo do stepwise (BIC
   72.848,8 contra 72.844,87): fraqueza da triagem. Correção possível: ampliar a triagem.
+- **Stepwise de Hosmer-Lemeshow difere do livro em dois pontos** (Paula, pp. 358-371): os
+  limiares P_E = 0,20 e P_S = 0,25 e a ordem das etapas conferem. Faltam o passo 4 (teste de
+  Wald de cada coeficiente entre as etapas) e a tabela com o π de todas as candidatas em cada
+  iteração (Tabelas 4.8 e 4.9); a tabela 8.6 mostra só a escolhida. A etapa de interações
+  testa só o `lag` e as 6 primeiras variáveis, por custo. Efeito: o stepwise é comparação, não
+  decide o modelo (BIC decide). Correção possível: registrar todos os π por iteração em
+  `src/selecao.py` e acrescentar o passo de Wald.
 - **Envelope meio-normal fora da banda em todos os beta-binomiais**: `bb_reglag` 92,5%,
   `bb_selecao` 90,2%, `bb_slx` 84,2% dos pontos fora (corpo abaixo, caudas acima; curtose
   3,8 / 3,95 / 2,49). A dispersão por região melhora a curtose, mas o padrão persiste. Efeito:

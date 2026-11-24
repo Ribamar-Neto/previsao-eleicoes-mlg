@@ -60,6 +60,22 @@ resultados e agregar as previsões às 5 regiões.
 - **Regra das tabelas.** Uma tabela fica no notebook só quando uma célula de interpretação
   cita seus números para uma decisão; senão vira gráfico, lista de indicadores ou nada (o CSV
   guarda o detalhe).
+- **Cada explicação aparece uma vez.** A teoria (por exemplo, a sobredispersão na Parte 7) fica
+  numa só célula; as outras Partes e os outros notebooks dão uma frase e um link. Razão: textos
+  repetidos divergem quando um deles muda.
+- **Texto curto e comentário de leitura.** As células de texto seguem frases curtas, com uma
+  ideia por frase (princípios do ASD-STE100 em português). O comentário numa célula de código
+  diz por que o passo existe ou como ler a saída, não o que a linha faz.
+
+## Explicar × prever
+
+O ajuste com todos os municípios serve para interpretar coeficientes e diagnosticar o modelo;
+não mede previsão, porque a binomial canônica com dummies de região reproduz os totais
+regionais dentro da amostra. A previsão é medida só fora da amostra: no LOSO e na apuração
+parcial na ordem real do TSE ([11](11-apuracao-parcial.md)). Uma amostra aleatória de
+municípios não é usada: os votos não chegam ao acaso (capitais primeiro) e os vizinhos são
+correlacionados, então treino e teste teriam vizinhos e o erro ficaria subestimado
+(Shmueli 2010).
 
 ## Regra de seleção (fixada antes dos resultados)
 

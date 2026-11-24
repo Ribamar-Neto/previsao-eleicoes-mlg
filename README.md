@@ -10,7 +10,7 @@ O objetivo é comparar especificações de MLG com um critério de escolha fixad
 
 A base final tem **5.570 municípios** (um censo, não uma amostra) e 160 colunas. Notebooks e documentação em português.
 
-> **Ressalva (falácia ecológica).** O modelo descreve **municípios**, não eleitores: os coeficientes são associações entre municípios e não permitem inferir o comportamento individual (Robinson, 1950).
+> **Ressalva (falácia ecológica).** O modelo descreve **municípios**, não eleitores: os coeficientes são associações entre municípios e não permitem inferir o comportamento individual (Robinson, 1950). Veja todas as [limitações](#limitações).
 
 ---
 
@@ -106,13 +106,28 @@ onde:
 
 O modelo final usa a defasagem (`lag`) e 11 variáveis contínuas escolhidas por seleção passo a passo por BIC (`bb_selecao`), mais as mesmas 12 defasadas espacialmente (SLX), o bloco do prefeito e dummies de região (Nordeste e Norte fundidos na média; LRT p = 0,921), num total de 36 parâmetros (30 da média e 6 da dispersão).
 
-```text
-logit_pt_2t_2022 (lag)   pct_dep_esq      comparecimento    log_dens
-pct_mulheres             pct_16_24        pct_superior      pct_analfabeto
-cobertura_pbf            pct_vab_agro     pct_evangelicos   pct_pretos_pardos
-W·x de cada uma das 12 (W = vizinhança Queen, padronizada por linha)
-bloco_pref (esquerda, outro; referência: direita)   região (Centro-Oeste, Sul, Nordeste+Norte; referência: Sudeste)
-```
+Além dessas 12, o modelo usa:
+
+* `W·x` de cada uma das 12 (W = vizinhança Queen, padronizada por linha);
+* `bloco_pref` (esquerda, outro; referência: direita);
+* região (Centro-Oeste, Sul, Nordeste+Norte; referência: Sudeste).
+
+As 12 variáveis contínuas, em linguagem simples. Exemplo: Recife (PE). Faixa: mínimo e máximo nos 5.570 municípios. Todo `pct_*` é fração em [0, 1] (0,15 = 15%). Definições completas em [`docs/dados/dicionario.md`](docs/dados/dicionario.md#variáveis-do-modelo-final-exemplo-e-faixa).
+
+| Nome | Descrição | Unidade | Exemplo | Faixa |
+| --- | --- | --- | --- | --- |
+| `lag` | Voto de Lula no 2º turno de 2022 (logit da participação) | logit | 0,254 | -2,090 a 2,727 |
+| `pct_dep_esq` | Votos de deputado federal em partidos de esquerda | fração | 0,153 | 0,005 a 0,802 |
+| `comparecimento` | Quem votou, entre os aptos, no 1º turno de 2026 | fração | 0,841 | 0,599 a 0,927 |
+| `log_dens` | Densidade demográfica, em log | log(hab/km²) | 8,823 | -1,872 a 9,541 |
+| `pct_mulheres` | Mulheres no eleitorado | fração | 0,554 | 0,434 a 0,557 |
+| `pct_16_24` | Eleitores de 16 a 24 anos | fração | 0,101 | 0,058 a 0,304 |
+| `pct_superior` | Eleitores com ensino superior completo | fração | 0,180 | 0,015 a 0,366 |
+| `pct_analfabeto` | Eleitores analfabetos | fração | 0,015 | 0,001 a 0,276 |
+| `cobertura_pbf` | Famílias do Bolsa Família por domicílio (pode passar de 1) | razão | 0,251 | 0,003 a 1,464 |
+| `pct_vab_agro` | Agropecuária no valor adicionado bruto (1 município tem VAB agro negativo) | fração | 0,001 | -0,419 a 0,935 |
+| `pct_evangelicos` | Evangélicos na população | fração | 0,278 | 0,013 a 0,887 |
+| `pct_pretos_pardos` | Pretos e pardos na população | fração | 0,608 | 0,025 a 0,972 |
 
 Seleção: o passo a passo por BIC (backward, forward e both) chega ao mesmo conjunto, com BIC 72.844,87; a busca em todos os subconjuntos não achou esse ótimo (melhor BIC 72.848,78). As covariáveis contínuas são padronizadas (escore z) só na dobra de treino, sem vazamento na validação cruzada. Dispersão: $\log\theta = Z\gamma$, com dummies de região e $\log n$.
 
@@ -331,6 +346,8 @@ limite de aceitação L = 1,1168 (aninhado) + 0,1347 = 1,2515
 bb_disp = 1,035 (aceito)   bb_slx = 1,078 (aceito, final)   bb_esf = 1,484 (rejeitado)
 ```
 
+Leitura: o MAE de 1,0 p.p. diz que, em média, a participação de Lula prevista para uma UF inteira erra cerca de 1 ponto percentual. A previsão não usa nenhum município dessa UF no ajuste. O erro é por UF porque a UF inteira sai do treino em cada dobra do LOSO.
+
 O `bb_slx` tem MAE por UF de 0,846 no 5-fold e 1,078 no LOSO.
 
 ### Dispersão regional
@@ -384,7 +401,7 @@ Regra: o modelo é "útil" se vence a extrapolação bruta e o swing em pelo men
 * o Brasil fica dentro do intervalo de 95% nos 12 de 12 cortes (2022 e 2026);
 * o ganho aparece cedo, mas não em 5% das urnas: em 2026 com 5% apurado, o erro regional médio é 1,62 p.p. no modelo contra 1,49 no swing; com 25% cai para 0,25 contra 0,46 ([`docs/pressupostos/11-apuracao-parcial.md`](docs/pressupostos/11-apuracao-parcial.md)).
 
-### Limitações
+## Limitações
 
 > [!WARNING]
 > **Falácia ecológica (Robinson, 1950).** O modelo descreve **municípios**, não eleitores. "Municípios com mais evangélicos votam menos em Lula" **não implica** que evangélicos votem menos em Lula: a associação agregada pode existir sem que ela valha para o indivíduo (ou com sinal oposto). Os coeficientes acima são associações entre municípios, condicionais às demais variáveis, e não efeitos causais nem comportamento individual.
@@ -401,6 +418,22 @@ Demais limitações:
 * **Apuração parcial:** o desempenho em 5% das urnas não supera o swing.
 
 Pendências abertas, com efeito e correção possível: [`docs/pressupostos/12-pendencias.md`](docs/pressupostos/12-pendencias.md).
+
+## Explicar × prever
+
+Os 5.570 municípios são um censo, não uma amostra. O ajuste com todos os dados serve para interpretar os coeficientes e fazer o diagnóstico. Ele não mede a previsão: com ligação canônica e dummies de região, o modelo reproduz os totais regionais dentro da amostra.
+
+A previsão é medida fora da amostra de duas formas:
+
+* **LOSO:** a UF inteira sai do ajuste e recebe previsão só com covariáveis anteriores ao turno. A seleção de variáveis é refeita em cada dobra;
+* **Apuração parcial (Parte 18):** o modelo é ajustado só nos municípios já apurados, na ordem real do TSE. Ele prevê o restante e a previsão é comparada com o resultado final, com a contagem bruta e com o swing uniforme.
+
+Não se sorteia uma amostra aleatória de municípios, por dois motivos:
+
+1. Os votos não chegam ao acaso: capitais e seções urbanas são apuradas primeiro;
+2. Municípios vizinhos são correlacionados (I de Moran dos resíduos). Com sorteio, vizinhos ficariam no treino e no teste, e o erro seria subestimado.
+
+Referência: Shmueli, G. (2010). To Explain or to Predict? *Statistical Science*, 25(3), 289–310.
 
 ---
 

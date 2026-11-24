@@ -114,6 +114,29 @@ Denominadores excluem "não informado". O perfil de 2026 foi gerado em 14/07/202
 | log_densidade_2022 | ln(densidade_2022) | ln(hab/km²) |
 | cobertura_pbf_2022, cobertura_pbf_2026 | familias_pbf / domicilios_2022; sem truncar | razão |
 
+## Variáveis do modelo final: exemplo e faixa
+
+Exemplo: Recife (PE). Faixa: mínimo e máximo nos 5.570 municípios. Todos os `pct_*`, `taxa_*` e
+`prop_*` são frações em [0, 1] (0,15 = 15%), não percentuais. O modelo usa as colunas do ano 2026
+(perfil do eleitorado, Bolsa Família, comparecimento do 1º turno) e do Censo 2022.
+
+| Papel | Coluna | Exemplo (Recife) | Faixa (mín–máx) |
+|---|---|---|---|
+| Resposta | votos_pt_2t_2026 (votos de Lula) | 633.369 | 197 – 3.864.354 |
+| Total | n_2t_2026 (Lula + Flávio) | 1.033.711 | 848 – 6.962.277 |
+| Defasagem | logit_pt_2t_2022 | 0,254 | -2,090 – 2,727 |
+| Covariável | pct_dep_esq_2026 | 0,153 | 0,005 – 0,802 |
+| Covariável | taxa_comparecimento_1t_2026 | 0,841 | 0,599 – 0,927 |
+| Covariável | log_densidade_2022 | 8,823 | -1,872 – 9,541 |
+| Covariável | pct_mulheres_2026 | 0,554 | 0,434 – 0,557 |
+| Covariável | pct_16_24_2026 | 0,101 | 0,058 – 0,304 |
+| Covariável | pct_superior_completo_2026 | 0,180 | 0,015 – 0,366 |
+| Covariável | pct_analfabeto_2026 | 0,015 | 0,001 – 0,276 |
+| Covariável | cobertura_pbf_2026 | 0,251 | 0,003 – 1,464 |
+| Covariável | pct_vab_agro_2021 | 0,001 | -0,419 – 0,935 (1 município com VAB agro negativo) |
+| Covariável | pct_evangelicos_2022 | 0,278 | 0,013 – 0,887 |
+| Covariável | pct_pretos_pardos_2022 | 0,608 | 0,025 – 0,972 |
+
 ## Seções do bweb (`data/interim/tse_bweb.parquet`, fora do parquet municipal)
 
 Fonte e regras em [consolidacao.md](consolidacao.md). Uma linha por seção e ano.

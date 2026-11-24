@@ -4,7 +4,7 @@
 
 | Arquivo | Conteúdo |
 |---|---|
-| [01-visao-geral.md](01-visao-geral.md) | Problema, decisões de projeto e razões, organização dos notebooks (funções em `src/`, cada valor calculado uma vez), regra de seleção, resultados finais |
+| [01-visao-geral.md](01-visao-geral.md) | Problema, decisões de projeto e razões, organização dos notebooks (funções em `src/`, cada valor e cada explicação uma vez, texto curto), explicar × prever, regra de seleção, resultados finais |
 | [02-aed.md](02-aed.md) | Análise exploratória dos dados, incluindo a leitura nível a nível das categóricas e binárias (seção 3.1) |
 | [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, regra de fusão de níveis (seção 8.1; Nordeste+Norte) e seleção de variáveis (`bb_selecao`) |
 | [04-diagnostico.md](04-diagnostico.md) | Resíduos, influência, envelope e autocorrelação espacial; pressupostos dos modelos escolhidos (`bb_selecao` e `bb_slx`: ligação, linearidade, variância, colinearidade, influência) |
