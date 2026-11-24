@@ -317,7 +317,6 @@ def todos_os_subconjuntos(df: pd.DataFrame, mapa: dict[str, str], termos: Termos
     t0 = time.perf_counter()
     qbic = np.concatenate(_mapear(_triar_faixa, faixas, n_jobs))
     tempo = time.perf_counter() - t0
-    print(f"triagem de {total} subconjuntos: {tempo:.1f} s (phi cheio = {phi:.3f})")
 
     melhores = np.argsort(qbic, kind="stable")[:top]
     subs = [tuple(candidatas[i] for i in range(m) if int(mk) >> i & 1) for mk in melhores]

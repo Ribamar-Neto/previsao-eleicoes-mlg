@@ -1,7 +1,7 @@
 # Apuração parcial na ordem real do TSE (Parte 18)
 
-`notebooks/06-apuracao-parcial.ipynb`. Tabelas `results/tables/apuracao_*.csv` e figuras
-`results/figures/apuracao_*.html`. Cenário A do [09](09-modelo-final.md). Fonte da ordem:
+`notebooks/03-apuracao-parcial.ipynb`. Tabelas `results/tables/apuracao_*.csv` e figuras
+`results/figures/apuracao_*.png`. Cenário A do [09](09-modelo-final.md). Fonte da ordem:
 `tse_bweb` ([consolidação](../dados/consolidacao.md)).
 
 ## 1. Pergunta e regra (fixada antes do resultado)

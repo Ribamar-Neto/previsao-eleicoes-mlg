@@ -28,7 +28,7 @@ Estimar a participação regional de Lula e de Flávio Bolsonaro no 2º turno de
 * Diagnosticar superdispersão, resíduos, influência e autocorrelação espacial;
 * Escolher o modelo por validação cruzada leave-one-state-out (LOSO) e regra do 1 erro-padrão;
 * Estimar as participações regionais apenas com previsões fora da amostra, com intervalos de incerteza;
-* Testar a capacidade de previsão em um backtest (ajuste em 2018, previsão de 2026 a partir de 2022);
+* Testar a previsão em dados não vistos na apuração parcial (2022 e 2026, ordem real de apuração);
 * Modelar a dispersão por região e a dependência espacial (SLX, filtro de autovetores, EPs de Conley);
 * Comparar as estimativas finais com o resultado real.
 
@@ -120,7 +120,7 @@ Seleção: o passo a passo por BIC (backward, forward e both) chega ao mesmo con
 
 ## 🧪 Metodologia
 
-O desenvolvimento seguiu seis notebooks. Cada parte tem seu documento em [`docs/pressupostos/`](docs/pressupostos/README.md).
+O desenvolvimento seguiu três notebooks. Cada parte tem seu documento em [`docs/pressupostos/`](docs/pressupostos/README.md).
 
 ### 1. Análise exploratória (`01-AED`, Partes 1 a 4)
 
@@ -135,7 +135,7 @@ O desenvolvimento seguiu seis notebooks. Cada parte tem seu documento em [`docs/
 * Diagnóstico: resíduos quantílicos, envelope meio-normal, alavanca e distância de Cook, I de Moran; nos modelos escolhidos (`bb_selecao` e `bb_slx`), também teste de ligação, linearidade por covariável, VIF/GVIF da matriz final e Cook de um passo;
 * Parte 8: categóricas por nível (bloco do prefeito, regiões fundidas quando o teste não as separa) e seleção de variáveis por BIC.
 
-### 3. Validação cruzada e regra de seleção (`03-validacao`, Parte 11)
+### 3. Validação cruzada e regra de seleção (`02-MLG`, Parte 11)
 
 Regra fixada antes dos resultados:
 
@@ -145,11 +145,7 @@ Regra fixada antes dos resultados:
 
 Sem vazamento: a padronização é ajustada só na dobra de treino. O erro regional LOSO **não** é critério, porque favorece por construção as binomiais canônicas. (Uma versão anterior vazava informação da UF de teste; foi corrigida e as seções afetadas foram removidas.)
 
-### 4. Backtest (`04-backtest`, Parte 12)
-
-Ajuste em 2022 (com 2018 como defasagem) e previsão de 2026 a partir de 2022, com e sem os dados do 1º turno de 2026 e com recalibração do intercepto.
-
-### 5. Modelo final (`05-modelo-final`, Partes 13 a 17)
+### 4. Modelo final (`02-MLG`, Partes 13 a 17)
 
 * **Parte 13, dispersão por região e log n** (`bb_disp`), confirmada por teste de Wald robusto;
 * **Parte 14, ESF e SLX:** filtro de autovetores (rejeitado) e SLX (aceito);
@@ -157,7 +153,7 @@ Ajuste em 2022 (com 2018 como defasagem) e previsão de 2026 a partir de 2022, c
 * **Parte 16, estimativas regionais e por UF** do modelo final e cobertura dos intervalos;
 * **Parte 17, extensões rejeitadas:** krigagem LOSO dos resíduos e CAR/BYM.
 
-### 6. Apuração parcial (`06-apuracao-parcial`, Parte 18)
+### 5. Apuração parcial (`03-apuracao-parcial`, Parte 18)
 
 Estimativa do resultado com parte das urnas apuradas (cortes de 5% a 90%), comparada à extrapolação bruta e ao swing.
 
@@ -169,7 +165,7 @@ Estimativa do resultado com parte das urnas apuradas (cortes de 5% a 90%), compa
 * **Python** (≥ 3.12) e **uv**
 * **Jupyter Notebook**
 * **Pandas**, **NumPy** e **PyArrow**
-* **Plotly** (gráficos e mapas interativos)
+* **Plotly** (gráficos e mapas, exportados em PNG com kaleido)
 * **SciPy**
 * **Statsmodels** (GLM, beta-binomial)
 * **Scikit-learn**
@@ -185,7 +181,7 @@ Estimativa do resultado com parte das urnas apuradas (cortes de 5% a 90%), compa
 .
 ├── src/          # coleta (src/coleta/), especificações dos modelos, modelos próprios, backtest
 ├── tests/        # testes unitários
-├── notebooks/    # 01-AED a 06-apuracao-parcial
+├── notebooks/    # 01-AED, 02-MLG, 03-apuracao-parcial
 ├── data/         # raw (cache por fonte), interim (um parquet por fonte), processed, referencia
 ├── results/      # cv, figures, tables
 ├── docs/         # dados (fontes) e pressupostos (decisões e resultados)
@@ -199,15 +195,15 @@ Os notebooks não definem funções: toda função auxiliar fica em `src/`, e a 
 ```text
 src/
 ├── coleta/          # um módulo por fonte e o consolidador
-├── especificacoes.py # candidatos; todo modelo é ajustado por `Candidato.ajustar` (reusado pelos notebooks 03 e 04)
+├── especificacoes.py # candidatos; todo modelo é ajustado por `Candidato.ajustar` (reusado pela Parte 11 do `02-MLG`)
 ├── modelos.py       # modelos próprios (quase-binomial, beta-binomial, GLMM por PQL)
 ├── selecao.py       # seleção de variáveis (AIC/BIC, Hosmer-Lemeshow, todos os subconjuntos)
 ├── pressupostos.py  # diagnóstico dos pressupostos de um modelo já ajustado
 ├── validacao.py     # validação cruzada (5 dobras e LOSO) e erros por UF e região
-├── backtest.py      # backtest 2018 -> 2022 -> 2026
+├── backtest.py      # funções do backtest 2018 -> 2022 -> 2026 (módulo `BT`, usado por validação e apuração)
 ├── espacial.py      # autovetores de Moran, Conley, SLX, krigagem e CAR
 ├── apuracao.py      # apuração parcial e simulação das participações
-├── dados.py         # carga comum dos notebooks 05 e 06
+├── dados.py         # carga comum dos notebooks `02-MLG` e `03-apuracao-parcial`
 ├── graficos.py      # gráficos Plotly
 └── saidas.py        # gravação padronizada de tabelas, figuras e JSON
 ```
@@ -218,19 +214,15 @@ Dados baixados ficam em cache em `data/raw/<fonte>/`; cada fonte grava um `data/
 
 ### `notebooks/`
 
-Cada valor é calculado em um só notebook; os seguintes o leem de `results/` e citam a origem. Rode nesta ordem (o `02` roda duas vezes: o Passo 6 dele lê os termos do `bb_slx` em `results/tables/final_decisao.json`, escrito pelo `05`, e sem o json só `bb_selecao` entra no passo; o `03` lê `loso_bb_selecao.parquet`, escrito pelo `02`; o `05` lê `cv_loso_aninhado.csv` e `sensibilidade_regional.csv`, escritos pelo `03`, e completa `diag_final_moran.csv`, do `02`, com a linha do `bb_slx`):
+Rode `01-AED`, `02-MLG` e `03-apuracao-parcial`, nessa ordem. O `02-MLG` roda de uma vez (Run-All): os valores passam em memória entre as Partes, sem leitura de arquivo de outro notebook. O Passo 6 da Parte 10 roda depois da Parte 15, porque diagnostica `bb_selecao` e `bb_slx`. A Parte 12 (backtest) foi removida; os números das Partes não mudaram.
 
 1. `01-AED.ipynb`: análise exploratória (Partes 1 a 4);
-2. `02-MLG.ipynb`: modelos candidatos e diagnóstico (Partes 5 a 10);
-3. `03-validacao.ipynb`: validação cruzada (Parte 11);
-4. `04-backtest.ipynb`: backtest (Parte 12);
-5. `05-modelo-final.ipynb`: dispersão, dependência espacial, Conley, estimativas e extensões rejeitadas (Partes 13 a 17);
-6. `06-apuracao-parcial.ipynb`: apuração parcial (Parte 18);
-7. `02-MLG.ipynb` de novo, para o Passo 6 (pressupostos de `bb_selecao` e `bb_slx`).
+2. `02-MLG.ipynb`: modelos candidatos, diagnóstico, validação cruzada, dispersão, dependência espacial, Conley, estimativas e extensões rejeitadas (Partes 5 a 11 e 13 a 17);
+3. `03-apuracao-parcial.ipynb`: apuração parcial (Parte 18).
 
 ### `results/`
 
-Previsões fora da amostra (`cv/`), gráficos interativos em HTML (`figures/`) e tabelas em CSV (`tables/`).
+Previsões fora da amostra (`cv/`), gráficos em PNG (`figures/`, exportados com kaleido) e tabelas em CSV (`tables/`).
 
 ### `docs/`
 
@@ -259,7 +251,7 @@ O caminho do repositório tem espaço: coloque-o entre aspas.
 
 ## 📈 Resultados
 
-Os resultados abaixo são do modelo final `bb_slx` (Partes 13 a 17, notebook `05-modelo-final.ipynb`) e da apuração parcial (Parte 18). Detalhes em [`docs/pressupostos/09-modelo-final.md`](docs/pressupostos/09-modelo-final.md). Todos os números vêm de `results/tables/`.
+Os resultados abaixo são do modelo final `bb_slx` (Partes 13 a 17 do `02-MLG`) e da apuração parcial (Parte 18). Detalhes em [`docs/pressupostos/09-modelo-final.md`](docs/pressupostos/09-modelo-final.md). Todos os números vêm de `results/tables/`.
 
 ### Modelo ajustado
 
@@ -384,10 +376,6 @@ Erro regional absoluto médio de 0,426 p.p. nas 5 regiões. As estimativas ficam
 
 O choque de UF é o que sustenta a cobertura. Como $\sigma_{UF}$ é ajustado nas mesmas UFs em que a cobertura é conferida, ela é **otimista**.
 
-### Backtest
-
-Melhor variante: `C_recal` (participações do 1º turno de 2026, intercepto ancorado na participação nacional de 2022), com erro de 0,58 p.p. por UF e 0,68 p.p. por região. A linha de base ingênua (repetir 2022) dá 1,65 (UF) e 0,64 (região). Sem o 1º turno, os modelos ficam piores que a linha de base (UF de 3,3 a 4,3) ([`docs/pressupostos/06-backtest.md`](docs/pressupostos/06-backtest.md)).
-
 ### Apuração parcial
 
 Regra: o modelo é "útil" se vence a extrapolação bruta e o swing em pelo menos 4 de 6 cortes de urnas apuradas (5% a 90%).
@@ -407,7 +395,7 @@ Demais limitações:
 * **Cobertura otimista:** $\sigma_{UF}$ vem das mesmas UFs; sem ele, só 14 das 27 UFs ficam dentro do intervalo; falta validação aninhada;
 * **Seleção:** 13 dos 18 modelos ficam dentro de 1 EP, e a escolha repousa na parcimônia, não numa vantagem demonstrada;
 * **Pouca base regional:** só 5 regiões e 27 UFs para avaliar o erro; o erro regional não escolhe modelo;
-* **Regras tardias:** o Wald robusto, o SLX e o corte de Conley foram fixados antes de cada resultado, mas não antes do notebook 05 inteiro; uma versão anterior da validação vazava informação da UF de teste (corrigida);
+* **Regras tardias:** o Wald robusto, o SLX e o corte de Conley foram fixados antes de cada resultado, mas não antes das Partes 13 a 17 inteiras; uma versão anterior da validação vazava informação da UF de teste (corrigida);
 * **Covariáveis defasadas:** o comparecimento é o do 1º turno e nenhuma covariável do 2º turno entra; `pct_vab_agro` usa 2021;
 * **Dados:** Bolsa Família 2022 com 20,07 milhões de famílias, 2,81% abaixo dos 20,65 milhões da folha de setembro de 2022 (Ministério da Cidadania, nota de 16/09/2022, republicada pelo TNH1; o original no gov.br não foi encontrado; a base é família na folha, não NIS distinto pago); a API do MDS está indisponível e a fonte é a CGU;
 * **Apuração parcial:** o desempenho em 5% das urnas não supera o swing.

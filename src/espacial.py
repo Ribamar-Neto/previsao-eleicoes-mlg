@@ -418,7 +418,7 @@ def car_residuos(r_treino, w, treino, teste, sd_teste=None):
 
 
 # --------------------------------------------------------------------------
-# Notebook 05: Wald da dispersão, krigagem/CAR/ponderação por dobra e Moran fora da amostra
+# `02-MLG`, Partes 13 a 17: Wald da dispersão, krigagem/CAR/ponderação por dobra e Moran fora da amostra
 # --------------------------------------------------------------------------
 
 LIMIAR_CORRELACAO = 0.05   # o corte de Conley é a 1ª faixa em que a correlação dos resíduos cai abaixo disto

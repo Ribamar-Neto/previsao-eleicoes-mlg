@@ -1,6 +1,6 @@
 """Especificações candidatas (família, ligação, preditor linear) do 2o turno.
 
-Os notebooks 02 (comparação), 03 (validação cruzada) e 04 (backtest) usam as
+Os notebooks `02-MLG` (comparação e Parte 11, validação cruzada) usam as
 mesmas definições. As colunas entram por papéis genéricos (`MAPA_2026`), para
 que o backtest troque os anos sem mudar o código. A padronização (z-score) e os
 níveis das dummies são fixados no treino; o teste só é transformado.
@@ -47,7 +47,7 @@ MAPA_2026 = {
     "regiao": "regiao", "uf": "sigla_uf",
     "suplementar": "prefeito_suplementar_2024",
 }
-MAPA_2026_PRE = MAPA_2026  # apelido até os notebooks 05/06 deixarem de citá-lo
+MAPA_2026_PRE = MAPA_2026  # apelido até o `02-MLG` e o `03-apuracao-parcial` deixarem de citá-lo
 CONTINUAS = ["lag", "nota_dep", "pct_dep_esq", "comparecimento", "delta_comp",
              "log_pop", "log_dens", "pct_mulheres", "pct_16_24", "pct_60_mais",
              "pct_superior", "pct_analfabeto", "cobertura_pbf", "pib_pc",
@@ -127,7 +127,7 @@ class Termos:
     slx: tuple = ()
     # níveis de região fundidos numa só dummy (ex.: (("Nordeste", "Norte"),)); um grupo com a
     # referência (Sudeste) funde seus níveis na referência (as dummies saem), porque a regra de
-    # fusão da Parte 8.1 do notebook 02 aceita fundir um nível na referência.
+    # fusão da Parte 8.1 do `02-MLG` aceita fundir um nível na referência.
     regiao_fundir: tuple[tuple[str, ...], ...] = ()
     # grupos de níveis do bloco, uma dummy por grupo. Nível fora de todos os grupos, ou grupo
     # com "direita", vai para a referência. O padrão (esquerda; centro+sem_prefeito) é a
@@ -508,7 +508,7 @@ def registrar_selecao(variaveis: Iterable[str],
                       regiao_fundir: tuple[tuple[str, ...], ...] = ()) -> Candidato:
     """Adiciona 'bb_selecao' (beta-binomial só com as contínuas selecionadas).
 
-    `regiao_fundir` leva ao candidato os níveis de região que a Parte 8 do notebook 02
+    `regiao_fundir` leva ao candidato os níveis de região que a Parte 8 do `02-MLG`
     decidiu fundir (teste de igualdade de níveis).
     """
     vs = tuple(v for v in CONTINUAS if v in set(variaveis) | {"lag"})
@@ -518,7 +518,7 @@ def registrar_selecao(variaveis: Iterable[str],
     return cand
 
 
-EXTENSOES: dict = {}  # variantes do bb_selecao; fora de CANDIDATOS (o notebook 03 itera CANDIDATOS)
+EXTENSOES: dict = {}  # variantes do bb_selecao; fora de CANDIDATOS (o Parte 11 do `02-MLG` itera CANDIDATOS)
 
 
 def registrar_extensao(nome, **mudancas_em_termos) -> Candidato:
@@ -574,7 +574,7 @@ def tabela_comparacao(resultados) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------
-# Validação cruzada em paralelo (notebook 03). Os dados ficam em variável do
+# Validação cruzada em paralelo (Parte 11 do `02-MLG`). Os dados ficam em variável do
 # módulo para que processos criados por fork os herdem sem copiar por tarefa.
 # --------------------------------------------------------------------------
 _DADOS_CV: dict = {}

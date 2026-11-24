@@ -1,6 +1,6 @@
-# 08 - Dependência espacial: filtro de autovetores, SLX e EPs de Conley (Partes 14 e 15 do notebook 05)
+# 08 - Dependência espacial: filtro de autovetores, SLX e EPs de Conley (Partes 14 e 15 do `02-MLG`)
 
-Notebook `notebooks/05-modelo-final.ipynb`. Tabelas em `results/tables/final_esf_k.csv`, `final_slx.csv`, `final_cv.csv`, `final_decisao.json`, `final_correlograma.csv`, `final_correlograma_2022.csv`, `final_ep.csv` e `final_ep_corte.csv`; figuras `results/figures/final_moran_k.html` e `final_correlograma.html`. A dispersão (Parte 13) está em [07-dispersao-regional.md](07-dispersao-regional.md); as estimativas do modelo final (Parte 16) em [09-modelo-final.md](09-modelo-final.md).
+Notebook `notebooks/02-MLG.ipynb`. Tabelas em `results/tables/final_esf_k.csv`, `final_slx.csv`, `final_cv.csv`, `final_decisao.json`, `final_correlograma.csv`, `final_correlograma_2022.csv`, `final_ep.csv` e `final_ep_corte.csv`; figuras `results/figures/final_moran_k.png` e `final_correlograma.png`. A dispersão (Parte 13) está em [07-dispersao-regional.md](07-dispersao-regional.md); as estimativas do modelo final (Parte 16) em [09-modelo-final.md](09-modelo-final.md).
 
 **Objetivo.** Os resíduos de todos os modelos têm autocorrelação espacial (I de Moran ≈ 0,34; ver [diagnóstico, seção 6](04-diagnostico.md) e [pendências](12-pendencias.md)), o que torna os EPs pequenos demais. Duas respostas: (a) tirar a dependência do preditor, com um filtro espacial ou com covariáveis dos vizinhos (Parte 14); (b) manter o preditor e corrigir só os EPs (Parte 15).
 

@@ -1,11 +1,11 @@
 # 05 - Validação cruzada, escolha do modelo e sensibilidade regional (Parte 11)
 
-Notebook: `notebooks/03-validacao.ipynb`. As estimativas regionais e seus intervalos não estão aqui: saem só do modelo final, na Parte 16 ([09](09-modelo-final.md)).
+Parte 11 do `notebooks/02-MLG.ipynb`. As estimativas regionais e seus intervalos não estão aqui: saem só do modelo final, na Parte 16 ([09](09-modelo-final.md)).
 
 ## 1. Por que validar fora da amostra
 
 - **Decisão.** O modelo e as estimativas regionais saem de previsão fora da amostra.
-- **Razão.** Um binomial com ligação canônica e dummies de região reproduz os totais regionais *exatamente* dentro da amostra (equações de escore; notebook 02).
+- **Razão.** Um binomial com ligação canônica e dummies de região reproduz os totais regionais *exatamente* dentro da amostra (equações de escore; Partes 5 a 9).
   Esse acerto é por construção e não mede capacidade de previsão. As métricas dentro da amostra (MAE ponderado de 0,92 a 1,37 p.p.) também não decidem entre famílias:
   o beta-binomial dá menos peso às grandes cidades que o quasi-binomial, então os dois otimizam critérios diferentes.
 - **Conclusão permitida.** Só a previsão de dados retidos compara famílias diferentes na mesma régua.
@@ -27,7 +27,7 @@ Notebook: `notebooks/03-validacao.ipynb`. As estimativas regionais e seus interv
 
 ## 3. Métricas
 
-Calculadas sobre as previsões fora da amostra empilhadas (cada município é previsto uma vez). **`mae_uf_pp` e `mae_reg_pp` ponderam as previsões por n̂**, o mesmo critério dos notebooks 03 e 05; `mae_pond_pp`, `rmse_pond_pp` e `erro_nacional_pp` ponderam pelo n real:
+Calculadas sobre as previsões fora da amostra empilhadas (cada município é previsto uma vez). **`mae_uf_pp` e `mae_reg_pp` ponderam as previsões por n̂**, o mesmo critério da Parte 11 e das Partes 13 a 17 do `02-MLG`; `mae_pond_pp`, `rmse_pond_pp` e `erro_nacional_pp` ponderam pelo n real:
 
 - `mae_pond_pp`, `rmse_pond_pp`: erro do share municipal em p.p., ponderado por votos válidos. `mae_pp`: sem ponderar. `deviance`: deviance binomial. `erro_nacional_pp`: viés do total nacional.
 - `mae_uf_pp`: média, sobre as 27 UFs, do |share previsto da UF − observado|, com share ponderado por votos. `mae_reg_pp`: o mesmo para as 5 regiões.
@@ -62,11 +62,11 @@ LOSO, melhores por erro médio da UF (p.p.), EP, `k`, MAE ponderado municipal no
 - **Escolhido: `bb_selecao`** (beta-binomial, logit; 11 covariáveis contínuas além da defasagem, selecionadas por BIC, com Nordeste e Norte fundidos na média; 19 parâmetros, ver [03](03-modelos-candidatos.md), Parte 8). **Vice: `bin_probit`** (melhor erro médio).
 - Limite de 1 EP: 0,998 + 0,135 = 1,133 p.p. **Treze modelos** ficam dentro dele. A diferença entre eles é menor que o ruído: a escolha segue a parcimônia e **não** indica superioridade preditiva.
 - Ficam claramente fora: `l1_logit` (2,04 p.p.; encolhimento excessivo), `bb_offset` e `quasi_offset` (1,30-1,33; fixar o coeficiente da defasagem em 1 piora), `bin_cloglog` (1,20), `bb_reglag` (1,17).
-- **Limite de aceitação das extensões.** Nos notebooks 03 e 05, uma extensão do modelo escolhido só é aceita se o MAE por UF no LOSO não passa de L = MAE por UF **aninhado** de `bb_selecao` + EP do melhor modelo LOSO = 1,1168 + 0,1347 = **1,2515 p.p.** (1,1695 com o 1,0348 sem aninhar; 1,1308 no LOSO que vazava o 2º turno). A tolerância é a do 1 EP da escolha original. Ver a seção 8.
+- **Limite de aceitação das extensões.** Nas Partes 11 e 13 a 17 do `02-MLG`, uma extensão do modelo escolhido só é aceita se o MAE por UF no LOSO não passa de L = MAE por UF **aninhado** de `bb_selecao` + EP do melhor modelo LOSO = 1,1168 + 0,1347 = **1,2515 p.p.** (1,1695 com o 1,0348 sem aninhar; 1,1308 no LOSO que vazava o 2º turno). A tolerância é a do 1 EP da escolha original. Ver a seção 8.
 - **Ressalva sobre o alvo.** Nas métricas fora da regra, o binomial vence onde o alvo é a soma das UFs: erro médio do share regional 0,10 p.p. (`bin_logit`) contra 0,39 p.p. (`bb_selecao`); deviance LOSO 160,5 mil contra 161,3 mil. O beta-binomial dá menos peso às grandes cidades, que dominam o share regional. Quem priorizar o share regional deve preferir `bin_probit` ou `bin_logit`. A regra fixada manda `bb_selecao`.
 - **5-fold.** `glmm_uf` (1,026) e `quasi_uf` (1,034) lideram porque têm efeito de UF, que só ajuda em UFs já vistas; em LOSO o `glmm_uf` fica em 1,067. Isso confirma que o efeito de UF não generaliza para UF inédita.
-- **Calibração** (`results/figures/cv_calibracao.html`): em 20 faixas de π̂, o maior desvio entre π̂ médio e share observado é 0,63 p.p. (`bb_selecao`) e 0,90 p.p. (`bin_probit`); `l1_logit`, usado como contraste, chega a 3,3 p.p.
-- Figuras: `cv_loso_mae_uf.html`, `cv_kfold_mae.html`.
+- **Calibração** (`results/figures/cv_calibracao.png`): em 20 faixas de π̂, o maior desvio entre π̂ médio e share observado é 0,63 p.p. (`bb_selecao`) e 0,90 p.p. (`bin_probit`); `l1_logit`, usado como contraste, chega a 3,3 p.p.
+- Figuras: `cv_loso_mae_uf.png`.
 
 ## 6. Sensibilidade regional: por que o erro regional LOSO não escolhe modelo
 

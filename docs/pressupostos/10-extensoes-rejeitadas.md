@@ -1,6 +1,6 @@
-# 10 - Extensões rejeitadas: krigagem e CAR nos resíduos (Parte 17 do notebook 05)
+# 10 - Extensões rejeitadas: krigagem e CAR nos resíduos (Parte 17 do `02-MLG`)
 
-Notebook `notebooks/05-modelo-final.ipynb`. Tabelas em `results/tables/final_moran_decomposto.csv`, `final_krigagem.csv` e `final_car.csv`; previsões em `results/cv/{loso,kfold}_bb_slx_krig.parquet` e `results/cv/{loso,kfold}_bb_slx_car.parquet`. A dependência espacial e o SLX estão em [08-dependencia-espacial.md](08-dependencia-espacial.md); as estimativas do modelo final em [09-modelo-final.md](09-modelo-final.md).
+Notebook `notebooks/02-MLG.ipynb`. Tabelas em `results/tables/final_moran_decomposto.csv`, `final_krigagem.csv` e `final_car.csv`; previsões em `results/cv/{loso,kfold}_bb_slx_krig.parquet` e `results/cv/{loso,kfold}_bb_slx_car.parquet`. A dependência espacial e o SLX estão em [08-dependencia-espacial.md](08-dependencia-espacial.md); as estimativas do modelo final em [09-modelo-final.md](09-modelo-final.md).
 
 Os dois remédios para a correlação residual do modelo final foram testados sob a mesma regra e **rejeitados**. O modelo final segue `bb_slx`.
 
@@ -43,7 +43,7 @@ Resíduos de `bb_slx`, dentro da amostra:
 - [deduced] O I dos resíduos LOSO (0,42) fica acima do de dentro da amostra (0,34) porque todos os municípios da UF deixada de fora compartilham o mesmo erro de extrapolação.
 
 - **Limitação.** O corte do correlograma vem dos resíduos dentro da amostra com todos os
-  dados (notebook 05, c. 20) e é reusado como alcance da krigagem (c. 33): vazamento leve
+  dados (Parte 15, c. 20) e é reusado como alcance da krigagem (c. 33): vazamento leve
   que favorece aceitar a krigagem. Ela foi rejeitada, então a decisão não muda
   ([12](12-pendencias.md)).
 

@@ -202,6 +202,28 @@ def cook_um_passo(score: Matriz, hessiana: Matriz) -> tuple[Matriz, np.ndarray]:
     return d, cook
 
 
+def alavanca_generalizada(res: Any) -> np.ndarray:
+    """Alavanca h_ii do submodelo da média do beta-binomial ajustado.
+
+    h_ii = w_i x_i' (X'WX)^-1 x_i, com
+    w_i = n_i (dπ/dη)_i² / [π_i (1-π_i) (1 + (n_i-1) ρ_i)] e ρ_i = 1/(1+θ_i).
+    É a matriz chapéu de mínimos quadrados ponderados do submodelo da média sob a variância
+    beta-binomial (alavanca generalizada, Paula, Modelos de Regressão); com ρ→0 recai na
+    alavanca do GLM binomial. Soma = nº de parâmetros da média.
+    """
+    m = res.model
+    params = np.asarray(res.params, float)
+    X = np.asarray(m.exog, float)
+    p = m._p if m._p is not None else len(params) - 1
+    eta = X @ params[:p]
+    pi = M._pi_de_eta(eta, m.link)
+    dpi = np.asarray(m.link.inverse_deriv(eta), float)
+    rho = 1.0 / (1.0 + m._theta(params))
+    w = m.n * dpi**2 / (pi * (1 - pi) * (1 + (m.n - 1) * rho))
+    Xw = X * np.sqrt(w)[:, None]
+    return np.einsum("ij,ij->i", Xw @ np.linalg.inv(Xw.T @ Xw), Xw)
+
+
 def mudanca_em_ep(b_cheio: np.ndarray, b_sem: np.ndarray, cov: np.ndarray) -> np.ndarray:
     """(β sem - β cheio) / EP, com o EP tirado da diagonal de `cov`."""
     return (np.asarray(b_sem, float) - np.asarray(b_cheio, float)) / np.sqrt(np.diag(cov))

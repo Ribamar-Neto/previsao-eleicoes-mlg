@@ -41,24 +41,29 @@ resultados e agregar as previsões às 5 regiões.
 
 - **Sem funções nos notebooks.** Toda função auxiliar fica em `src/` (testada em `tests/`); a
   célula mostra só o passo estatístico. Razão: o leitor vê o método sem o código de apoio.
-- **Cada valor é calculado uma vez.** O notebook que calcula um valor o grava em `results/`;
-  os seguintes o leem e citam a origem, sem refazer o ajuste. Exemplos: o LOSO do
-  `bb_selecao` (02 → 03), a sensibilidade regional (03 → 05), o I de Moran do `bb_slx`
-  (calculado no 05, Parte 14, e gravado também em `diag_final_moran.csv`, do 02) e os
-  ajustes parciais da apuração (um só laço no 06).
-- **Sem leitura de saída posterior para parâmetro.** O corte de Conley do Passo 6 do 02 é o
-  valor fixo de 200 km decidido no 05 (Parte 14), citado no código, para o 02 não depender
-  em silêncio de um arquivo do 05. Só os termos do `bb_slx` vêm de `final_decisao.json`.
-- **Ajustes repetidos de propósito.** Os reajustes do `bb_slx` por dobra no 05 (Partes 16 e
-  17) ficam em cada parte, porque rodam em processos paralelos e o compartilhamento dos
-  ajustes não foi testado.
-- **Refatoração sem efeito nos números.** A mudança para `src/` foi conferida contra uma
-  execução de referência: todas as tabelas e figuras de `results/` ficaram idênticas byte a
-  byte.
+- **Três notebooks.** `01-AED` (Partes 1 a 4), `02-MLG` (Partes 5 a 11 e 13 a 17, num só
+  Run-All) e `03-apuracao-parcial` (Parte 18). Razão: antes, cada notebook lia arquivos do
+  anterior e exigia ordem de execução manual (incluindo rodar o 02 duas vezes). Os números das
+  Partes são estáveis: a Parte 12 (backtest) foi retirada, não renumerada ([06](06-backtest.md)).
+  O Passo 6 da Parte 10 roda depois da Parte 15, porque diagnostica `bb_selecao` e `bb_slx`.
+- **Cada valor é calculado uma vez.** Entre as Partes do `02-MLG` os valores passam em memória
+  (sem leitura de arquivo entre notebooks e sem "rode o 03 antes"); os CSV em `results/tables`
+  continuam gravados para consulta. O I de Moran do `bb_slx`, por exemplo, é calculado na
+  Parte 14 e vale para o Passo 6 da Parte 10; os ajustes parciais da apuração saem de um só
+  laço na Parte 18.
+- **Ajustes repetidos de propósito.** Os reajustes do `bb_slx` por dobra nas Partes 16 e 17
+  ficam em cada parte, porque rodam em processos paralelos e o compartilhamento dos ajustes
+  não foi testado.
+- **Gráficos em PNG estático (kaleido).** Os gráficos Plotly são exportados em PNG para
+  `results/figures`; os `.html` foram apagados. Razão: o GitHub não renderiza a saída JSON do
+  Plotly nos notebooks, e o leitor veria células vazias.
+- **Regra das tabelas.** Uma tabela fica no notebook só quando uma célula de interpretação
+  cita seus números para uma decisão; senão vira gráfico, lista de indicadores ou nada (o CSV
+  guarda o detalhe).
 
 ## Regra de seleção (fixada antes dos resultados)
 
-1. Menor erro absoluto médio da participação por UF no LOSO (ponderado por n̂, nos notebooks 03 e 05).
+1. Menor erro absoluto médio da participação por UF no LOSO (ponderado por n̂, nas Partes 11 e 13 a 17 do `02-MLG`).
 2. Regra do 1 erro-padrão: entre os modelos dentro de 1 EP do melhor, o de menos parâmetros.
 3. O MAE ponderado por votos da validação de 5 dobras é critério secundário.
 4. Variáveis do modelo escolhido: BIC (backward, forward e both dão o mesmo conjunto).
@@ -79,7 +84,7 @@ O erro regional LOSO não é critério, porque favorece por construção as bino
 - Sem os 10 municípios mais influentes (capitais), `bb_reglag` muda no máximo 0,15 EP;
   `quasi_reglag` muda 9,0 EP.
 
-Refinamento (notebook 05): `bb_selecao` virou o modelo final `bb_slx` (36 parâmetros):
+Refinamento (Partes 13 a 17 do `02-MLG`): `bb_selecao` virou o modelo final `bb_slx` (36 parâmetros):
 dispersão por região e log n (`bb_disp`; [07](07-dispersao-regional.md); aceita, LOSO 1,0345,
 confirmada por Wald robusto) mais covariáveis defasadas espacialmente, SLX (LOSO 1,078 ≤ 1,2515,
 acima do 1,035 de `bb_selecao`; I de Moran dos resíduos só de 0,342 para 0,336). O filtro de
@@ -101,13 +106,6 @@ inédita" ([09](09-modelo-final.md)):
 | Brasil | 51,76 | [51,1; 52,4] (90%) | 51,78 |
 
 MAE por UF 1,078 p.p. no LOSO (0,846 no 5-fold); MAE regional 0,426 p.p.
-
-Backtest (ajuste de 2022 em 2018, previsão de 2026): a melhor variante é `C_recal`
-(participações do 1º turno de 2026, intercepto ancorado na participação nacional de 2022),
-com erro absoluto médio de 0,58 p.p. por UF e 0,68 p.p. por região. A linha de base ingênua
-(repetir 2022) dá 1,65 (UF) e 0,64 (região). Sem o 1º turno, os modelos ficam piores que a
-linha de base (UF 3,3 a 3,9): as oscilações regionais de 2018 a 2022 não se transferem a
-2026 ([06](06-backtest.md)).
 
 Apuração parcial na ordem real das seções (Parte 18): [11](11-apuracao-parcial.md).
 

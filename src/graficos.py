@@ -8,8 +8,11 @@ Os gráficos de diagnóstico do MLG (Parte 10 em diante) ficam na segunda metade
 
 from __future__ import annotations
 
+import atexit
+import functools
 import math
 import os
+import warnings
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -34,17 +37,47 @@ CORES_REGIAO = {"Norte": "#1baf7a", "Nordeste": "#eb6834", "Centro-Oeste": "#eda
 pio.templates["eleicoes"] = go.layout.Template(layout={
     "colorway": ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"],
     "font": {"family": "system-ui, -apple-system, Segoe UI, sans-serif", "color": "#0b0b0b"},
-    "paper_bgcolor": "#fcfcfb", "plot_bgcolor": "#fcfcfb", "hovermode": "closest",
+    "paper_bgcolor": "#ffffff", "plot_bgcolor": "#ffffff", "hovermode": "closest",
     "hoverlabel": {"bgcolor": "#ffffff", "font_size": 12},
+    "separators": ",.",
 })
 pio.templates.default = "plotly_white+eleicoes"
+
+# GitHub não renderiza o JSON do Plotly: toda figura vira PNG estático (no notebook e em results/figures).
+LARGURA_PNG = 900
+ALTURA_PNG = 520
+ESCALA_PNG = 1.5
+PASTA_FIGURAS_PADRAO = Path(__file__).resolve().parent.parent / "results" / "figures"
+pio.renderers.default = "png"
+pio.renderers["png"].width = LARGURA_PNG
+pio.renderers["png"].height = ALTURA_PNG
+pio.renderers["png"].scale = ESCALA_PNG
+
+_servidor_kaleido: bool = False
+
+
+warnings.filterwarnings("ignore", message="The kopts argument is ignored if using a server")
+
+
+def _iniciar_kaleido() -> None:
+    # Um único Chrome por processo: sem isso cada write_image abre e fecha o navegador (~2 s por figura).
+    global _servidor_kaleido
+    if _servidor_kaleido:
+        return
+    _servidor_kaleido = True
+    try:
+        import kaleido
+        kaleido.start_sync_server(silence_warnings=True)
+        atexit.register(kaleido.stop_sync_server, silence_warnings=True)
+    except Exception:  # noqa: BLE001 - sem servidor, write_image ainda funciona (mais lento)
+        pass
 
 df: pd.DataFrame = pd.DataFrame()
 output_fig_dir: str | Path | None = None
 
 
 def configurar(dados: pd.DataFrame, pasta_figuras: str | Path) -> None:
-    # Conjunto de dados (hover) e pasta onde as figuras HTML são salvas
+    # Conjunto de dados (hover) e pasta onde os PNGs são salvos
     global df, output_fig_dir
     df = dados
     output_fig_dir = pasta_figuras
@@ -98,13 +131,17 @@ def legenda_unica(fig: go.Figure) -> None:
             vistos.add(traco.name)
 
 
-def mostrar_e_salvar(fig: go.Figure, nome: str | None = None, titulo: str | None = None, altura: int = 500,
+def mostrar_e_salvar(fig: go.Figure, nome: str | None = None, titulo: str | None = None, altura: int | None = None,
                      largura: int | None = None) -> None:
+    # Salva o PNG (se houver nome) e mostra a figura; título/tamanho são opcionais para figuras já formatadas.
     legenda_unica(fig)
-    fig.update_layout(title=titulo, height=altura, width=largura, margin={"t": 90 if titulo else 60})
+    if titulo is not None:
+        fig.update_layout(title=titulo, margin={"t": 90})
+    if altura is not None or largura is not None:
+        fig.update_layout(height=altura, width=largura)
     if nome:
-        fig.write_html(f"{output_fig_dir}/{nome}.html", include_plotlyjs="cdn", div_id=nome)
-    fig.show()
+        salvar(fig, nome)
+    fig.show(width=fig.layout.width or LARGURA_PNG, height=fig.layout.height or ALTURA_PNG)  # o renderer ignora o tamanho do layout
 
 
 def histograma(valores: Any, nome_var: str, pesos: Any = None, name: str | None = None,
@@ -113,7 +150,7 @@ def histograma(valores: Any, nome_var: str, pesos: Any = None, name: str | None 
     v = np.asarray(valores, float)
     fig = go.Figure(go.Histogram(
         x=v, y=None if pesos is None else np.asarray(pesos, float), histfunc="count" if pesos is None else "sum",
-        nbinsx=bins, marker={"color": COR_PONTO, "line": {"width": 0.5, "color": "#fcfcfb"}},
+        nbinsx=bins, marker={"color": COR_PONTO, "line": {"width": 0.5, "color": "#ffffff"}},
         hovertemplate=f"{nome_var}: %{{x}}<br>%{{y:,.0f}}<extra></extra>"))
     fig.update_xaxes(title_text=nome_var)
     fig.update_yaxes(title_text="Municípios" if pesos is None else "Votos")
@@ -131,36 +168,89 @@ def heatmap_correlacao(matriz: pd.DataFrame, titulo: str, name: str) -> None:
     mostrar_e_salvar(fig, name, titulo=titulo, altura=max(600, 28 * n + 200), largura=max(800, 28 * n + 250))
 
 
+def faixas_por_decil(x: Any, q: int = 10, massa_minima: float = 0.10) -> pd.Series:
+    """Faixa de cada observação: decis de x; se o mínimo concentra >= `massa_minima`, ele forma a faixa 0 sozinho
+    e os decis valem para o resto (senão quase todos os decis colapsam no mínimo, ex.: % indígenas)."""
+    x = pd.Series(np.asarray(x, float))
+    empate = (x == x.min()).to_numpy()
+    faixa = pd.Series(0, index=x.index, dtype=int)
+    if empate.mean() >= massa_minima and not empate.all():
+        resto = x[~empate]
+        faixa[~empate] = 1 + pd.qcut(resto.rank(method="first"), q, labels=False, duplicates="drop")
+        return faixa
+    return pd.Series(pd.qcut(x.rank(method="first"), q, labels=False, duplicates="drop"), index=x.index)
+
+
 def logit_empirico_por_decil(x: Any, y: Any, n: Any, q: int = 10) -> pd.DataFrame:
     # Por decil de x: média de x e log(ΣY / Σ(n−Y)). Pesos naturais: municípios grandes pesam mais.
-    d = pd.DataFrame({"x": x, "y": y, "n": n})
-    d["bin"] = pd.qcut(d["x"].rank(method="first"), q, labels=False)
+    d = pd.DataFrame({"x": np.asarray(x, float), "y": np.asarray(y, float), "n": np.asarray(n, float)})
+    d["bin"] = faixas_por_decil(d["x"], q, massa_minima=0.10)
     g = d.groupby("bin").agg(x=("x", "mean"), y=("y", "sum"), n=("n", "sum"))
     g["logit"] = np.log(g["y"] / (g["n"] - g["y"]))
     return g
 
 
 def media_ponderada_por_decil(x: Any, z: Any, w: Any, q: int = 10) -> pd.DataFrame:
-    d = pd.DataFrame({"x": x, "z": z, "w": w})
-    d["bin"] = pd.qcut(d["x"].rank(method="first"), q, labels=False)
+    d = pd.DataFrame({"x": np.asarray(x, float), "z": np.asarray(z, float), "w": np.asarray(w, float)})
+    d["bin"] = faixas_por_decil(d["x"], q, massa_minima=0.10)
     return d.groupby("bin").apply(lambda g: pd.Series({"x": g["x"].mean(), "z": np.average(g["z"], weights=g["w"])}),
                                   include_groups=False)
+
+
+def _quebra_titulo(nome: str, limite: int = 20) -> str:
+    # Quebra nomes longos em "_" (com <br>) para os títulos dos subpainéis não se sobreporem
+    if len(nome) <= limite:
+        return nome
+    partes, linha = [], ""
+    for p in nome.split("_"):
+        if linha and len(linha) + 1 + len(p) > limite:
+            partes.append(linha + "_")
+            linha = p
+        else:
+            linha = f"{linha}_{p}" if linha else p
+    partes.append(linha)
+    return "<br>".join(partes)
+
+
+_MIN_FAIXAS_EIXO = 3  # com 2 faixas o maior salto é sempre a amplitude inteira
+
+
+def eixo_por_ordem(x: Sequence[float], limite: float = 0.5) -> bool:
+    """True quando o maior salto entre médias de faixa consecutivas passa de `limite` da amplitude: no eixo em
+    valor, as demais faixas se amontoam num ponto (ex.: % indígenas) e o painel fica ilegível."""
+    v = np.sort(np.asarray(x, float))
+    amplitude = v[-1] - v[0]
+    return len(v) >= _MIN_FAIXAS_EIXO and amplitude > 0 and float(np.diff(v).max()) > limite * amplitude
+
+
+def _num(v: float) -> str:
+    return f"{v:.2g}".replace(".", ",")
 
 
 def painel_linearidade(variaveis: Sequence[str], calcula: Callable[[str], pd.DataFrame], rotulo_y: str, name: str,
                        n_cols: int = 4, titulo: str | None = None) -> None:
     # calcula(var) -> DataFrame com colunas x e y (um ponto por decil)
     n_rows = math.ceil(len(variaveis) / n_cols)
-    fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=variaveis, vertical_spacing=0.06,
-                        horizontal_spacing=0.06)
+    fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=[_quebra_titulo(v, limite=20) for v in variaveis],
+                        vertical_spacing=0.09,
+                        horizontal_spacing=0.08)
+    fig.update_annotations(font_size=13)
     for k, v in enumerate(variaveis):
         r, c = k // n_cols + 1, k % n_cols + 1
         g = calcula(v)
-        fig.add_trace(go.Scatter(x=g["x"], y=g["y"], mode="markers+lines", name="Decil",
+        x = g["x"].to_numpy(float)
+        por_ordem = eixo_por_ordem(x, limite=0.5)
+        pos = np.arange(1, len(x) + 1) if por_ordem else x
+        fig.add_trace(go.Scatter(x=pos, y=g["y"], customdata=x, mode="markers+lines", showlegend=False,
                                  marker={"color": COR_PONTO, "size": 7}, line={"color": COR_PONTO, "width": 1.2},
-                                 hovertemplate=f"{v}: %{{x:.3f}}<br>{rotulo_y}: %{{y:.3f}}<extra></extra>"), row=r, col=c)
+                                 hovertemplate=f"{v}: %{{customdata:.3f}}<br>{rotulo_y}: %{{y:.3f}}<extra></extra>"),
+                      row=r, col=c)
+        if por_ordem:
+            marcas = sorted({0, len(x) // 2, len(x) - 1})
+            fig.update_xaxes(tickvals=pos[marcas], ticktext=[_num(x[i]) for i in marcas],
+                             title_text="faixa (em ordem; média no rótulo)", title_font={"size": 10}, row=r, col=c)
     fig.update_yaxes(title_text=rotulo_y, col=1, title_font={"size": 10})
-    mostrar_e_salvar(fig, name, titulo=titulo, altura=230 * n_rows + 80)
+    mostrar_e_salvar(fig, name, titulo=titulo, altura=260 * n_rows + 80)
 
 
 # ---------- espacial ----------
@@ -168,21 +258,37 @@ def painel_linearidade(variaveis: Sequence[str], calcula: Callable[[str], pd.Dat
 def mapa(geo_simpl: Any, valores: Any, titulo: str, name: str, rotulo: str,
          escala: Sequence[Sequence[Any]] = ESCALA_DIVERGENTE, centro: float | None = None, zmin: float | None = None,
          zmax: float | None = None, hover: Sequence[str] | None = None,
-         ticks: tuple[Sequence[float], Sequence[str]] | None = None) -> None:
+         ticks: tuple[Sequence[float], Sequence[str]] | None = None, altura: int = 470, largura: int = 560) -> None:
     # Mapa coroplético; geo_simpl com índice RangeIndex alinhado a `valores`; geometria arredondada para reduzir tamanho
     feats = []
     for i, g in enumerate(geo_simpl.geometry):
-        feats.append({"type": "Feature", "id": i, "properties": {}, "geometry": _arredonda(g.__geo_interface__)})
+        feats.append({"type": "Feature", "id": i, "properties": {}, "geometry": _arredonda(_orientada(g).__geo_interface__)})
     gj = {"type": "FeatureCollection", "features": feats}
     kw: dict[str, Any] = {"zmid": centro} if centro is not None else {}
     if zmin is not None:
         kw.update(zmin=zmin, zmax=zmax)
     fig = go.Figure(go.Choropleth(
         geojson=gj, locations=list(range(len(geo_simpl))), z=np.asarray(valores, float), colorscale=escala,
-        marker_line_width=0, colorbar=dict(title=rotulo, **({} if ticks is None else {"tickvals": ticks[0], "ticktext": ticks[1]})), text=hover,
+        marker_line_width=0, colorbar=dict(title=rotulo, thickness=14, len=0.75, x=1.0, xanchor="left", **({} if ticks is None else {"tickvals": ticks[0], "ticktext": ticks[1]})), text=hover,
         hovertemplate="%{text}<br>" + rotulo + ": %{z:.3f}<extra></extra>", **kw))
-    fig.update_geos(fitbounds="locations", visible=False, bgcolor="#fcfcfb")
-    mostrar_e_salvar(fig, name, titulo=titulo, altura=620, largura=700)
+    fig.update_geos(fitbounds="locations", visible=False, bgcolor="#ffffff", projection_type="mercator")
+    # Título e margens aqui (não via `titulo=` de mostrar_e_salvar, que fixa t=90 e abre um vão acima do mapa);
+    # a margem direita abriga a barra de cores, e o mapa ocupa o resto, centrado sob o título.
+    fig.update_layout(title={"text": titulo, "x": 0.5, "xanchor": "center", "y": 0.97, "yanchor": "top"},
+                      margin={"t": 40, "l": 0, "r": 190 if ticks is not None else 90, "b": 0}, title_font_size=14)
+    mostrar_e_salvar(fig, name, titulo=None, altura=altura, largura=largura)
+
+
+def _orientada(geom: Any) -> Any:
+    # O plotly (d3-geo) pede anéis externos no sentido horário; no sentido contrário o polígono preenche o complemento
+    # (o mapa vira um retângulo de uma cor só).
+    from shapely.geometry import MultiPolygon, Polygon
+    from shapely.geometry.polygon import orient
+    if isinstance(geom, Polygon):
+        return orient(geom, sign=-1.0)
+    if isinstance(geom, MultiPolygon):
+        return MultiPolygon([orient(pl, sign=-1.0) for pl in geom.geoms])
+    return geom
 
 
 def _arredonda(gi: Mapping[str, Any], casas: int = 2) -> dict[str, Any]:
@@ -193,11 +299,16 @@ def _arredonda(gi: Mapping[str, Any], casas: int = 2) -> dict[str, Any]:
     return {"type": gi["type"], "coordinates": r(gi["coordinates"])}
 
 
-# ---------- diagnóstico do MLG (notebook 02 em diante) ----------
-# Salvos em results/figures/mlg_*.html.
+# ---------- diagnóstico do MLG (`02-MLG` em diante) ----------
+# Salvos em results/figures/mlg_*.png.
 
-def salvar(fig: go.Figure, caminho: str | Path) -> go.Figure:
-    fig.write_html(str(caminho), include_plotlyjs="cdn", div_id=Path(caminho).stem)
+def salvar(fig: go.Figure, nome: str | Path) -> go.Figure:
+    """Grava `<pasta de figuras>/<nome>.png`; só o nome-base conta (extensão e diretório são descartados)."""
+    _iniciar_kaleido()
+    pasta = Path(output_fig_dir) if output_fig_dir is not None else PASTA_FIGURAS_PADRAO
+    pasta.mkdir(parents=True, exist_ok=True)
+    fig.write_image(str(pasta / f"{Path(nome).stem}.png"),
+                    width=fig.layout.width or LARGURA_PNG, height=fig.layout.height or ALTURA_PNG, scale=ESCALA_PNG)
     return fig
 
 
@@ -314,19 +425,19 @@ def alavanca_cook(h: Any, cook: Any, rotulos: Sequence[str], p: int,
 def mapa_residuos(gdf: Any, residuo: Any, titulo: str, tolerancia: float = 0.05) -> go.Figure:
     """Coroplético de resíduos; geometria simplificada (graus) para o HTML ficar leve."""
     g = gdf.copy()
-    g["geometry"] = g.geometry.simplify(tolerancia, preserve_topology=True)
+    g["geometry"] = [_orientada(geom) for geom in g.geometry.simplify(tolerancia, preserve_topology=True)]
     g = g.reset_index(drop=True)
     fig = go.Figure(go.Choropleth(geojson=g.geometry.__geo_interface__, locations=g.index.astype(str),
                                   z=np.clip(np.asarray(residuo, float), -4, 4), zmin=-4, zmax=4,
                                   colorscale="RdBu", marker_line_width=0,
                                   colorbar={"title": "resíduo"}))
-    fig.update_geos(fitbounds="locations", visible=False)
-    fig.update_layout(title=titulo, template="plotly_white", height=650)
+    fig.update_geos(fitbounds="locations", visible=False, bgcolor="#ffffff")
+    fig.update_layout(title=titulo, height=650, width=800)
     return fig
 
 
 # --------------------------------------------------------------------------
-# Blocos de figura que estavam nas células dos notebooks 01 e 04
+# Blocos de figura que estavam nas células dos antigos notebooks 01 e 04 (hoje `01-AED` e `02-MLG`)
 # --------------------------------------------------------------------------
 def barras_resultado_uf(tab_uf: pd.DataFrame) -> go.Figure:
     """Barras agrupadas da proporção do PT por UF (linhas) e ano (colunas), com a linha de 50%."""
@@ -358,21 +469,6 @@ def dispersao_lag(df: pd.DataFrame, y: str, x: str, nome: str, prefixo: str) -> 
     fig.update_xaxes(title_text=x); fig.update_yaxes(title_text=y)
     mostrar_e_salvar(fig, prefixo + nome, titulo=f"{y} x {x}", altura=520)
     return ols, wls
-
-
-def figura_backtest(var: str, reg_t: pd.DataFrame, uf_t: pd.DataFrame, peso: str = "n_prev") -> go.Figure:
-    """Barras do erro (previsto menos real, p.p.) por região e por UF, uma cor por modelo."""
-    cores = ["#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd", "#8c564b", "#d62728"]
-    fig = make_subplots(rows=2, cols=1, row_heights=[0.3, 0.7], vertical_spacing=0.18,
-                        subplot_titles=("Erro por região (p.p.)", "Erro por UF (p.p.)"))
-    for i, (nome, g) in enumerate(reg_t.query("variante == @var and peso == @peso").groupby("modelo", sort=False)):
-        fig.add_bar(x=g["grupo"], y=g["erro_pp"], name=nome, marker_color=cores[i % 6], legendgroup=nome, row=1, col=1)
-    for i, (nome, g) in enumerate(uf_t.query("variante == @var and peso == @peso").groupby("modelo", sort=False)):
-        fig.add_bar(x=g["grupo"], y=g["erro_pp"], name=nome, marker_color=cores[i % 6], legendgroup=nome,
-                    showlegend=False, row=2, col=1)
-    fig.update_layout(barmode="group", height=750, title=f"Backtest 2022→2026: {var} (previsto − real, p.p.)",
-                      legend_title="modelo", template="plotly_white")
-    return fig
 
 
 # --------------------------------------------------------------------------
@@ -432,6 +528,285 @@ def erro_por_corte(tab: pd.DataFrame, anos: Sequence[int], coluna: str, rotulo_y
             fig.add_trace(go.Scatter(x=t.corte, y=t[coluna], mode="lines+markers", name=met, legendgroup=met,
                                      showlegend=(j == 1), line={"color": cor}), row=1, col=j)
         fig.update_xaxes(title_text="% dos válidos recebidos", row=1, col=j)
-    fig.update_yaxes(title_text=rotulo_y, type="log", row=1, col=1)
+    fig.update_yaxes(type="log", matches="y", tickvals=[0.05, 0.1, 0.2, 0.5, 1, 2, 5], ticktext=["0,05", "0,1", "0,2", "0,5", "1", "2", "5"])
+    fig.update_yaxes(title_text=rotulo_y, row=1, col=1)
     fig.update_layout(title=titulo, template="plotly_white", height=420)
+    return fig
+
+
+# --------------------------------------------------------------------------
+# Figuras para a apresentação (PNG estático): diagnóstico do MLG, Moran, apuração e mapas por UF
+# --------------------------------------------------------------------------
+CINZA_TEXTO = "#52514e"
+CODIGO_UF = {11: "RO", 12: "AC", 13: "AM", 14: "RR", 15: "PA", 16: "AP", 17: "TO", 21: "MA", 22: "PI", 23: "CE",
+             24: "RN", 25: "PB", 26: "PE", 27: "AL", 28: "SE", 29: "BA", 31: "MG", 32: "ES", 33: "RJ", 35: "SP",
+             41: "PR", 42: "SC", 43: "RS", 50: "MS", 51: "MT", 52: "GO", 53: "DF"}
+UNIDADES_APURACAO = ("Brasil", "Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul")
+
+
+def _linhas_h(fig: go.Figure, ys: Sequence[float], row: int, col: int) -> None:
+    for y in ys:
+        fig.add_hline(y=y, line_dash="dash", line_color=COR_REFERENCIA, line_width=1.2, row=row, col=col)
+
+
+def painel_diagnostico(h: Any, cook: Any, residuo: Any, ajustado: Any, *, p: int, rotulos: Sequence[str] | None = None,
+                       titulo: str, rotulo_residuo: str = "Resíduo quantílico") -> go.Figure:
+    """Painel 2x2 de diagnóstico (estilo Paula): alavanca, Cook e resíduo contra o índice, e resíduo contra π̂.
+
+    Cortes de alavanca em 2p/n e 3p/n; resíduos fora de ±2 e ±3 merecem atenção; os 5 maiores Cook são rotulados.
+    """
+    h, cook = np.asarray(h, float), np.asarray(cook, float)
+    residuo, ajustado = np.asarray(residuo, float), np.asarray(ajustado, float)
+    n = len(h)
+    idx = np.arange(1, n + 1)
+    fig = make_subplots(rows=2, cols=2, vertical_spacing=0.16, horizontal_spacing=0.1, subplot_titles=(
+        f"Alavanca h<sub>ii</sub> (linhas: 2p/n = {2 * p / n:.4f} e 3p/n = {3 * p / n:.4f})".replace(".", ","),
+        "Distância de Cook", f"{rotulo_residuo} × índice", f"{rotulo_residuo} × π̂"))
+    marcador = {"color": "#5b9be0", "size": 3}
+    for (r, c), y in {(1, 1): h, (1, 2): cook, (2, 1): residuo, (2, 2): residuo}.items():
+        x = ajustado if (r, c) == (2, 2) else idx
+        fig.add_trace(go.Scatter(x=x, y=y, mode="markers", marker=marcador, showlegend=False), row=r, col=c)
+    _linhas_h(fig, [2 * p / n, 3 * p / n], 1, 1)
+    _linhas_h(fig, [-3, -2, 2, 3], 2, 1)
+    _linhas_h(fig, [-2, 2], 2, 2)
+    topo = np.argsort(cook)[::-1][:5]
+    nomes = [rotulos[i] if rotulos is not None else str(idx[i]) for i in topo]
+    fig.add_trace(go.Scatter(x=idx[topo], y=cook[topo], mode="markers+text", text=nomes,
+                             textposition=["top center", "top center", "bottom center", "top center", "bottom center"],
+                             textfont={"size": 10, "color": CINZA_TEXTO}, cliponaxis=False,
+                             marker={"color": COR_CRITICO, "size": 6}, showlegend=False), row=1, col=2)
+    suave = lowess(residuo, ajustado, frac=2 / 3, it=0)
+    fig.add_trace(go.Scatter(x=suave[:, 0], y=suave[:, 1], mode="lines", line={"color": COR_CURVA, "width": 2.5},
+                             name="LOWESS", showlegend=False), row=2, col=2)
+    fig.update_xaxes(title_text="Índice do município", row=1, col=1)
+    fig.update_xaxes(title_text="Índice do município", row=1, col=2)
+    fig.update_xaxes(title_text="Índice do município", row=2, col=1)
+    fig.update_xaxes(title_text="Proporção ajustada π̂", row=2, col=2)
+    fig.update_layout(title=titulo, height=760, width=1000, margin={"t": 90})
+    fig.update_annotations(font_size=12)
+    return fig
+
+
+def forest_or(tabela: pd.DataFrame, titulo: str) -> go.Figure:
+    """Razões de chances com IC 95% em eixo log (1 = sem efeito), termos ordenados pela razão de chances."""
+    t = tabela.sort_values("or").reset_index(drop=True)
+    cores = [COR_CURVA if (a > 1 or b < 1) else COR_REFERENCIA for a, b in zip(t["ic_inf"], t["ic_sup"], strict=True)]
+    fig = go.Figure(go.Scatter(
+        x=t["or"], y=t["termo"], mode="markers", marker={"color": cores, "size": 8}, showlegend=False,
+        error_x={"type": "data", "symmetric": False, "array": t["ic_sup"] - t["or"], "arrayminus": t["or"] - t["ic_inf"],
+                 "color": CINZA_TEXTO, "thickness": 1.3},
+        hovertemplate="%{y}<br>OR = %{x:.3f}<extra></extra>"))
+    fig.add_vline(x=1, line_dash="dash", line_color=COR_REFERENCIA)
+    fig.update_xaxes(type="log", title_text="Razão de chances (escala log, IC 95%)")
+    fig.update_yaxes(categoryorder="array", categoryarray=list(t["termo"]), automargin=True)
+    fig.update_layout(title=titulo, height=max(420, 26 * len(t) + 160), width=900,
+                      annotations=[{"text": "laranja = IC exclui 1", "xref": "paper", "yref": "paper", "x": 1, "y": 1.04,
+                                    "showarrow": False, "xanchor": "right", "font": {"size": 10, "color": CINZA_TEXTO}}])
+    return fig
+
+
+def moran_dispersao(z: Any, lag_z: Any, I: float, titulo: str) -> go.Figure:  # noqa: E741 - notação de Moran
+    """Diagrama de Moran: z contra a defasagem espacial; a reta passa pela origem com inclinação I.
+
+    AA/BB = agrupamentos de valores altos/baixos; AB/BA = municípios discrepantes dos vizinhos.
+    """
+    z, lag = np.asarray(z, float), np.asarray(lag_z, float)
+    sel = _amostra(len(z), 3000, seed=0)
+    lim = float(np.ceil(max(np.abs(z).max(), np.abs(lag).max())))
+    fig = go.Figure(go.Scatter(x=z[sel], y=lag[sel], mode="markers", name="Municípios",
+                               marker={"color": COR_PONTO, "size": 4, "opacity": 0.4}))
+    fig.add_trace(go.Scatter(x=[-lim, lim], y=[-I * lim, I * lim], mode="lines", name=f"Inclinação = I = {I:.3f}".replace(".", ","),
+                             line={"color": COR_CURVA, "width": 2.5}))
+    fig.add_hline(y=0, line_color=COR_REFERENCIA, line_width=1)
+    fig.add_vline(x=0, line_color=COR_REFERENCIA, line_width=1)
+    for texto, x, y, xa, ya in [("AA", 0.98, 0.98, "right", "top"), ("BA", 0.02, 0.98, "left", "top"),
+                                ("BB", 0.02, 0.02, "left", "bottom"), ("AB", 0.98, 0.02, "right", "bottom")]:
+        fig.add_annotation(text=f"<b>{texto}</b>", xref="x domain", yref="y domain", x=x, y=y, showarrow=False,
+                           xanchor=xa, yanchor=ya, font={"size": 16, "color": CINZA_TEXTO})
+    fig.update_xaxes(title_text="Variável padronizada z", range=[-lim, lim])
+    fig.update_yaxes(title_text="Defasagem espacial Wz", range=[-lim, lim])
+    fig.update_layout(title=titulo, height=620, width=700, legend={"orientation": "h", "y": -0.15})
+    return fig
+
+
+def mae_por_modelo(tab: pd.DataFrame, *, limite: float, escolhido: str, titulo: str,
+                   rotulo_limite: str = "Limite 1-EP") -> go.Figure:
+    """MAE ± EP por modelo (colunas `modelo`, `mae`, `se`), do melhor ao pior; o limite 1-EP = melhor MAE + seu EP."""
+    t = tab.sort_values("mae", ascending=False).reset_index(drop=True)
+    cores = [COR_CURVA if m == escolhido else (COR_PONTO if v <= limite else COR_REFERENCIA)
+             for m, v in zip(t["modelo"], t["mae"], strict=True)]
+    fig = go.Figure(go.Scatter(
+        x=t["mae"], y=t["modelo"], mode="markers", showlegend=False, marker={"color": cores, "size": 9},
+        error_x={"type": "data", "array": t["se"], "color": CINZA_TEXTO, "thickness": 1.3},
+        hovertemplate="%{y}<br>MAE = %{x:.3f}<extra></extra>"))
+    fig.add_vline(x=limite, line_dash="dash", line_color=COR_CRITICO, annotation_text=f"{rotulo_limite} = {limite:.3f}".replace(".", ","),
+                  annotation_position="top", annotation_font={"size": 11, "color": COR_CRITICO})
+    fig.update_xaxes(title_text="MAE (p.p.)")
+    fig.update_yaxes(categoryorder="array", categoryarray=list(t["modelo"]), automargin=True)
+    fig.add_annotation(text=f"laranja = {escolhido} (escolhido); azul = dentro do limite; cinza = acima", xref="paper", yref="paper", x=1, y=0, showarrow=False,
+                       xanchor="right", yanchor="bottom", font={"size": 11, "color": COR_CURVA})
+    fig.update_layout(title=titulo, height=max(420, 30 * len(t) + 170), width=900, margin={"t": 100})
+    return fig
+
+
+def estimativa_por_corte(ic: pd.DataFrame, titulo: str, ano: int | None = None) -> go.Figure:
+    """Estimativa com IC 95% por corte de apuração contra o resultado final, uma faceta por unidade (Brasil e regiões)."""
+    t = ic if ano is None or "ano" not in ic else ic[ic["ano"] == ano]
+    fig = make_subplots(rows=2, cols=3, subplot_titles=UNIDADES_APURACAO, vertical_spacing=0.18, horizontal_spacing=0.07)
+    for k, un in enumerate(UNIDADES_APURACAO):
+        r, c = divmod(k, 3)
+        d = t[t["regiao"] == un].sort_values("pct_efetivo")
+        if d.empty:
+            continue
+        mostra = k == 0
+        fig.add_trace(go.Scatter(x=d["pct_efetivo"], y=d["estimativa_pct"], mode="markers", name="Estimativa (IC 95%)",
+                                 legendgroup="e", showlegend=mostra, marker={"color": AZUL_FINAL, "size": 8},
+                                 error_y={"type": "data", "symmetric": False, "array": d["q975_pct"] - d["estimativa_pct"],
+                                          "arrayminus": d["estimativa_pct"] - d["q025_pct"], "color": AZUL_FINAL}),
+                      row=r + 1, col=c + 1)
+        fig.add_hline(y=float(d["real_pct"].iloc[0]), line_dash="dash", line_color=LARANJA_REAL, line_width=2,
+                      row=r + 1, col=c + 1)
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="lines", name="Resultado final",
+                             line={"color": LARANJA_REAL, "dash": "dash", "width": 2}))
+    fig.update_xaxes(title_text="% da apuração", row=2)
+    fig.update_yaxes(title_text="% Lula", col=1)
+    fig.update_layout(title=titulo, height=640, width=1000, margin={"t": 90},
+                      legend={"orientation": "h", "y": -0.16, "x": 0.5, "xanchor": "center"})
+    return fig
+
+
+def curva_apuracao(curva: pd.DataFrame, estimativas: pd.DataFrame | None, real: float, titulo: str) -> go.Figure:
+    """Share bruto contado (`pct_recebido`, `share_lula`) contra o % apurado, estimativas do modelo e resultado final."""
+    passo = max(1, len(curva) // 1500)
+    c = curva.iloc[::passo]
+    fig = go.Figure(go.Scatter(x=c["pct_recebido"], y=c["share_lula"], mode="lines", name="Apuração bruta",
+                               line={"color": COR_REFERENCIA, "width": 2}))
+    if estimativas is not None and len(estimativas):
+        e = estimativas.sort_values("pct_efetivo")
+        erro = ({"type": "data", "symmetric": False, "array": e["q975_pct"] - e["estimativa_pct"],
+                 "arrayminus": e["estimativa_pct"] - e["q025_pct"], "color": AZUL_FINAL}
+                if {"q025_pct", "q975_pct"} <= set(e.columns) else None)
+        fig.add_trace(go.Scatter(x=e["pct_efetivo"], y=e["estimativa_pct"], mode="markers", name="Modelo (IC 95%)",
+                                 marker={"color": AZUL_FINAL, "size": 9}, error_y=erro))
+    fig.add_hline(y=real, line_dash="dash", line_color=LARANJA_REAL, line_width=2,
+                  annotation_text=f"Resultado final = {real:.2f}%".replace(".", ","), annotation_position="top right",
+                  annotation_font={"color": LARANJA_REAL})
+    fig.update_xaxes(title_text="% das seções apuradas", range=[0, 100])
+    fig.update_yaxes(title_text="% Lula nos votos válidos")
+    fig.update_layout(title=titulo, height=520, width=900, legend={"orientation": "h", "y": -0.2})
+    return fig
+
+
+def _sem_buracos(geom: Any) -> Any:
+    # O dissolve deixa frestas entre municípios; sem tirá-las o mapa mostra falhas brancas dentro da UF.
+    from shapely.geometry import MultiPolygon, Polygon
+    partes = [Polygon(pl.exterior) for pl in getattr(geom, "geoms", [geom]) if isinstance(pl, Polygon)]
+    return MultiPolygon(partes)
+
+
+@functools.cache
+def _geometria_uf(tolerancia: float = 0.03) -> tuple[dict[str, Any], tuple[tuple[str, float, float], ...]]:
+    """GeoJSON por UF (dissolve dos municípios) e um ponto de rótulo por UF; o dissolve é caro, por isso o cache."""
+    import geopandas as gpd
+    pasta = Path(__file__).resolve().parent.parent / "data" / "processed" / "municipios_geo.parquet"
+    g = gpd.read_parquet(pasta)
+    g["uf"] = g["id_municipio"].astype(str).str[:2].astype(int).map(CODIGO_UF)
+    g["geometry"] = g.geometry.simplify(tolerancia / 3, preserve_topology=True).make_valid()  # geometrias inválidas quebram o dissolve
+    uf = g.dissolve(by="uf").reset_index()
+    uf["geometry"] = [_orientada(_sem_buracos(geom.simplify(tolerancia, preserve_topology=True)))
+                      for geom in uf.geometry]
+    feats = [{"type": "Feature", "id": s, "properties": {}, "geometry": _arredonda(geom.__geo_interface__, 3)}
+             for s, geom in zip(uf["uf"], uf.geometry, strict=True)]
+    pts = uf.geometry.representative_point()
+    rotulos = tuple((s, float(p.x), float(p.y)) for s, p in zip(uf["uf"], pts, strict=True))
+    return {"type": "FeatureCollection", "features": feats}, rotulos
+
+
+def mapa_uf(valores: pd.Series, titulo: str, rotulo: str = "", divergente: bool = False, lim: float | None = None,
+            formato: str = ".1f", rotular: bool = True) -> go.Figure:
+    """Coroplético por UF (índice = sigla). `divergente=True` centra a escala em 0 (erros com sinal)."""
+    gj, pontos_rotulo = _geometria_uf(tolerancia=0.03)
+    v = valores.astype(float)
+    kw: dict[str, Any] = {}
+    if divergente:
+        m = lim if lim is not None else float(np.nanmax(np.abs(v)))
+        kw = {"zmid": 0, "zmin": -m, "zmax": m, "colorscale": ESCALA_DIVERGENTE}
+    else:
+        kw = {"colorscale": [[0, "#e8f0fb"], [1, "#184f95"]]}
+    fig = go.Figure(go.Choropleth(geojson=gj, locations=list(v.index), z=v.values, marker_line_color="#ffffff",
+                                  marker_line_width=0.8, colorbar={"title": rotulo, "thickness": 14, "len": 0.75, "x": 0.96},
+                                  hovertemplate="%{location}: %{z:" + formato + "}<extra></extra>", **kw))
+    if rotular:
+        pts = [(s, x, y) for s, x, y in pontos_rotulo if s in v.index]
+        fig.add_trace(go.Scattergeo(lon=[p[1] for p in pts], lat=[p[2] for p in pts], mode="text",
+                                    text=[p[0] for p in pts], textfont={"size": 10, "color": "#0b0b0b"},
+                                    showlegend=False, hoverinfo="skip"))
+    fig.update_geos(fitbounds="locations", visible=False, bgcolor="#ffffff", projection_type="mercator")
+    fig.update_layout(title=titulo, height=520, width=520, margin={"t": 60, "l": 0, "r": 0, "b": 0})
+    return fig
+
+
+def serie_regional(tab: pd.DataFrame, titulo: str) -> go.Figure:
+    """Proporção do PT por região ao longo das eleições (colunas `regiao`, `ano`, `prop_pt`), com a linha de 50%."""
+    fig = go.Figure()
+    for reg, cor in CORES_REGIAO.items():
+        d = tab[tab["regiao"] == reg].sort_values("ano")
+        if d.empty:
+            continue
+        fig.add_trace(go.Scatter(x=d["ano"], y=d["prop_pt"], mode="lines+markers", name=reg,
+                                 line={"color": cor, "width": 2.5}, marker={"size": 9}))
+    fig.add_hline(y=0.5, line_dash="dash", line_color=COR_REFERENCIA)
+    anos = sorted(tab["ano"].unique())
+    fig.update_xaxes(title_text="Ano da eleição", tickmode="array", tickvals=anos, ticktext=[str(a) for a in anos])
+    fig.update_yaxes(title_text="Proporção do PT (2º turno)", tickformat=".0%")
+    fig.update_layout(title=titulo, height=480, width=860)
+    return fig
+
+
+# --- AED e apuração ---
+def psi_por_nivel(tab: pd.DataFrame, titulo: str, rotulo_x: str = "Razão de chances ψ contra a referência") -> go.Figure:
+    """Pontos de ψ com IC 95% por nível (colunas `psi`, `psi_inf95`, `psi_sup95`), em escala log e do menor ao maior ψ.
+
+    A referência (ψ = 1, sem IC) aparece como ponto cinza; os IC ignoram a superdispersão.
+    """
+    t = tab.sort_values("psi")
+    ref = t["psi_inf95"].isna()
+    fig = go.Figure()
+    com_ic = t[~ref]
+    fig.add_trace(go.Scatter(
+        x=com_ic["psi"], y=com_ic.index, mode="markers+text", name="ψ (IC 95%)", text=[f"{v:.2f}".replace(".", ",") for v in com_ic["psi"]],
+        textposition="middle right", textfont={"size": 9, "color": CINZA_TEXTO}, marker={"color": COR_PONTO, "size": 8},
+        error_x={"type": "data", "symmetric": False, "array": com_ic["psi_sup95"] - com_ic["psi"],
+                 "arrayminus": com_ic["psi"] - com_ic["psi_inf95"], "color": COR_PONTO, "thickness": 1.2}))
+    fig.add_trace(go.Scatter(x=t.loc[ref, "psi"], y=t.index[ref], mode="markers", name="Referência (ψ = 1)",
+                             marker={"color": COR_REFERENCIA, "size": 9, "symbol": "diamond"}))
+    fig.add_vline(x=1, line_dash="dash", line_color=COR_REFERENCIA)
+    marcas = [v for v in (0.3, 0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4, 6) if t["psi"].min() * 0.8 <= v <= t["psi"].max() * 1.25]
+    fig.update_xaxes(title_text=rotulo_x, type="log", tickmode="array", tickvals=marcas, ticktext=[str(v).replace(".", ",") for v in marcas])
+    fig.update_yaxes(categoryorder="array", categoryarray=list(t.index), automargin=True, dtick=1)
+    fig.update_layout(title=titulo, height=max(420, 22 * len(t) + 190), width=800, legend={"orientation": "h", "y": -0.2})
+    return fig
+
+
+def representatividade_por_corte(rep: pd.DataFrame, titulo: str) -> go.Figure:
+    """Lacuna absoluta (p.p.) entre o share apurado, ou o π̂ do modelo, e o share real do restante, por corte, ano e grupo.
+
+    Espera as colunas de `apuracao.representatividade` mais `ano` e `corte`; uma faceta por ano.
+    """
+    anos = sorted(rep["ano"].unique())
+    fig = make_subplots(rows=1, cols=len(anos), subplot_titles=[str(a) for a in anos], shared_yaxes=True, horizontal_spacing=0.05)
+    estilos = [("apurado", "abs_apurado_pp", COR_REFERENCIA, "Share apurado"), ("modelo", "abs_modelo_pp", COR_PONTO, "π̂ do modelo")]
+    for j, ano in enumerate(anos, start=1):
+        for grupo, traco in (("maiores", "solid"), ("demais", "dot")):
+            d = rep[(rep["ano"] == ano) & (rep["grupo"] == grupo)].sort_values("corte")
+            for _, col, cor, nome in estilos:
+                rotulo = f"{nome}, {'20 maiores' if grupo == 'maiores' else 'demais'}"
+                fig.add_trace(go.Scatter(x=d["corte"], y=d[col], mode="lines+markers", name=rotulo, legendgroup=rotulo,
+                                         showlegend=j == 1, line={"color": cor, "dash": traco, "width": 2.5}, marker={"size": 7}),
+                              row=1, col=j)
+    cortes = sorted(rep["corte"].unique())
+    fig.update_xaxes(title_text="Corte de apuração (%)", tickmode="array", tickvals=cortes, ticktext=[str(c) for c in cortes])
+    fig.update_yaxes(title_text="Lacuna absoluta (p.p.)", col=1)
+    fig.update_layout(title=titulo, height=480, width=1000, margin={"t": 90},
+                      legend={"orientation": "h", "y": -0.25, "x": 0.5, "xanchor": "center"})
     return fig

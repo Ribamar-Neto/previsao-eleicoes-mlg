@@ -1,4 +1,4 @@
-"""`simular_f` e `resumo_f` reproduzem o código que estava no notebook 05 (mesma semente, mesmos sorteios)."""
+"""`simular_f` e `resumo_f` reproduzem o código que estava na Parte 16 do `02-MLG` (mesma semente, mesmos sorteios)."""
 
 import numpy as np
 import pandas as pd

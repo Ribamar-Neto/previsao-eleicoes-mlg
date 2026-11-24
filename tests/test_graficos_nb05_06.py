@@ -1,4 +1,4 @@
-"""Fumaça dos gráficos dos notebooks 05 e 06: número de traços esperado."""
+"""Fumaça dos gráficos dos antigos notebooks 05 e 06 (hoje `02-MLG` e `03-apuracao-parcial`): número de traços esperado."""
 
 import numpy as np
 import pandas as pd

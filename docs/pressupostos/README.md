@@ -9,7 +9,7 @@
 | [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, regra de fusão de níveis (seção 8.1; Nordeste+Norte) e seleção de variáveis (`bb_selecao`) |
 | [04-diagnostico.md](04-diagnostico.md) | Resíduos, influência, envelope e autocorrelação espacial; pressupostos dos modelos escolhidos (`bb_selecao` e `bb_slx`: ligação, linearidade, variância, colinearidade, influência) |
 | [05-validacao-cruzada.md](05-validacao-cruzada.md) | Validação cruzada (5 dobras e LOSO sem vazamento), regra de 1 EP, seleção aninhada do `bb_selecao`, limite L e sensibilidade regional |
-| [06-backtest.md](06-backtest.md) | Ajuste em 2018 e previsão de 2026 a partir de 2022 |
+| [06-backtest.md](06-backtest.md) | Removido (Parte 12, 2026-11-23): razão da remoção |
 | [07-dispersao-regional.md](07-dispersao-regional.md) | Dispersão do beta-binomial por região e porte (`bb_disp`), com Wald robusto |
 | [08-dependencia-espacial.md](08-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito) e corte de 2022 |
 | [09-modelo-final.md](09-modelo-final.md) | Regra de informação (covariáveis pré-turno, n̂), estimativas e cobertura do `bb_slx` |
@@ -29,10 +29,10 @@ Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 | `01-AED` | 1 a 4 | [02-aed.md](02-aed.md) |
 | `02-MLG` | 5 a 9 | [03-modelos-candidatos.md](03-modelos-candidatos.md) |
 | `02-MLG` | 10 | [04-diagnostico.md](04-diagnostico.md) |
-| `03-validacao` | 11 | [05-validacao-cruzada.md](05-validacao-cruzada.md) |
-| `04-backtest` | 12 | [06-backtest.md](06-backtest.md) |
-| `05-modelo-final` | 13 | [07-dispersao-regional.md](07-dispersao-regional.md) |
-| `05-modelo-final` | 14 e 15 | [08-dependencia-espacial.md](08-dependencia-espacial.md) |
-| `05-modelo-final` | 16 | [09-modelo-final.md](09-modelo-final.md) |
-| `05-modelo-final` | 17 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) |
-| `06-apuracao-parcial` | 18 | [11-apuracao-parcial.md](11-apuracao-parcial.md) |
+| `02-MLG` | 11 | [05-validacao-cruzada.md](05-validacao-cruzada.md) |
+| `02-MLG` | 12 (removida) | [06-backtest.md](06-backtest.md) |
+| `02-MLG` | 13 | [07-dispersao-regional.md](07-dispersao-regional.md) |
+| `02-MLG` | 14 e 15 | [08-dependencia-espacial.md](08-dependencia-espacial.md) |
+| `02-MLG` | 16 | [09-modelo-final.md](09-modelo-final.md) |
+| `02-MLG` | 17 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) |
+| `03-apuracao-parcial` | 18 | [11-apuracao-parcial.md](11-apuracao-parcial.md) |

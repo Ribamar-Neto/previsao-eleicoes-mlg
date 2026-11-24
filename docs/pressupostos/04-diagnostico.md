@@ -1,8 +1,8 @@
-# Diagnóstico dos modelos binomiais (Parte 10 do notebook 02)
+# Diagnóstico dos modelos binomiais (Parte 10 do `02-MLG`)
 
-Parte 10 do notebook 02: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo 6, dos modelos escolhidos, na seção 8. Ordem de execução: o Passo 6 lê `results/tables/final_decisao.json`, escrito pelo notebook 05, então os notebooks rodam 02, 03, 05 e 02 de novo; sem o json o Passo 6 só analisa o `bb_selecao` e usa o corte de Conley de 200 km, sem aviso. Tabelas em `results/tables/diag_*.csv`, figuras em `results/figures/diag_*.html`, funções gráficas em `notebooks/graficos_diagnostico.py`.
+Parte 10 do `02-MLG`: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo 6, dos modelos escolhidos, na seção 8. Ordem de execução: o Passo 6 lê `results/tables/final_decisao.json`, escrito pela Parte 15 do mesmo notebook; o Passo 6 roda depois da Parte 15 (Run-All único, valores em memória); sem o json o Passo 6 só analisa o `bb_selecao` e usa o corte de Conley de 200 km, sem aviso. Tabelas em `results/tables/diag_*.csv`, figuras em `results/figures/diag_*.png`, funções gráficas em `notebooks/graficos_diagnostico.py`.
 
-**Objetivo.** Verificar os pressupostos de `bin_logit`, `quasi_reglag`, `bb_logit`, `bb_reglag`, `bb_spline` e `glmm_uf` antes da validação cruzada (notebook 03). Este documento não escolhe modelo.
+**Objetivo.** Verificar os pressupostos de `bin_logit`, `quasi_reglag`, `bb_logit`, `bb_reglag`, `bb_spline` e `glmm_uf` antes da validação cruzada (Parte 11). Este documento não escolhe modelo.
 
 **Pressupostos testados.**
 1. Distribuição da resposta (binomial ou beta-binomial com θ constante).
@@ -71,7 +71,7 @@ Parte 10 do notebook 02: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Pa
 
 ## 6. I de Moran dos resíduos
 
-- **Função:** `esda.Moran(r, w, permutations=999)`. Pesos: rainha, padronizados por linha, ilhas ligadas ao vizinho mais próximo (mesma receita do notebook 01; 0 ilhas restantes, 5,79 vizinhos em média). Mapa de `bb_reglag` só em HTML, geometria simplificada a 0,05°.
+- **Função:** `esda.Moran(r, w, permutations=999)`. Pesos: rainha, padronizados por linha, ilhas ligadas ao vizinho mais próximo (mesma receita da `01-AED`; 0 ilhas restantes, 5,79 vizinhos em média). Mapa de `bb_reglag` em PNG, geometria simplificada a 0,05°.
 - **Pressuposto:** resíduos independentes. Se o preditor absorve a estrutura espacial, I ≈ 0.
 - **Resultado** (`diag_moran.csv`; p_sim = 0,001 em todos, o mínimo com 999 permutações):
 
@@ -85,7 +85,7 @@ Parte 10 do notebook 02: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Pa
 | glmm_uf | 0,288 | 36,4 |
 | bin_logit, resíduo de Pearson | 0,343 | 43,1 |
 
-- **Conclusão.** Há forte autocorrelação espacial residual em todos. A EDA tinha I = 0,90 na proporção observada e 0,54 no *swing*; os preditores explicam a maior parte, mas não tudo. A informação efetiva é menor que N: **os erros-padrão e intervalos de todos os modelos continuam pequenos demais**, mesmo no beta-binomial, e valores-p de coeficientes não devem ser lidos literalmente. A estimativa pontual de π não fica necessariamente enviesada. A UF aleatória é o que mais reduz I (0,29), pouco. A checagem honesta de desempenho é a validação deixando uma UF de fora (notebook 03); ela deixa vizinhos de fronteira no treino, então ainda é levemente otimista.
+- **Conclusão.** Há forte autocorrelação espacial residual em todos. A EDA tinha I = 0,90 na proporção observada e 0,54 no *swing*; os preditores explicam a maior parte, mas não tudo. A informação efetiva é menor que N: **os erros-padrão e intervalos de todos os modelos continuam pequenos demais**, mesmo no beta-binomial, e valores-p de coeficientes não devem ser lidos literalmente. A estimativa pontual de π não fica necessariamente enviesada. A UF aleatória é o que mais reduz I (0,29), pouco. A checagem honesta de desempenho é a validação deixando uma UF de fora (Parte 11); ela deixa vizinhos de fronteira no treino, então ainda é levemente otimista.
 
 ## 7. O que se pode concluir
 
@@ -98,7 +98,7 @@ Parte 10 do notebook 02: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Pa
 | glmm_uf | falha | ok | não avaliado | falha (menor I) |
 
 **Decisões registradas.**
-- Nenhum modelo é escolhido aqui: os diagnósticos medem pressupostos, e a escolha é por validação cruzada (notebook 03).
+- Nenhum modelo é escolhido aqui: os diagnósticos medem pressupostos, e a escolha é por validação cruzada (Parte 11).
 - O beta-binomial é o único com resíduos de escala correta e coeficientes estáveis; o que falta nele é dispersão por região e dependência espacial.
 - Remédios candidatos, não implementados: θ dependente da região; termo espacial; erros-padrão robustos com agrupamento por UF.
 - Limitação: o envelope de `bb_reglag` usa B = 49 por custo; os resíduos são aleatorizados (uma realização, `rng=0`), então as contagens por faixa variam na segunda casa decimal entre sementes.
@@ -107,7 +107,7 @@ Parte 10 do notebook 02: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Pa
 
 ## 8. Pressupostos dos modelos escolhidos (Passo 6)
 
-`bb_selecao` (menor BIC pela regra de 1 EP; 19 parâmetros) e `bb_slx` (modelo final, θᵢ por município; 36 parâmetros) passam pela bateria completa. Tabelas `results/tables/diag_final_*.csv`; figuras `results/figures/diag_final_*.html`.
+`bb_selecao` (menor BIC pela regra de 1 EP; 19 parâmetros) e `bb_slx` (modelo final, θᵢ por município; 36 parâmetros) passam pela bateria completa. Tabelas `results/tables/diag_final_*.csv`; figuras `results/figures/diag_final_*.png`.
 
 **Referências do método:** ligação (Pregibon, 1980; Hinkley, 1985); GVIF (Fox e Monette, 1992); número de condição (Belsley, Kuh e Welsch, 1980).
 

@@ -1,4 +1,4 @@
-"""Caracterização: os helpers de src/validacao.py reproduzem o código que estava nos notebooks 03 e 05."""
+"""Caracterização: os helpers de src/validacao.py reproduzem o código que estava nos antigos notebooks 03 e 05 (hoje Partes 11 e 13 a 17 do `02-MLG`)."""
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_context
 from pathlib import Path
@@ -34,7 +34,7 @@ def sintetico() -> V.Dados:
 
 
 def referencia(y, n, nh, uf, reg, K):
-    """Cópia literal de `erros`, `tabela` e `calib` do notebook 03 (antes da extração)."""
+    """Cópia literal de `erros`, `tabela` e `calib` da Parte 11 do `02-MLG` (antes da extração)."""
     UFS_ = sorted(set(uf))
     obs_uf = pd.Series(y).groupby(uf).sum() / pd.Series(n).groupby(uf).sum()
     obs_reg = pd.Series(y).groupby(reg).sum() / pd.Series(n).groupby(reg).sum()
@@ -73,7 +73,7 @@ def referencia(y, n, nh, uf, reg, K):
 
 
 def referencia_rodar(tam: int, CV: Path, RECALCULAR: bool):
-    """Cópia literal de `_cv` e `rodar` do notebook 03, com o prever trocado pelo falso."""
+    """Cópia literal de `_cv` e `rodar` da Parte 11 do `02-MLG`, com o prever trocado pelo falso."""
     def _cv(nome, esquema, folds):
         arq = CV / f"{esquema}_{nome}.parquet"
         if arq.exists() and not RECALCULAR:

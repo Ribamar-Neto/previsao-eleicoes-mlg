@@ -1,4 +1,4 @@
-"""Carga comum dos notebooks 05 e 06: municípios, geometria e pesos de vizinhança."""
+"""Carga comum dos notebooks `02-MLG` e `03-apuracao-parcial`: municípios, geometria e pesos de vizinhança."""
 
 from __future__ import annotations
 

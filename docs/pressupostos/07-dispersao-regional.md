@@ -1,8 +1,8 @@
-# 07 - Dispersão regional do beta-binomial (Parte 13 do notebook 05)
+# 07 - Dispersão regional do beta-binomial (Parte 13 do `02-MLG`)
 
-Notebook `notebooks/05-modelo-final.ipynb`. Tabelas em `results/tables/final_dispersao.csv`, `final_dp_regiao.csv`, `final_cv.csv` e `final_decisao.json`; figura em `results/figures/final_dp_regiao.html`. O filtro espacial (Parte 14) fica em [08](08-dependencia-espacial.md).
+Notebook `notebooks/02-MLG.ipynb`. Tabelas em `results/tables/final_dispersao.csv`, `final_dp_regiao.csv`, `final_cv.csv` e `final_decisao.json`; figura em `results/figures/final_dp_regiao.png`. O filtro espacial (Parte 14) fica em [08](08-dependencia-espacial.md).
 
-**Objetivo.** Testar se deixar a dispersão do beta-binomial variar com região (e com o porte do município) melhora o diagnóstico sem piorar a previsão fora da amostra. O ponto de partida é `bb_selecao` (11 contínuas e a defasagem, Nordeste e Norte fundidos na média; escolhido no notebook 03 pela regra do 1-EP, [05](05-validacao-cruzada.md)). Os termos de média não mudam; só a dispersão muda.
+**Objetivo.** Testar se deixar a dispersão do beta-binomial variar com região (e com o porte do município) melhora o diagnóstico sem piorar a previsão fora da amostra. O ponto de partida é `bb_selecao` (11 contínuas e a defasagem, Nordeste e Norte fundidos na média; escolhido na Parte 11 pela regra do 1-EP, [05](05-validacao-cruzada.md)). Os termos de média não mudam; só a dispersão muda.
 
 **Motivação.** Com θ constante, o desvio padrão (DP) do resíduo quantílico por região ia de 0,80 (Sudeste) a 1,43 (Norte): a dispersão não é constante. Ver [diagnóstico, seção 3](04-diagnostico.md) e [pendências](12-pendencias.md).
 
@@ -30,7 +30,7 @@ Fixada em 2026-11-09, antes de ver os resultados da extensão. A dispersão esco
 
 Falhando qualquer uma, a dispersão volta a constante. Razão do limite 3: o ganho de diagnóstico não pode custar previsão fora da amostra, que é o objetivo do projeto.
 
-**Registro separado.** As extensões ficam em `EXTENSOES`, fora de `CANDIDATOS`. Razão: o notebook 03 monta sua lista de candidatos a partir de `CANDIDATOS`; incluí-las ali mudaria as tabelas dos notebooks 02 a 04.
+**Registro separado.** As extensões ficam em `EXTENSOES`, fora de `CANDIDATOS`. Razão: a Parte 11 monta sua lista de candidatos a partir de `CANDIDATOS`; incluí-las ali mudaria as tabelas das Partes 5 a 11.
 
 ## 3. Resultado do ajuste
 
@@ -56,9 +56,9 @@ DP do resíduo quantílico por região:
 
 ## 4. Validação cruzada da extensão
 
-Candidato `bb_disp` = `bb_selecao` com a dispersão `regiao_logn`. Roda em 5-fold (semente 0) e LOSO (uma UF fora por vez), sem alterar as tabelas do notebook 03.
+Candidato `bb_disp` = `bb_selecao` com a dispersão `regiao_logn`. Roda em 5-fold (semente 0) e LOSO (uma UF fora por vez), sem alterar as tabelas da Parte 11.
 
-**Limite L.** MAE por UF aninhado de `bb_selecao` (1,1168 p.p., seleção refeita em cada dobra; [05](05-validacao-cruzada.md), seção 8) + erro-padrão do melhor modelo LOSO do notebook 03 (`bin_probit`, 0,1347) = **1,2515 p.p.** (1,1695 com o 1,0348 sem aninhar; 1,1308 no LOSO que vazava o 2º turno da UF retida). É o EP da regra do 1-EP usada para escolher `bb_selecao`, para que a tolerância seja a mesma da escolha original. O MAE por UF e o MAE regional (`mae_uf_pp`, `mae_reg_pp`) ponderam as previsões por n̂, como nos notebooks 03 e 05; `mae_pond_pp` e `erro_nacional_pp` ponderam pelo n real.
+**Limite L.** MAE por UF aninhado de `bb_selecao` (1,1168 p.p., seleção refeita em cada dobra; [05](05-validacao-cruzada.md), seção 8) + erro-padrão do melhor modelo LOSO da Parte 11 (`bin_probit`, 0,1347) = **1,2515 p.p.** (1,1695 com o 1,0348 sem aninhar; 1,1308 no LOSO que vazava o 2º turno da UF retida). É o EP da regra do 1-EP usada para escolher `bb_selecao`, para que a tolerância seja a mesma da escolha original. O MAE por UF e o MAE regional (`mae_uf_pp`, `mae_reg_pp`) ponderam as previsões por n̂, como nos notebooks 03 e 05; `mae_pond_pp` e `erro_nacional_pp` ponderam pelo n real.
 
 | esquema | modelo | MAE por UF (p.p.) | EP | MAE ponderado (p.p.) | erro nacional (p.p.) |
 |---|---|---|---|---|---|

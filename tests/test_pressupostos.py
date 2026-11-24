@@ -89,3 +89,22 @@ def test_vif_bruto_detecta_colinearidade() -> None:
     v = P.vif(X)
     assert list(v.index) == ["a", "b", "c"] and v.name == "VIF"
     assert v["a"] > 100 and v["b"] > 100 and v["c"] < 1.5
+
+
+def test_alavanca_generalizada_traco_e_limites() -> None:
+    res, _, _ = _bb()
+    h = P.alavanca_generalizada(res)
+    assert abs(h.sum() - 2) < 1e-6
+    assert ((h > 0) & (h < 1)).all()
+
+
+def test_alavanca_generalizada_theta_grande_iguala_glm_binomial() -> None:
+    from types import SimpleNamespace
+
+    res, _, _ = _bb()
+    m = res.model
+    glm = sm.GLM(np.column_stack([m.endog, m.n - m.endog]), m.exog,
+                 family=sm.families.Binomial()).fit()
+    falso = SimpleNamespace(model=m, params=np.append(glm.params, 40.0))
+    np.testing.assert_allclose(P.alavanca_generalizada(falso),
+                               glm.get_influence().hat_matrix_diag, atol=1e-6)

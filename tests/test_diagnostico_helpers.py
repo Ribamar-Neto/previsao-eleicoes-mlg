@@ -1,4 +1,4 @@
-"""Auxiliares movidos do notebook 02: o resultado tem de ser o do código original do notebook."""
+"""Auxiliares movidos da Parte 10 do `02-MLG`: o resultado tem de ser o do código original do notebook."""
 import numpy as np
 import pandas as pd
 import pytest
@@ -52,7 +52,7 @@ def test_montar_diagnostico_reusa_ajuste_dado(df):
 
 
 def _env_original(nome, B, seed, df):
-    """Cópia do `env_modelo` do notebook 02 antes da mudança."""
+    """Cópia do `env_modelo` da Parte 10 do `02-MLG` antes da mudança."""
     y, n = df[MAPA["y"]].to_numpy(float), df[MAPA["n"]].to_numpy(float)
     c = E.CANDIDATOS[nome]; col_y = MAPA["y"]; estado = {"y": y}
 

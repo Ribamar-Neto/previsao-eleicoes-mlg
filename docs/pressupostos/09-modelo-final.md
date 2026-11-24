@@ -1,6 +1,6 @@
-# 09 - Modelo final: regra de informação, estimativas regionais e cobertura (Parte 16 do notebook 05)
+# 09 - Modelo final: regra de informação, estimativas regionais e cobertura (Parte 16 do `02-MLG`)
 
-Notebook `notebooks/05-modelo-final.ipynb`. Tabelas em `results/tables/final_estimativas_regionais.csv`, `final_estimativas_uf.csv`, `final_cobertura.csv` e `final_comparacao_regional.csv`; figura `results/figures/final_regional.html`. Decisões anteriores: dispersão em [07](07-dispersao-regional.md), filtro espacial, SLX e Conley em [08](08-dependencia-espacial.md), extensões rejeitadas em [10](10-extensoes-rejeitadas.md).
+Notebook `notebooks/02-MLG.ipynb`. Tabelas em `results/tables/final_estimativas_regionais.csv`, `final_estimativas_uf.csv`, `final_cobertura.csv` e `final_comparacao_regional.csv`; figura `results/figures/final_regional.png`. Decisões anteriores: dispersão em [07](07-dispersao-regional.md), filtro espacial, SLX e Conley em [08](08-dependencia-espacial.md), extensões rejeitadas em [10](10-extensoes-rejeitadas.md).
 
 **Modelo final = `bb_slx`**: beta-binomial com os termos de média de `bb_selecao` (Nordeste e Norte fundidos), dispersão por região e log n (`bb_disp`, [07](07-dispersao-regional.md)) mais SLX, isto é, W·x das 12 variáveis dos vizinhos ([08](08-dependencia-espacial.md)). Tem **36 parâmetros** (30 de β e 6 de γ). MAE por UF: 0,846 p.p. no 5-fold e 1,078 no LOSO (limite de aceitação 1,2515; o valor fica acima do de `bb_selecao`, 1,035, dentro da tolerância). Os EPs são os de Conley a 200 km.
 

@@ -365,7 +365,7 @@ def aplicar_regra(tab: pd.DataFrame, minimo: int = MINIMO_VITORIAS) -> pd.DataFr
 
 
 # --------------------------------------------------------------------------
-# Estimativas do modelo final por UF e região (notebook 05, Parte 16)
+# Estimativas do modelo final por UF e região (`02-MLG`, Parte 16)
 # --------------------------------------------------------------------------
 
 def simular_f(partes: Mapping[str, Mapping[str, Any]], chave: str, sigma: float, *, nhat: np.ndarray,

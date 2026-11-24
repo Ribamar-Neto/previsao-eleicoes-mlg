@@ -41,7 +41,7 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   em todas as covariâncias ([07](07-dispersao-regional.md), seção 5).
 - **[resolvida] Corte de Conley (200 km) vinha do correlograma de uma só eleição.** O de 2022
   dá 200 km também; mantido ([08](08-dependencia-espacial.md), seção 5).
-- **Regras adicionadas depois dos primeiros resultados do notebook 05** (Wald robusto, SLX e
+- **Regras adicionadas depois dos primeiros resultados da Parte 13** (Wald robusto, SLX e
   corte de 2022, em 2026-11-09): foram fixadas antes de cada resultado, mas não antes do
   notebook inteiro; o leitor deve pesar isso.
 - **Fusão de Nordeste e Norte na média e rodada de seleção de variáveis** (BIC, AIC,
@@ -85,7 +85,7 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 
 - **[resolvida] LOSO vazava o 2º turno da UF retida** (comparecimento e n reais de 2026).
   Agora o modelo usa só covariáveis anteriores ao turno e o LOSO pesa a UF retida por n̂
-  ([09](09-modelo-final.md), seção 1); as métricas dos notebooks 03 e 05 são ponderadas
+  ([09](09-modelo-final.md), seção 1); as métricas das Partes 11 e 13 a 17 são ponderadas
   por n̂. O limite de aceitação passou de 1,1308 para 1,1695 e, com a seleção aninhada, para 1,2515.
 - **σ_UF (0,0564) também é ajustado nas mesmas 27 UFs**; mesma limitação da cobertura
   otimista acima. Correção: validação aninhada.
@@ -102,7 +102,7 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   Correção: ajustar σ_UF e o corte para 2022 ([11](11-apuracao-parcial.md)).
 
 - **Krigagem: o corte do correlograma (CORTE) vem dos resíduos dentro da amostra com todos
-  os dados** (notebook 05, c. 20) e é reusado como alcance da krigagem (c. 33). Efeito:
+  os dados** (Parte 15, c. 20) e é reusado como alcance da krigagem (c. 33). Efeito:
   vazamento leve que favorece aceitar a krigagem; ela foi rejeitada, então a decisão não
   muda ([10](10-extensoes-rejeitadas.md), seção 3). Correção: estimar o corte dentro de
   cada dobra.
@@ -140,8 +140,8 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   web com DOI/ISBN/URL); detalhes residuais na legenda do arquivo.
 - **[resolvida] Saídas que variavam entre execuções.** `l1_logit` (solver `liblinear` sem
   semente, coeficientes ±1e-5) ganhou `random_state=0`. O `z_sim` de `diag_moran.csv` (999
-  permutações do esda sem semente) ganhou semente fixa. As figuras HTML trocavam o id
-  aleatório do div do Plotly a cada execução; agora o id é o nome do arquivo. Regra: duas
+  permutações do esda sem semente) ganhou semente fixa. As figuras (antes HTML, hoje PNG) não
+  guardam mais id aleatório. Regra: duas
   execuções seguidas dos notebooks não mudam nenhum arquivo de `results/`.
 - **[resolvida] Votos apurados contados duas vezes nos intervalos.** Nos municípios fora do
   modelo, o termo fixo somava y_c, que já estava no apurado. Só afetava 2026 (Boa Esperança do

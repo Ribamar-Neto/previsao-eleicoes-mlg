@@ -9,6 +9,7 @@ dependencies = [
     "geobr>=2.1.1",
     "geopandas>=1.2.0",
     "jupyter>=1.1.1",
+    "kaleido>=1.5.2",
     "libpysal>=4.15.1",
     "numpy>=2.5.4",
     "pandas>=3.1.1",

@@ -1,16 +1,16 @@
 # CLAUDE.md
 
 Projeto acadêmico: MLGs binomiais da votação por município no 2º turno de 2026 (Lula ×
-Flávio), agregados em 5 regiões. Notebooks: `01-AED` (Partes 1 a 4), `02-MLG` (5 a 10),
-`03-validacao` (11), `04-backtest` (12), `05-modelo-final` (13 a 17),
-`06-apuracao-parcial` (18). Língua do projeto: português (notebooks e docs).
+Flávio), agregados em 5 regiões. Notebooks: `01-AED` (Partes 1 a 4), `02-MLG` (5 a 11 e 13 a 17,
+num só Run-All) e `03-apuracao-parcial` (18). A Parte 12 (backtest) foi removida.
+Língua do projeto: português (notebooks e docs).
 
 ## Convenções
 
 - O caminho do repositório tem espaço: coloque entre aspas.
 - Rode com `uv run --no-sync`.
-- Todo modelo é ajustado por `Candidato.ajustar` em `src/especificacoes.py`; os notebooks 03
-  e 04 reusam as mesmas definições (`CANDIDATOS`).
+- Todo modelo é ajustado por `Candidato.ajustar` em `src/especificacoes.py`; a Parte 11 do `02-MLG`
+  e `src/backtest.py` reusam as mesmas definições (`CANDIDATOS`).
 - Quase-binomial: φ de Pearson próprio, porque `scale='X2'` do statsmodels erra com endog de
   2 colunas.
 - A padronização das covariáveis é ajustada só na dobra de treino (sem vazamento na CV).

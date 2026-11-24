@@ -1,7 +1,7 @@
 # Modelos candidatos (notebook `02-MLG.ipynb`, Partes 5 a 9)
 
-As definições vivem em `src/especificacoes.py` e são reutilizadas pelos notebooks 03 (validação cruzada) e 04 (backtest).
-Este notebook compara e **não escolhe** o modelo final: a escolha é por validação cruzada (notebook 03).
+As definições vivem em `src/especificacoes.py` e são reutilizadas pela Parte 11 (validação cruzada) do `02-MLG` e por `src/backtest.py`.
+A Parte 5 em diante compara e **não escolhe** o modelo final: a escolha é por validação cruzada (Parte 11).
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ Este notebook compara e **não escolhe** o modelo final: a escolha é por valida
 | `results/tables/comparacao_modelos.csv` | Uma linha por candidato |
 | `results/tables/coef_*.csv` | Coeficientes e EPs por modelo; `coef_binomial_quasi_bb.csv` lado a lado |
 | `results/tables/selecao_variaveis.json` | Variáveis do backward por BIC e do L1 |
-| `results/figures/mlg_*.html` | QQ-plot e floresta (binomial contra beta-binomial) |
+| `results/figures/mlg_*.png` | QQ-plot e floresta (binomial contra beta-binomial) |
 
 ## Regras de negócio e de modelagem
 
@@ -35,7 +35,7 @@ Este notebook compara e **não escolhe** o modelo final: a escolha é por valida
 
 **O que a identidade mostra.** Com logit e dummies de região, as equações de escore igualam Σ nᵢπ̂ᵢ e Σ yᵢ em cada região. A diferença máxima é da ordem de 1e-7 votos.
 
-**Conclusão.** O ajuste dentro da amostra reproduz os totais regionais por construção. Estimativas regionais honestas vêm só de previsão fora da amostra (notebook 03).
+**Conclusão.** O ajuste dentro da amostra reproduz os totais regionais por construção. Estimativas regionais honestas vêm só de previsão fora da amostra (Parte 11).
 
 ## Parte 6 - Binomial e ligações
 
@@ -46,12 +46,12 @@ Este notebook compara e **não escolhe** o modelo final: a escolha é por valida
 **Pressupostos.** Independência condicional e variância binomial. Verossimilhanças com a mesma resposta e o mesmo k são comparáveis por AIC/BIC.
 
 **Decisões e razões.**
-- Nenhum VIF passou de 10 (máximo 7,6, `pct_16_24`), então nenhuma covariável foi removida.
+- Nenhum VIF passou de 10 (máximo 7,5, `pct_16_24`), então nenhuma covariável foi removida.
 - `bloco_prefeito_2024`: 'centro' (49) e 'sem_prefeito' (16) foram fundidos em 'outro' (65) para a dummy ter estimativa estável. Referências: 'direita' e 'Sudeste'.
 - `pib_per_capita_2023` entra em log; o log é aplicado dentro de `montar_X`.
 
 **Resultado e conclusão.**
-- O logit tem o menor AIC/BIC entre as cinco ligações (AIC ≈ 171,98 mil; probit ≈ 175,4 mil; as demais ≥ 213 mil).
+- O logit tem o menor AIC/BIC entre as cinco ligações (AIC ≈ 172,6 mil; probit ≈ 176,3 mil; as demais ≥ 213 mil).
 - Deviance/gl ≈ 21,8 e φ de Pearson ≈ 21,8: forte sobredispersão. Os EPs do binomial puro são pequenos demais e seus testes não valem.
 - A ligação logit fica; probit, cloglog, loglog e cauchit saem dos candidatos.
 
@@ -71,10 +71,10 @@ Este notebook compara e **não escolhe** o modelo final: a escolha é por valida
 **Decisão técnica.** O ajuste padrão por BFGS de `BetaBinomial` para cedo (gtol frouxo): a log-verossimilhança ficou cerca de 390 abaixo do ótimo. O `Candidato.ajustar` faz um polimento com L-BFGS e mantém o melhor ajuste. Os resultados abaixo são do ajuste polido.
 
 **Resultado.**
-- Quase-binomial: φ ≈ 21,8, EPs ≈ 4,65 vezes maiores; coeficientes idênticos aos do binomial.
+- Quase-binomial: φ ≈ 21,8, EPs ≈ 4,67 vezes maiores; coeficientes idênticos aos do binomial.
 - Beta-binomial: θ ≈ 624, ρ ≈ 0,0016. A correlação é pequena, mas com nᵢ de milhares 1 + (n−1)ρ é da ordem de 20.
-- Os resíduos quantílicos têm desvio 3,4 no binomial e ≈ 1,00 no beta-binomial.
-- Coeficientes do beta-binomial diferem dos do binomial, porque a variância extra tira o domínio dos municípios grandes. Exemplo: `bloco_outro` cai de 0,079 para 0,022, e `pct_vab_agro` de −0,019 para −0,007.
+- Os resíduos quantílicos têm desvio 3,4 no binomial e ≈ 1,03 no beta-binomial.
+- Coeficientes do beta-binomial diferem dos do binomial, porque a variância extra tira o domínio dos municípios grandes. Exemplo: `bloco_outro` cai de 0,084 para 0,022, e `pct_vab_agro` de −0,020 para −0,009.
 
 **Conclusão.** O beta-binomial é o único tratamento que dá verossimilhança utilizável e descreve a dispersão. O quase-binomial mantém os pesos por votos e serve para ponto e EP corrigido. A comparação gera `coef_binomial_quasi_bb.csv` e as figuras `mlg_*`.
 
@@ -100,10 +100,10 @@ Este notebook compara e **não escolhe** o modelo final: a escolha é por valida
 - O L1 usa duas linhas por município (pesos p e 1−p, cada município com peso 1), X padronizado, e não pondera por votos.
 
 **Resultado e conclusões.**
-- **Offset rejeitado.** O coeficiente livre do lag é ≈ 0,90 (z ≈ −28 contra 1). LRT do offset contra livre: 2ΔlogL ≈ 755 (gl = 1). O AIC piora ≈ 750. Os municípios regridem à média em relação a 2022.
-- Spline do lag (LRT ≈ 31, 3 gl) e região × lag (LRT ≈ 58, 4 gl) melhoram a verossimilhança de modo significativo, mas pouco o erro ponderado. Interações positivas e significativas no Norte e no Centro-Oeste.
-- UF fixa melhora muito: ΔAIC ≈ −770 contra a região no beta-binomial. No quase-binomial o erro ponderado cai de 1,06 para 0,92 p.p. (F ≈ 44, 22 gl).
-- GLMM: σ_UF ≈ 0,05 no logit; efeitos de UF de −0,10 (GO) a +0,09 (AC). Dá o mesmo erro ponderado que o efeito fixo (0,92 p.p.) e aceita UF nova (efeito 0).
+- **Offset rejeitado.** O coeficiente livre do lag é ≈ 0,90 (z ≈ −29 contra 1). LRT do offset contra livre: 2ΔlogL ≈ 775 (gl = 1). O AIC piora ≈ 773. Os municípios regridem à média em relação a 2022.
+- Spline do lag (LRT ≈ 34, 3 gl) e região × lag (LRT ≈ 59, 4 gl) melhoram a verossimilhança de modo significativo, mas pouco o erro ponderado. Interações positivas e significativas no Norte e no Centro-Oeste.
+- UF fixa melhora muito: ΔAIC ≈ −788 contra a região no beta-binomial. No quase-binomial o erro ponderado cai de 1,06 para 0,91 p.p. (F ≈ 46, 22 gl).
+- GLMM: σ_UF ≈ 0,05 no logit; efeitos de UF de −0,09 (GO) a +0,10 (AC). Dá o mesmo erro ponderado que o efeito fixo (0,91 p.p.) e aceita UF nova (efeito 0).
 - `BinomialBayesMixedGLM` do statsmodels exige resposta 0/1 e recusa dados agrupados. Por isso o GLMM é o PQL próprio de `especificacoes.py`.
 - **Fusão de regiões na média.** Nordeste e Norte são fundidos (teste de igualdade, p = 0,921); o bloco do prefeito não é fundido (p = 8e-4). A dispersão continua com as 5 regiões: a fusão vale só para a média.
 - **Seleção de variáveis.** Backward, forward e both por BIC dão o mesmo conjunto: 11 contínuas além da defasagem (saem `nota_dep`, `delta_comp`, `log_pop`, `pct_60_mais`, `pib_pc` e `pct_urbana`); BIC 72.844,87 e MAE por UF no LOSO 1,035. Modelo `bb_selecao` (nome anterior: backward).
@@ -117,10 +117,10 @@ Roteiro de Paula (2013, seções 2.10.2, 4.2 a 4.4 e 4.6.5). A regra foi fixada 
 - **Binária.** `prefeito_suplementar_2024` entra só se o LRT de adicioná-la, depois das fusões, der p ≤ 0,05.
 - **Onde testar.** Todos os LRT são no beta-binomial completo (18 contínuas), porque o ψ bruto e o LRT univariado confundem o fator com as demais covariáveis. Os EP de Wald ignoram a correlação espacial; a significância sob essa correlação é checada com EP de Conley ([08](08-dependencia-espacial.md)).
 - **Resultado nos dados completos.**
-  - Região: retirar o fator inteiro custa Δ = 233,4 (4 gl). Nordeste = Norte não é rejeitada (p = 0,921) e é o maior p do passo, então se fundem. Depois, Nordeste+Norte contra o Sudeste dá p = 0,018 e todos os outros candidatos têm p < 1e-8: a regra para. A log-verossimilhança não muda (-36.327,71 para -36.327,72).
+  - Região: retirar o fator inteiro, já com Nordeste e Norte fundidos, custa Δ = 233,4 (3 gl). A fusão sai do passo seguinte: Nordeste = Norte não é rejeitada (p = 0,921) e é o maior p do passo, então se fundem. Depois, Nordeste+Norte contra o Sudeste dá p = 0,018 e todos os outros candidatos têm p < 1e-8: a regra para. A log-verossimilhança não muda (-36.327,71 para -36.327,72).
   - Bloco: esquerda fica separada (OR 0,984; esquerda = direita rejeitada, p < 1e-4). Centro = sem_prefeito não é rejeitada (p = 0,466), então se fundem; o grupo contra a direita dá p = 0,046 e a regra para. Isso reproduz o agrupamento anterior (esquerda; centro+sem_prefeito). Com 49 e 16 municípios o teste tem pouco poder para separar centro de sem_prefeito.
   - Suplementar: OR 0,992, p = 0,649: fica fora do modelo.
-  - Consequência: `CANDIDATOS` e os notebooks 04 a 06 não mudam.
+  - Consequência: `CANDIDATOS` e as Partes 11 e 18 não mudam.
 - **Seleção aninhada no LOSO.** As fusões são refeitas em cada dobra, para o erro de validação não depender de uma fusão escolhida com a região de teste; contagens por dobra em [05](05-validacao-cruzada.md).
 
 ## Parte 9 - Comparação
@@ -141,7 +141,7 @@ Roteiro de Paula (2013, seções 2.10.2, 4.2 a 4.4 e 4.6.5). A regra foi fixada 
 
 **Atenção.** O erro ponderado dentro da amostra favorece o binomial e o quase-binomial, porque eles pesam por votos. O beta-binomial dá menos peso a municípios grandes e tem erro ponderado maior. Isso não ordena os modelos fora da amostra.
 
-**Candidatos para o notebook 03 (chave em `CANDIDATOS`).**
+**Candidatos para a Parte 11 (chave em `CANDIDATOS`).**
 - `bb_reglag`: menor AIC sem UF; verossimilhança completa.
 - `bb_selecao`: menor BIC sem UF; parcimônia (variáveis em `selecao_variaveis.json`).
 - `bb_uf`: menor AIC/BIC global; só serve em k-fold, porque no leave-one-UF-out a UF de teste não existe no treino.

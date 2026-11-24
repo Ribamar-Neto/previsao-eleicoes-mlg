@@ -1,9 +1,8 @@
 # Pressupostos da AED (`notebooks/01-AED.ipynb`)
 
-Figuras: `results/figures/aed_*.html`. Tabela: `results/tables/vif_covariaveis.csv`.
-`matplotlib` e `kaleido` não estão no ambiente: os mapas são coropléticos Plotly (HTML), com geometria
-simplificada (`simplify(0.12)`, coordenadas com 2 casas) para o caderno ficar com cerca de 14 MB. O mapa serve para ver o
-padrão regional, não o contorno exato.
+Figuras: `results/figures/aed_*.png`. Tabela: `results/tables/vif_covariaveis.csv`.
+Os mapas são coropléticos Plotly exportados em PNG (kaleido), com geometria simplificada
+(`simplify(0.12)`) para o arquivo ficar leve. O mapa serve para ver o padrão regional, não o contorno exato.
 
 ## Parte 1: Dados
 - **O que**: `pd.read_parquet` de `municipios.parquet` (5.570 × 161 após `log_pib_pc_2023`); resultados nacionais, regionais e por UF vindos de `resultado_regional.csv` e `resultado_uf.csv` (soma das contagens, nunca média de proporções).
@@ -29,7 +28,9 @@ padrão regional, não o contorno exato.
 - **Escopo**: 24 numéricas (com `log(pib_per_capita_2023)`) mais duas indicadoras de `bloco_prefeito_2024` (esquerda e centro; base: direita e sem prefeito) e o fator `regiao`.
   Zero valores ausentes.
 - **Linearidade** (`logit_empirico_por_decil` e `media_ponderada_por_decil`, 10 classes por posto, empates desfeitos por ordem): o logit empírico do decil é `log(ΣY / Σ(n−Y))`, que é o que o preditor linear do GLM tenta reproduzir.
-  O eixo y do swing usa a média ponderada por `n`. Pressuposto: o preditor linear no logit é correto; curvatura em decis indica transformação ou termo extra.
+  O eixo y do swing usa a média ponderada por `n`.
+  Quando o maior salto entre médias de faixa consecutivas passa da metade da amplitude (só `pct_indigenas_2022`), o eixo x
+  do painel vira a ordem da faixa, com a média no rótulo: em valor, as outras faixas se amontoariam num ponto. Pressuposto: o preditor linear no logit é correto; curvatura em decis indica transformação ou termo extra.
   Resultado: `logit_pt_2t_2022`, `cobertura_pbf_2026`, `pct_evangelicos_2022` e `pct_urbana_2022` têm relação quase monotônica e aproximadamente linear no logit
   (por exemplo o logit de 2026 vai de −0,96 a 1,58 ao longo dos decis de `logit_pt_2t_2022`); `pct_dep_esq_2026` tem forma de U, `log_populacao_2022` e `pct_vab_agro_2021` têm forma de U invertido.
   No swing, que é a relação parcial dada a defasagem, os efeitos são pequenos (|média| ≲ 0,2) e em geral monotônicos fracos: os cinco com maior amplitude são `log_populacao_2022` (de −0,18 para +0,08), `pct_evangelicos_2022`, `pct_urbana_2022`, `pct_vab_agro_2021` e `pct_indigenas_2022`.

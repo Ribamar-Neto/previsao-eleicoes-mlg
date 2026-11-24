@@ -1,4 +1,4 @@
-"""Helpers do notebook 05 em src/espacial.py, caracterizados contra cópias do código antigo do notebook."""
+"""Helpers das Partes 13 a 17 do `02-MLG` em src/espacial.py, caracterizados contra cópias do código antigo do notebook (então `05-modelo-final`)."""
 from types import SimpleNamespace
 
 import numpy as np

@@ -1,6 +1,6 @@
 """Validação cruzada: previsões fora da amostra, erros por UF/região e calibração.
 
-Uma só cópia para os notebooks 03 e 05. Regras de negócio:
+Uma só cópia para as Partes 11 e 13 a 17 do `02-MLG`. Regras de negócio:
 - o peso das previsões agregadas é n̂ (`dados.nh`), nunca o n real da UF retida;
 - o "real" de cada UF e região é o total recalculado sobre as linhas modeladas;
 - as previsões em `results/cv/<esquema>_<modelo>.parquet` são o cache da validação.
@@ -93,7 +93,7 @@ def erros(pi: np.ndarray, d: Dados, folds: Folds) -> dict[str, float]:
 
 
 def tabela(PI: Previsoes, d: Dados, folds: Folds, k: Mapping[str, int]) -> pd.DataFrame:
-    """Uma linha por modelo; `k` (nº de parâmetros) vem de `comparacao_modelos.csv` do notebook 02."""
+    """Uma linha por modelo; `k` (nº de parâmetros) vem de `comparacao_modelos.csv` do `02-MLG`."""
     return pd.DataFrame([{"modelo": nome, "familia": E.CANDIDATOS[nome].familia, "k": k[nome], **erros(pi, d, folds)}
                          for nome, pi in PI.items()])
 
