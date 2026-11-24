@@ -10,6 +10,15 @@ Regras:
 - Interações (estágio 2 de Hosmer-Lemeshow) entram como colunas-produto das
   variáveis padronizadas, registradas no mapa com prefixo `w_` (o Padronizador as
   padroniza sem mudar `especificacoes.py`); o nome do papel é `w_<a>__x__<b>`.
+- Hosmer-Lemeshow segue Paula (Modelos de regressão, pp. 358-371). Passo 4 (p. 360):
+  antes de abrir as interações, o modelo do estágio 1 é ajustado e cada coeficiente
+  testado por Wald (erro padrão do modelo, mesma verossimilhança do LRT); remove-se uma
+  variável por vez, a de maior p acima de alfa_wald (0,05), reajustando, até todas
+  ficarem significativas. O estágio 2 parte dos sobreviventes. `alfa_wald=None` desliga
+  o passo e reproduz a seleção sem Wald.
+- A tabela `niveis` guarda o nível descritivo pi de toda candidata em cada iteração
+  (entrada para quem está fora, saída para quem está dentro), como nas Tabelas 4.8 e 4.9
+  do livro; `escolhida` marca o termo que se moveu.
 """
 from __future__ import annotations
 
@@ -19,7 +28,7 @@ import os
 import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from itertools import combinations
 from multiprocessing import get_context
 from pathlib import Path
@@ -163,7 +172,8 @@ def _interacoes(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
 
 def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: float,
                k_atual: int, n_jobs: int, p_entrada: float, p_saida: float, n: int, etapa: int,
-               linhas: list[dict[str, Any]]) -> tuple[str, ...]:
+               linhas: list[dict[str, Any]],
+               niveis: list[dict[str, Any]]) -> tuple[str, ...]:
     """Itera entrada/saída de HL sobre `candidatas`; devolve o conjunto final."""
     it = 0
     while it < 4 * max(len(candidatas), 1) + 4:
@@ -176,7 +186,11 @@ def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: f
             gl = [r[1] - k_atual for r in res]
             pis = [float(stats.chi2.sf(d, g)) for d, g in zip(delt, gl, strict=True)]
             i = int(np.argmin(pis))
-            if pis[i] < p_entrada:
+            ok = pis[i] < p_entrada
+            niveis += [{"etapa": etapa, "iteracao": it, "fase": "entrada", "variavel": v,
+                        "delta_deviance": d, "gl": g, "pi": p, "escolhida": ok and j == i}
+                       for j, (v, d, g, p) in enumerate(zip(fora, delt, gl, pis, strict=True))]
+            if ok:
                 dentro = _ordenar(dentro + (fora[i],), candidatas)
                 ll_atual, k_atual = res[i]
                 linhas.append({"etapa": etapa, "iteracao": it, "acao": "entra",
@@ -189,7 +203,11 @@ def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: f
             gl = [k_atual - r[1] for r in res]
             pis = [float(stats.chi2.sf(d, g)) for d, g in zip(delt, gl, strict=True)]
             i = int(np.argmax(pis))
-            if pis[i] > p_saida:
+            ok = pis[i] > p_saida
+            niveis += [{"etapa": etapa, "iteracao": it, "fase": "saida", "variavel": v,
+                        "delta_deviance": d, "gl": g, "pi": p, "escolhida": ok and j == i}
+                       for j, (v, d, g, p) in enumerate(zip(dentro, delt, gl, pis, strict=True))]
+            if ok:
                 saiu = dentro[i]
                 dentro = tuple(x for x in dentro if x != saiu)
                 ll_atual, k_atual = res[i]
@@ -202,15 +220,81 @@ def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: f
     return dentro
 
 
+_COLS_NIVEIS = ["etapa", "iteracao", "fase", "variavel", "delta_deviance", "gl", "pi",
+                "escolhida"]
+
+
+@dataclass(frozen=True)
+class ResultadoHL:
+    variaveis: tuple[str, ...]
+    passos: pd.DataFrame   # trilha dos movimentos (entra/sai), com `rotulo`
+    niveis: pd.DataFrame   # pi de toda candidata em cada iteração (Paula, Tabelas 4.8/4.9)
+    wald: pd.DataFrame     # passo 4: rodada, variavel, coef, ep, z, p, acao
+
+
+class WaldSemErroPadrao(ValueError):
+    """Hessiana singular: termos colineares não têm erro-padrão, e o passo 4 não decide."""
+
+    def __init__(self, termos: list[str]) -> None:
+        super().__init__(f"Wald sem erro-padrão para {termos}: termos colineares")
+
+
+def _passo_wald(dentro: tuple[str, ...], alfa: float) -> tuple[tuple[str, ...], pd.DataFrame]:
+    """Passo 4 de Paula: Wald de cada candidata em `dentro`; remove a de maior p > alfa, repete."""
+    c = _CTX
+    linhas: list[dict[str, Any]] = []
+    rodada = 0
+    while dentro:
+        rodada += 1
+        termos = replace(c["termos"], vars=c["base"] + dentro)
+        aj = Candidato("sel", c["familia"], "logit", termos).ajustar(c["df"], c["mapa"])
+        params = pd.Series(np.asarray(aj.modelo.params, float), index=aj.nomes)
+        ep = pd.Series(np.asarray(aj.modelo.bse, float), index=aj.nomes)
+        z = params / ep
+        p = pd.Series(2 * stats.norm.sf(np.abs(z)), index=aj.nomes)
+        # Hessiana singular deixa p NaN; parar em silêncio manteria um termo não identificável
+        sem_p = [v for v in dentro if not np.isfinite(p[v])]
+        if sem_p:
+            raise WaldSemErroPadrao(sem_p)
+        pior = max(dentro, key=lambda v: p[v])
+        sai = p[pior] > alfa
+        linhas += [{"rodada": rodada, "variavel": v, "coef": float(params[v]),
+                    "ep": float(ep[v]), "z": float(z[v]), "p": float(p[v]),
+                    "acao": "removida" if sai and v == pior else "mantida"} for v in dentro]
+        if not sai:
+            break
+        dentro = tuple(v for v in dentro if v != pior)
+    tabela = pd.DataFrame(linhas, columns=["rodada", "variavel", "coef", "ep", "z", "p", "acao"])
+    return dentro, tabela
+
+
+def niveis_largos(niveis: pd.DataFrame, etapa: int) -> pd.DataFrame:
+    """Layout de Paula (Tabelas 4.8/4.9): linhas = iteração, colunas = termo, valores = pi.
+
+    Entrada e saída da mesma iteração ficam em linhas separadas (`fase` no índice);
+    a coluna de cada termo traz o pi da fase em que ele é avaliado.
+    """
+    nv = niveis[niveis["etapa"] == etapa]
+    col = "rotulo" if "rotulo" in nv.columns else "variavel"
+    larga = nv.pivot_table(index=["iteracao", "fase"], columns=col, values="pi",
+                           aggfunc="first")
+    larga = larga[list(dict.fromkeys(nv[col]))]
+    larga = larga.sort_index(level=["iteracao", "fase"], key=lambda ix: ix.map(
+        lambda x: {"entrada": 0, "saida": 1}.get(x, x)))
+    return larga.reset_index(level="fase").rename_axis("iteracao")
+
+
 def stepwise_hosmer_lemeshow(
-        df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
+        df: pd.DataFrame, mapa: dict[str, str], termos: Termos, *,
         candidatas: Sequence[str] = CANDIDATAS_PADRAO, fixas: Sequence[str] = ("lag",),
         p_entrada: float = 0.20, p_saida: float = 0.25, familia: str = "betabin",
-        interacoes: bool = False, n_jobs: int = 14) -> tuple[tuple[str, ...], pd.DataFrame]:
+        interacoes: bool = False, n_jobs: int = 14,
+        alfa_wald: float | None = 0.05) -> ResultadoHL:
     """Stepwise de Hosmer-Lemeshow com teste da razão de verossimilhanças.
 
     Delta = 2(l_com - l_sem), gl = parâmetros extras, pi = P(chi2_gl > Delta). Entra
     a de menor pi se pi < p_entrada; depois sai a de maior pi se pi > p_saida.
+    Passo 4 (`alfa_wald`): Wald nos sobreviventes do estágio 1, removendo uma por vez.
     Estágio 2 (`interacoes=True`): interações de pares entre os sobreviventes (e as
     fixas), mesma regra, com os efeitos principais mantidos (hierarquia). Nomes de
     interação saem como papéis `w_<a>__x__<b>`; a tabela traz o nome `a:b` em `rotulo`.
@@ -220,7 +304,12 @@ def stepwise_hosmer_lemeshow(
     _preparar(df, mapa, termos, candidatas, fixas, familia)
     ll0, k0 = _ajustar_vars(())
     linhas: list[dict[str, Any]] = []
-    dentro = _lrt_etapa(candidatas, (), ll0, k0, n_jobs, p_entrada, p_saida, n, 1, linhas)
+    niveis: list[dict[str, Any]] = []
+    dentro = _lrt_etapa(candidatas, (), ll0, k0, n_jobs, p_entrada, p_saida, n, 1, linhas, niveis)
+    wald = pd.DataFrame(columns=["rodada", "variavel", "coef", "ep", "z", "p", "acao"])
+    if alfa_wald is not None and dentro:
+        dentro, wald = _passo_wald(dentro, alfa_wald)
+        dentro = _ordenar(dentro, candidatas)
     rotulos: dict[str, str] = {}
     if interacoes:
         principais = tuple(fixas) + dentro
@@ -229,12 +318,14 @@ def stepwise_hosmer_lemeshow(
         _preparar(df2, mapa2, termos, cand2, fixas, familia)
         _CTX["base"] = _base(termos, candidatas, fixas) + dentro
         ll1, k1 = _ajustar_vars(())
-        dentro2 = _lrt_etapa(cand2, (), ll1, k1, n_jobs, p_entrada, p_saida, n, 2, linhas)
+        dentro2 = _lrt_etapa(cand2, (), ll1, k1, n_jobs, p_entrada, p_saida, n, 2, linhas, niveis)
         dentro = dentro + dentro2
     tabela = pd.DataFrame(linhas, columns=["etapa", "iteracao", "acao", "variavel",
                                            "delta_deviance", "gl", "pi"])
     tabela["rotulo"] = tabela["variavel"].map(lambda v: rotulos.get(v, v))
-    return dentro, tabela
+    tab_niveis = pd.DataFrame(niveis, columns=_COLS_NIVEIS)
+    tab_niveis["rotulo"] = tab_niveis["variavel"].map(lambda v: rotulos.get(v, v))
+    return ResultadoHL(dentro, tabela, tab_niveis, wald)
 
 
 # --------------------------------------------------------------------------
