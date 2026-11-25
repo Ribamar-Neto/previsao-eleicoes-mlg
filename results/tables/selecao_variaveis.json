@@ -21,7 +21,12 @@
       "Norte"
     ]
   ],
+  "bloco_grupos": [
+    [
+      "esquerda"
+    ]
+  ],
   "BIC_bb": 72624.4754620459,
   "AIC_bb": 72498.5976057204,
-  "mae_uf_loso_pp": 0.9939778861138525
+  "mae_uf_loso_pp": 1.005284855134226
 }

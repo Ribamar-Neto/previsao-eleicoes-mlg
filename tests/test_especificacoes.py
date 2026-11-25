@@ -337,3 +337,25 @@ def test_usa_suplementar_adiciona_coluna(df):
     X = E.montar_X(d, MAPA, pad, E.Termos(usa_suplementar=True))
     assert X["prefeito_suplementar"].iloc[:3].tolist() == [1.0, 0.0, 0.0]
     assert "prefeito_suplementar" not in E.montar_X(d, MAPA, pad, E.Termos()).columns
+
+
+def test_registrar_selecao_leva_o_bloco_fundido_e_as_extensoes_herdam(df: pd.DataFrame) -> None:
+    ant = E.CANDIDATOS.pop("bb_selecao", None)
+    try:
+        bloco = (("esquerda",),)
+        cand = E.registrar_selecao(["nota_dep"], (("Nordeste", "Norte"),), bloco_grupos=bloco)
+        assert cand.termos.bloco_grupos == bloco
+        pad = E.Padronizador(MAPA).fit(df)
+        X = E.montar_X(df, MAPA, pad, cand.termos)
+        assert "bloco_esquerda" in X.columns
+        assert not any(c.startswith("bloco_") and c != "bloco_esquerda" for c in X.columns)
+        assert "bloco_outro" not in X.columns
+        ext = E.registrar_extensao("bb_disp_bloco", disp="regiao")
+        assert ext.termos.bloco_grupos == bloco
+        # sem o parâmetro, vale o padrão histórico
+        assert E.registrar_selecao(["nota_dep"]).termos.bloco_grupos == E.BLOCOS_PADRAO
+    finally:
+        E.EXTENSOES.clear()
+        E.CANDIDATOS.pop("bb_selecao", None)
+        if ant is not None:
+            E.CANDIDATOS["bb_selecao"] = ant

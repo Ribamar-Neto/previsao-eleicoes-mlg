@@ -6,7 +6,7 @@ Notebook `notebooks/02-MLG.ipynb`. Tabelas em `results/tables/final_esf_k.csv`, 
 
 ## 1. Regra comum de aceitação, escrita antes do resultado
 
-Fixada em 2026-11-09, antes de ver os resultados das extensões. Toda extensão mantém os termos de média de `bb_selecao` e é aceita só se (1) o seu diagnóstico melhora **e** (2) o MAE por UF no LOSO é no máximo o limite L = MAE por UF aninhado de `bb_selecao` + EP do melhor modelo LOSO = 1,0669 + 0,1419 = **1,2088 p.p.** (1,1358 com o 0,9940 sem aninhar; mesmo limite do [doc 07](07-dispersao-regional.md), seção 4). Razão: o ganho de diagnóstico não pode custar previsão fora da amostra, que é o objetivo do projeto. As métricas são ponderadas por n̂.
+Fixada em 2026-11-09, antes de ver os resultados das extensões. Toda extensão mantém os termos de média de `bb_selecao` e é aceita só se (1) o seu diagnóstico melhora **e** (2) o MAE por UF no LOSO é no máximo o limite L = MAE por UF aninhado de `bb_selecao` + EP do melhor modelo LOSO = 1,0669 + 0,1419 = **1,2088 p.p.** (1,1472 com o 1,0053 sem aninhar; mesmo limite do [doc 07](07-dispersao-regional.md), seção 4). Razão: o ganho de diagnóstico não pode custar previsão fora da amostra, que é o objetivo do projeto. As métricas são ponderadas por n̂.
 
 ## 2. Filtro espacial de autovetores de Moran, ESF (Parte 14)
 
@@ -16,16 +16,16 @@ Fixada em 2026-11-09, antes de ver os resultados das extensões. Toda extensão 
 
 | k | log-verossimilhança | parâmetros | BIC | I de Moran dos resíduos |
 |---|---|---|---|---|
-| 0 | -35985,9 | 25 | 72187,4 | 0,352 |
-| 10 | -35908,2 | 35 | 72118,4 | 0,330 |
-| 25 | -35692,4 | 50 | 71816,1 | 0,279 |
-| 50 | -35501,3 | 75 | 71649,4 | 0,235 |
-| 100 | -35354,1 | 125 | 71786,3 | 0,192 |
+| 0 | -35987,5 | 24 | 72182,1 | 0,353 |
+| 10 | -35910,0 | 34 | 72113,3 | 0,330 |
+| 25 | -35693,5 | 49 | 71809,6 | 0,278 |
+| 50 | -35502,4 | 74 | 71643,0 | 0,235 |
+| 100 | -35354,8 | 124 | 71779,2 | 0,192 |
 
-- **BIC escolhe k = 50.** O I de Moran cai de 0,352 para 0,235 (p simulado 0,001 em todos os k): o filtro tira parte da dependência, mas não toda.
-- **Condição 1 cumprida** (I cai). **Condição 2 falha:** MAE por UF no LOSO = 1,575 p.p. (ponderado 5,68) contra o limite 1,2088. Na validação de 5 dobras o filtro melhora (0,566 contra 0,804).
-- **Combinação `bb_final`** (dispersão + ESF): LOSO 1,559, também acima do limite.
-- **Razão da divergência [deduced].** Numa UF deixada de fora, os coeficientes dos autovetores extrapolam um padrão espacial ajustado nas outras 26 UFs; nas 5 dobras os vizinhos continuam no treino, e o padrão local se transfere. O filtro captura estrutura que a validação por UF mostra não ser transferível.
+- **BIC escolhe k = 50.** O I de Moran cai de 0,353 para 0,235 (p simulado 0,001 em todos os k): o filtro tira parte da dependência, mas não toda.
+- **Condição 1 cumprida** (I cai). **Condição 2 falha:** MAE por UF no LOSO = 1,584 p.p. (ponderado 5,69) contra o limite 1,2088. Na validação de 5 dobras o filtro melhora (0,578 contra 0,822).
+- **Combinação `bb_final`** (dispersão + ESF): LOSO 1,568, também acima do limite.
+- **Razão da divergência [fact].** No LOSO o ESF falha quase só em SP (erro de -20 pp na UF, 89 % do erro ponderado), porque os autovetores ajustados nas outras 26 UFs extrapolam para a capital e a região metropolitana de SP; a fusão de blocos (que só vale para a linhagem `bb_selecao`) não mudou isso. Nas 5 dobras os vizinhos continuam no treino, e o padrão local se transfere. O filtro captura estrutura que a validação por UF mostra não ser transferível.
 - **Decisão: ESF rejeitado** (`final_decisao.json`, `aceitas.esf = false`). Com só o ESF fora, o modelo final seria `bb_disp`; ele foi superado pelo SLX (seção 3).
 
 ## 3. Covariáveis defasadas espacialmente, SLX (Parte 14)
@@ -39,16 +39,16 @@ O SLX acrescenta ao preditor as covariáveis médias dos vizinhos, sem termo aut
 
 | opção | BIC | I de Moran | parâmetros |
 |---|---|---|---|
-| nenhuma | 72187,4 | 0,3522 | 25 |
-| W·lag | 72192,4 | 0,3508 | 26 |
-| W·13 variáveis | **72013,8** | 0,3474 | 38 |
+| nenhuma | 72182,1 | 0,3526 | 24 |
+| W·lag | 72187,2 | 0,3513 | 25 |
+| W·13 variáveis | **72010,7** | 0,3480 | 37 |
 
-- **Resultado.** O BIC escolhe W·13 variáveis. LOSO: MAE por UF de `bb_slx` = 1,060 ≤ 1,2088, **aceito** (`aceitas.slx = true`, `modelo_final = "bb_slx"`). Esse valor fica **acima** do de `bb_selecao` (0,994) e de `bb_disp` (0,986): o SLX custa previsão, dentro da tolerância. 5 dobras: 0,830.
-- **Leitura honesta.** A regra não fixou queda mínima do I de Moran. A queda é de 0,005 (0,352 para 0,347): o SLX quase não muda a estrutura espacial dos resíduos, e a aceitação vem do critério formal (I cai e LOSO dentro do limite), não de um ganho material. O fechamento do item (decomposição do I e testes de krigagem e CAR nos resíduos, ambos rejeitados) está no [doc 10](10-extensoes-rejeitadas.md). O BIC melhora em 173,6, mas esse BIC supõe independência. A dependência residual segue tratada por Conley; ver [pendências](12-pendencias.md).
+- **Resultado.** O BIC escolhe W·13 variáveis. LOSO: MAE por UF de `bb_slx` = 1,073 ≤ 1,2088, **aceito** (`aceitas.slx = true`, `modelo_final = "bb_slx"`). Esse valor fica **acima** do de `bb_selecao` (1,005) e de `bb_disp` (0,996): o SLX custa previsão, dentro da tolerância. 5 dobras: 0,846.
+- **Leitura honesta.** A regra não fixou queda mínima do I de Moran. A queda é de 0,005 (0,353 para 0,348): o SLX quase não muda a estrutura espacial dos resíduos, e a aceitação vem do critério formal (I cai e LOSO dentro do limite), não de um ganho material. O fechamento do item (decomposição do I e testes de krigagem e CAR nos resíduos, ambos rejeitados) está no [doc 10](10-extensoes-rejeitadas.md). O BIC melhora em 171,4, mas esse BIC supõe independência. A dependência residual segue tratada por Conley; ver [pendências](12-pendencias.md).
 
 ## 4. EPs espaciais de Conley (Parte 15)
 
-Como o ESF não foi aceito, a dependência residual permanece e é tratada só na inferência. Os números desta seção são do modelo final `bb_slx` (38 parâmetros: 32 de β e 6 de γ da dispersão).
+Como o ESF não foi aceito, a dependência residual permanece e é tratada só na inferência. Os números desta seção são do modelo final `bb_slx` (37 parâmetros: 31 de β e 6 de γ da dispersão).
 
 - **Estimador.** Covariância HAC espacial de Conley (1999): núcleo de Bartlett sobre a distância de círculo máximo entre centroides, aplicada ao vetor completo de parâmetros. Os pontos estimados não mudam.
 - **Por que Conley é a correção principal e não o agrupamento.** Os dados não têm códigos de microrregião; agrupar por UF (27 aglomerados) é um limite conservador, não o desenho natural.
@@ -66,18 +66,18 @@ A primeira faixa abaixo de 0,05 é 200-300 km: **corte = 200 km.** Sensibilidade
 
 ### Resultado
 
-Razão entre o EP e o EP do modelo, sobre os 32 coeficientes de β:
+Razão entre o EP e o EP do modelo, sobre os 31 coeficientes de β:
 
 | EP | mediana | mínimo | máximo |
 |---|---|---|---|
-| Conley, 100 km | 1,34 | 0,96 | 2,27 |
-| **Conley, 200 km** | **1,57** | 0,92 (`delta_comp`) | 3,31 (`reg_Sul`) |
-| Conley, 400 km | 1,69 | 0,93 | 4,66 |
-| Aglomerado por UF | 1,81 | 0,89 | 5,88 |
+| Conley, 100 km | 1,35 | 0,96 | 2,28 |
+| **Conley, 200 km** | **1,57** | 0,93 (`delta_comp`) | 3,33 (`reg_Sul`) |
+| Conley, 400 km | 1,72 | 0,94 | 4,67 |
+| Aglomerado por UF | 1,85 | 1,00 | 5,91 |
 
-- **O EP do modelo é pequeno demais por um fator de cerca de 1,6** (variância cerca de 2,5 vezes maior sob Conley a 200 km). Nos 6 γ da dispersão a razão vai de 1,79 a 2,61.
-- **Significância a |z| > 1,96 perdida sob Conley a 200 km (5 dos 38; restam 11 não significativos):** `w_pct_vab_agro`, `w_pct_fund_inc`, `reg_Centro-Oeste`, `reg_Nordeste+Norte` e `disp_reg_Centro-Oeste`. Nenhuma foi ganha.
-- **Sensibilidade ao corte.** Com 100 km perdem-se 4 (as 5 acima, menos `disp_reg_Centro-Oeste`); com 400 km, 7 (as 5 acima mais `w_pct_dep_esq` e `bloco_esquerda`); por UF, 10. A ordem é monótona no corte, e a leitura qualitativa (efeitos fracos ou regionais frágeis, efeitos grandes firmes) não muda.
+- **O EP do modelo é pequeno demais por um fator de cerca de 1,6** (variância cerca de 2,5 vezes maior sob Conley a 200 km). Nos 6 γ da dispersão a razão vai de 1,86 a 2,72.
+- **Significância a |z| > 1,96 perdida sob Conley a 200 km (4 dos 37; restam 11 não significativos):** `w_pct_vab_agro`, `w_pct_fund_inc`, `reg_Centro-Oeste` e `disp_reg_Centro-Oeste`. Nenhuma foi ganha.
+- **Sensibilidade ao corte.** Com 100 km perdem-se 2 (`w_pct_vab_agro` e `reg_Centro-Oeste`); com 400 km, 5 (as 4 acima mais `w_pct_dep_esq`); por UF, 10. A ordem é monótona no corte, e a leitura qualitativa (efeitos fracos ou regionais frágeis, efeitos grandes firmes) não muda.
 - **Uso.** Os EPs de Conley a 200 km entram nas simulações da [Parte 16](09-modelo-final.md), onde a covariância de β alarga os intervalos.
 
 ## 5. Estabilidade do corte de Conley em 2022 (Parte 15)
@@ -85,11 +85,11 @@ Razão entre o EP e o EP do modelo, sobre os 32 coeficientes de β:
 **Regra acrescentada em 2026-11-09, depois dos primeiros resultados do notebook**, fixada antes do resultado. Ajusta-se a especificação final em 2022 (lag = 2018) e aplica-se a mesma regra do correlograma. Se 0,5·CORTE ≤ CORTE_2022 ≤ 2·CORTE, mantém-se o CORTE de 2026; senão usa-se o maior.
 
 - **Resultado.** A correlação de 2022 cai abaixo de 0,05 na faixa 200-300 km (0,016; a faixa anterior, 150-200 km, tem 0,075). CORTE_2022 = 200 km = CORTE_2026, dentro de [100, 400], então o corte de **200 km é mantido** (`corte_final` em `final_decisao.json`). Fecha o item de pendências sobre o corte.
-- **Sensibilidade do EP ao corte** (`final_ep_corte.csv`, 50 a 800 km). A razão mediana Conley/modelo sobe de 1,19 (50 km) para 1,57 (200 km) e satura perto de 1,7 a partir de 400 km; o máximo vai de 1,55 a 4,66 (400 km) e se mantém perto de 5 acima. A escolha de 200 km fica no meio da faixa de crescimento, não no extremo.
+- **Sensibilidade do EP ao corte** (`final_ep_corte.csv`, 50 a 800 km). A razão mediana Conley/modelo sobe de 1,21 (50 km) para 1,57 (200 km) e satura perto de 1,7 a partir de 400 km; o máximo vai de 1,56 a 4,67 (400 km) e passa de 5 acima. A escolha de 200 km fica no meio da faixa de crescimento, não no extremo.
 
 ## 6. Limites
 
-- O I de Moran dos resíduos permanece em 0,347 no modelo final (`bb_slx`): Conley corrige a inferência, não as estimativas pontuais. A decomposição do I e os testes de krigagem e CAR dos resíduos estão no [doc 10](10-extensoes-rejeitadas.md).
+- O I de Moran dos resíduos permanece em 0,348 no modelo final (`bb_slx`): Conley corrige a inferência, não as estimativas pontuais. A decomposição do I e os testes de krigagem e CAR dos resíduos estão no [doc 10](10-extensoes-rejeitadas.md).
 - O corte foi conferido contra 2022 (seção 5); a evidência vem de duas eleições, não de uma.
 - O p-valor do LRT do [doc 07](07-dispersao-regional.md) supõe municípios independentes, o que a correlação residual contradiz. A diferença de BIC, o ganho de DP e o teste de Wald robusto ([doc 07](07-dispersao-regional.md), seção 5) não dependem desse p-valor.
 

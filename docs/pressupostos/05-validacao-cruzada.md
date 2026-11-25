@@ -49,23 +49,23 @@ LOSO, melhores por erro médio da UF (p.p.), EP, `k`, MAE ponderado municipal no
 
 | Modelo | LOSO UF-MAE | EP | k | 5-fold MAE pond. |
 |---|---|---|---|---|
-| **bb_selecao** | **0,994** | 0,154 | **20** | 1,192 |
+| **bb_selecao** | **1,005** | 0,158 | **19** | 1,201 |
 | bin_logit (= quasi_logit) | 1,009 | 0,142 | 28 | 1,122 |
 | wls_elogit | 1,010 | 0,142 | 29 | 1,122 |
 | quasi_spline | 1,015 | 0,144 | 32 | 1,126 |
 | bin_probit | 1,016 | 0,139 | 28 | 1,131 |
 | ols_elogit | 1,046 | 0,159 | 29 | 1,207 |
 | betareg | 1,052 | 0,162 | 29 | 1,207 |
-| bb_logit | 1,060 | 0,160 | 29 | 1,208 |
+| bb_logit | 1,059 | 0,160 | 29 | 1,208 |
 | quasi_reglag | 1,065 | 0,141 | 33 | 1,117 |
 
-- **Escolhido: `bb_selecao`** (beta-binomial, logit; 12 covariáveis contínuas além da defasagem, selecionadas por BIC, com Nordeste e Norte fundidos na média; 20 parâmetros, ver [03](03-modelos-candidatos.md), Parte 8). Também é o de menor erro médio. **Vice: `bin_logit`** (segundo menor erro médio).
-- Limite de 1 EP, com o EP do melhor modelo da regra (o de menor erro, `bb_selecao`, 0,154): 0,994 + 0,154 = 1,148 p.p. (é a `faixa_empate_original` de `final_decisao.json`). **Treze modelos** ficam dentro dele. A diferença entre eles é menor que o ruído: a escolha segue a parcimônia e **não** indica superioridade preditiva.
+- **Escolhido: `bb_selecao`** (beta-binomial, logit; 12 covariáveis contínuas além da defasagem, selecionadas por BIC, com a fusão região/bloco decidida na seleção; 19 parâmetros, ver [03](03-modelos-candidatos.md), Parte 8). Também é o de menor erro médio. **Vice: `bin_logit`** (segundo menor erro médio).
+- Limite de 1 EP, com o EP do melhor modelo da regra (o de menor erro, `bb_selecao`, 0,158): 1,005 + 0,158 = 1,164 p.p. (é a `faixa_empate_original` de `final_decisao.json`). **Treze modelos** ficam dentro dele. A diferença entre eles é menor que o ruído: a escolha segue a parcimônia e **não** indica superioridade preditiva.
 - Ficam claramente fora: `l1_logit` (2,04 p.p.; encolhimento excessivo), `bb_offset` e `quasi_offset` (1,31-1,34; fixar o coeficiente da defasagem em 1 piora), `bin_cloglog` (1,29), `bb_reglag` (1,21).
-- **Limite de aceitação das extensões.** Nas Partes 11 e 13 a 17 do `02-MLG`, uma extensão do modelo escolhido só é aceita se o MAE por UF no LOSO não passa de L = MAE por UF **aninhado** de `bb_selecao` + EP do melhor modelo LOSO = 1,0669 + 0,1419 = **1,2088 p.p.** (1,1358 com o 0,994 sem aninhar), com o EP do melhor modelo LOSO excluído o aninhado (`bin_logit`). A tolerância é a do 1 EP da escolha original. Ver a seção 8.
-- **Ressalva sobre o alvo.** Nas métricas fora da regra, o binomial vence onde o alvo é a soma das UFs: erro médio do share regional 0,09 p.p. (`bin_logit`) contra 0,42 p.p. (`bb_selecao`); deviance LOSO 162,7 mil contra 167,7 mil. O beta-binomial dá menos peso às grandes cidades, que dominam o share regional. Quem priorizar o share regional deve preferir `bin_probit` ou `bin_logit`. A regra fixada manda `bb_selecao`.
+- **Limite de aceitação das extensões.** Nas Partes 11 e 13 a 17 do `02-MLG`, uma extensão do modelo escolhido só é aceita se o MAE por UF no LOSO não passa de L = MAE por UF **aninhado** de `bb_selecao` + EP do melhor modelo LOSO = 1,0669 + 0,1419 = **1,2088 p.p.** (1,1472 com o 1,005 sem aninhar), com o EP do melhor modelo LOSO excluído o aninhado (`bin_logit`). A tolerância é a do 1 EP da escolha original. Ver a seção 8.
+- **Ressalva sobre o alvo.** Nas métricas fora da regra, o binomial vence onde o alvo é a soma das UFs: erro médio do share regional 0,09 p.p. (`bin_logit`) contra 0,41 p.p. (`bb_selecao`); deviance LOSO 162,7 mil contra 169,3 mil. O beta-binomial dá menos peso às grandes cidades, que dominam o share regional. Quem priorizar o share regional deve preferir `bin_probit` ou `bin_logit`. A regra fixada manda `bb_selecao`.
 - **5-fold.** `glmm_uf` (0,246 de MAE por UF) e `quasi_uf` (0,261) lideram porque têm efeito de UF, que só ajuda em UFs já vistas (o `bb_uf` também, 0,504); em LOSO o `glmm_uf` fica em 1,051. Isso confirma que o efeito de UF não generaliza para UF inédita.
-- **Calibração** (`results/figures/cv_calibracao.png`): em 20 faixas de π̂, o maior desvio entre π̂ médio e share observado é 0,63 p.p. (`bb_selecao`) e 0,90 p.p. (`bin_probit`); `l1_logit`, usado como contraste, chega a 3,3 p.p.
+- **Calibração** (`results/figures/cv_calibracao.png`): em 20 faixas de π̂, o maior desvio entre π̂ médio e share observado é 1,00 p.p. (`bb_selecao`); `l1_logit`, usado como contraste, chega a 3,3 p.p.
 - Figuras: `cv_loso_mae_uf.png`.
 
 ## 6. Sensibilidade regional: por que o erro regional LOSO não escolhe modelo
@@ -87,22 +87,22 @@ Share de Lula (%), estimativa LOSO pontual; erro = estimativa − real (p.p.):
 
 | Região | UFs | w_u máx. | Real | Probit | Logit | `bb_selecao` |
 |---|---|---|---|---|---|---|
-| Centro-Oeste | 4 | 0,42 | 39,99 | 40,02 (+0,03) | 40,01 (+0,02) | 40,31 (+0,32) |
+| Centro-Oeste | 4 | 0,42 | 39,99 | 40,02 (+0,03) | 40,01 (+0,02) | 40,26 (+0,26) |
 | Nordeste | 9 | 0,25 | 69,37 | 69,47 (+0,10) | 69,47 (+0,10) | 69,57 (+0,20) |
 | Norte | 7 | 0,48 | 50,01 | 50,04 (+0,04) | 50,07 (+0,07) | 49,53 (−0,48) |
-| Sudeste | 4 | 0,51 | 47,24 | 47,46 (+0,22) | 47,47 (+0,23) | 47,87 (+0,63) |
-| Sul | 3 | 0,38 | 37,42 | 37,38 (−0,04) | 37,39 (−0,04) | 36,94 (−0,48) |
+| Sudeste | 4 | 0,51 | 47,24 | 47,46 (+0,22) | 47,47 (+0,23) | 47,88 (+0,64) |
+| Sul | 3 | 0,38 | 37,42 | 37,38 (−0,04) | 37,39 (−0,04) | 36,95 (−0,48) |
 | Brasil | 27 | 0,21 | 51,78 | 51,73 (−0,05) | 51,73 (−0,04) | 51,84 (+0,06) |
 
 | Métrica (p.p.) | Probit | Logit | `bb_selecao` |
 |---|---|---|---|
-| MAE por UF (LOSO) | 1,016 | 1,009 | 0,994 |
-| MAE regional (LOSO) | 0,086 | 0,091 | 0,421 |
+| MAE por UF (LOSO) | 1,016 | 1,009 | 1,005 |
+| MAE regional (LOSO) | 0,086 | 0,091 | 0,412 |
 
 - O cancelamento não é exato onde um estado domina a região (SP no Sudeste, w_u = 0,51): ali o erro do logit é +0,23 p.p., não zero.
-- A diferença entre os três modelos vai de 0,10 p.p. (Nordeste) a 0,55 p.p. (Norte) por região e é de 0,11 p.p. no Brasil. Os três erram menos de 0,64 p.p. em qualquer região.
+- A diferença entre os três modelos vai de 0,10 p.p. (Nordeste) a 0,54 p.p. (Norte) por região e é de 0,11 p.p. no Brasil. Os três erram no máximo 0,64 p.p. em qualquer região.
 - **A escolha do modelo importa pouco para a resposta regional**: muda o share em até 0,6 p.p., menos que a largura do IC95% regional (1,8 a 3,3 p.p. no modelo final). Importa só onde a região é próxima de 50%: o Norte vai de 49,53% (`bb_selecao`) a 50,07% (logit).
-- Em erro por UF, `bb_selecao` (0,994) é o melhor e também o de menos parâmetros entre os empatados (20 contra 28 do binomial); o custo está no erro regional (0,421 contra 0,09), pela razão acima.
+- Em erro por UF, `bb_selecao` (1,005) é o melhor e também o de menos parâmetros entre os empatados (19 contra 28 do binomial); o custo está no erro regional (0,412 contra 0,09), pela razão acima.
 
 ## 7. O que a Parte 11 permite concluir
 
@@ -112,12 +112,12 @@ Share de Lula (%), estimativa LOSO pontual; erro = estimativa − real (p.p.):
 
 ## 8. Seleção aninhada do `bb_selecao`
 
-A escolha das 12 contínuas e a fusão Nordeste + Norte usaram o 2º turno de 2026 de todas as UFs, então o 0,994 acima é otimista. **Regra (fixada antes de rodar).** Em cada uma das 27 dobras LOSO, só com as 26 UFs de treino: testa-se a fusão de regiões e a de blocos de prefeito por razão de verossimilhanças (funde se p > 0,05); o passo a passo por BIC (backward, forward e both) fica com o conjunto de menor BIC; ajusta-se e prevê-se a UF retida com n̂. O MAE por UF dessas previsões substitui o do `bb_selecao` na regra de 1 EP e em L (`results/cv/loso_bb_selecao_aninhada.parquet`, `results/tables/cv_loso_aninhado.csv`). Os outros modelos não selecionam variáveis e ficam como estão.
+A escolha das 12 contínuas e a fusão Nordeste + Norte usaram o 2º turno de 2026 de todas as UFs, então o 1,005 acima é otimista. **Regra (fixada antes de rodar).** Em cada uma das 27 dobras LOSO, só com as 26 UFs de treino: testa-se a fusão de regiões e a de blocos de prefeito por razão de verossimilhanças (funde se p > 0,05); o passo a passo por BIC (backward, forward e both) fica com o conjunto de menor BIC; ajusta-se e prevê-se a UF retida com n̂. O MAE por UF dessas previsões substitui o do `bb_selecao` na regra de 1 EP e em L (`results/cv/loso_bb_selecao_aninhada.parquet`, `results/tables/cv_loso_aninhado.csv`). Os outros modelos não selecionam variáveis e ficam como estão.
 
-- **Resultado.** MAE por UF aninhado 1,0669 p.p. (EP 0,163) contra 0,994 (EP 0,154): +0,073 p.p., cerca de metade de um EP. Limite de 1 EP: 1,009 + 0,142 = 1,151 (`cv_loso_aninhado.csv`); `bb_selecao` segue dentro dele (folga de 0,084 p.p.) e é o de menor k (20): **a escolha não muda**.
-- **Estabilidade por dobra.** 11 a 14 contínuas (mediana 12); 13 das 27 dobras repetem o conjunto do registro. O conjunto de menor BIC vem do backward em 26 dobras e do forward em 1. Nordeste + Norte fundidos em 18 dobras e, em 2, também com o Sudeste (referência); Norte + Sudeste em 4, fusões próprias em 2 e nenhuma em 1. Blocos: centro + sem prefeito fundidos (esquerda separada) em 25 dobras e esquerda + sem prefeito em 2. Maiores erros: AP -3,40, DF -2,59, GO +2,35.
+- **Resultado.** MAE por UF aninhado 1,0669 p.p. (EP 0,163) contra 1,005 (EP 0,158): +0,062 p.p., cerca de 0,4 EP. Limite de 1 EP: 1,009 + 0,142 = 1,151 (`cv_loso_aninhado.csv`); `bb_selecao` segue dentro dele (folga de 0,084 p.p.) e é o de menor k (19): **a escolha não muda**.
+- **Estabilidade por dobra.** As contagens por dobra (conjunto selecionado, fusões, maiores erros) eram de rodada anterior e não são reproduzidas por nenhuma saída atual; ficam fora até serem recalculadas ([12](12-pendencias.md)). Maior erro por UF do `bb_slx` hoje: DF -3,01 p.p.
 - **Fusão na referência.** A fusão de região na região de referência (Sudeste) agora é mantida dentro de cada dobra; antes era descartada (erro corrigido), e por isso os números acima mudaram.
-- **Ressalva.** As extensões (`bb_disp`, `bb_slx`) seguem com a seleção dos dados completos; contra um L aninhado o limite fica mais folgado do que numa comparação em pé de igualdade. Nenhuma decisão aceita está perto do limite (a mais próxima, `bb_slx`, 1,060 contra 1,2088).
+- **Ressalva.** As extensões (`bb_disp`, `bb_slx`) seguem com a seleção dos dados completos; contra um L aninhado o limite fica mais folgado do que numa comparação em pé de igualdade. Nenhuma decisão aceita está perto do limite (a mais próxima, `bb_slx`, 1,073 contra 1,2088).
 - **Ordem de execução.** O 02 grava o LOSO do `bb_selecao` (`loso_bb_selecao.parquet`) e o 03 o lê, sem reajustar; o 03 grava `cv_loso_aninhado.csv` e `sensibilidade_regional.csv` e o 05 os lê; o 05 grava `final_decisao.json` e o Passo 6 do 02 o lê. Por isso a ordem é 02, 03, 05 e de novo 02 ([01](01-visao-geral.md), seção Organização dos notebooks).
 
 ## Referências

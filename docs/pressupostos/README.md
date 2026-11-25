@@ -6,7 +6,7 @@
 |---|---|
 | [01-visao-geral.md](01-visao-geral.md) | Problema, decisões de projeto e razões, organização dos notebooks (funções em `src/`, cada valor e cada explicação uma vez, texto curto), explicar × prever, regra de seleção, resultados finais |
 | [02-aed.md](02-aed.md) | Análise exploratória dos dados, incluindo a leitura nível a nível das categóricas e binárias (seção 3.1) |
-| [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, regra de fusão de níveis (seção 8.1; Nordeste+Norte; o bloco do prefeito difere de `bloco_outro`) e seleção de variáveis (`bb_selecao`, 12 contínuas além do lag; Hosmer-Lemeshow com passo 4 de Wald) |
+| [03-modelos-candidatos.md](03-modelos-candidatos.md) | Famílias, ligações, regra de fusão de níveis (seção 8.1; só na linhagem `bb_selecao`; a Parte 6 mantém `BLOCOS_PADRAO`) e seleção de variáveis (`bb_selecao`, 12 contínuas além do lag; Hosmer-Lemeshow com passo 4 de Wald) |
 | [04-diagnostico.md](04-diagnostico.md) | Resíduos, influência, envelope e autocorrelação espacial; pressupostos dos modelos escolhidos (`bb_selecao` e `bb_slx`: ligação sinalizada só no `bb_slx`, linearidade, variância, colinearidade com 7 termos acima de 10, influência) |
 | [05-validacao-cruzada.md](05-validacao-cruzada.md) | Validação cruzada (5 dobras e LOSO sem vazamento), regra de 1 EP, seleção aninhada do `bb_selecao`, limite L e sensibilidade regional |
 | [06-backtest.md](06-backtest.md) | Removido (Parte 12, 2026-11-23): razão da remoção |
@@ -14,7 +14,7 @@
 | [08-dependencia-espacial.md](08-dependencia-espacial.md) | Filtro de autovetores (rejeitado), EPs de Conley, SLX (aceito) e corte de 2022 |
 | [09-modelo-final.md](09-modelo-final.md) | Regra de informação (covariáveis pré-turno, n̂), estimativas e cobertura do `bb_slx` |
 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) | Krigagem e CAR/BYM nos resíduos (rejeitadas, também com peso por n), decomposição do I de Moran |
-| [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026), incerteza de n_u e cobertura por unidade |
+| [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026), com o desenho refeito em cada corte (vazamento corrigido), IC do Brasil em 12 de 12 cortes, incerteza de n_u e cobertura por unidade |
 | [12-pendencias.md](12-pendencias.md) | Pendências abertas, com efeito e correção possível |
 | [referencias.md](referencias.md) | Referências únicas e conferidas (Paula, com as seções usadas) |
 

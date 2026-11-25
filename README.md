@@ -110,12 +110,12 @@ onde:
 
 ## 🔎 Variáveis explicativas
 
-O modelo final usa a defasagem (`lag`) e 12 variáveis contínuas escolhidas por seleção passo a passo por BIC (`bb_selecao`), mais as mesmas 13 defasadas espacialmente (SLX), o bloco do prefeito e dummies de região (Nordeste e Norte fundidos na média; LRT p = 0,236), num total de 38 parâmetros (32 da média e 6 da dispersão).
+O modelo final usa a defasagem (`lag`) e 12 variáveis contínuas escolhidas por seleção passo a passo por BIC (`bb_selecao`), mais as mesmas 13 defasadas espacialmente (SLX), o bloco do prefeito (só esquerda; centro e sem prefeito fundidos à direita) e dummies de região (Nordeste e Norte fundidos na média), num total de 37 parâmetros (31 da média e 6 da dispersão).
 
 Além dessas 13, o modelo usa:
 
 * `W·x` de cada uma das 13 (W = vizinhança Queen, padronizada por linha);
-* `bloco_pref` (esquerda, outro; referência: direita);
+* `bloco_pref` (esquerda; referência: direita, que absorve centro e sem prefeito);
 * região (Centro-Oeste, Sul, Nordeste+Norte; referência: Sudeste).
 
 As 13 variáveis contínuas, em linguagem simples. Exemplo: Recife (PE). Faixa: mínimo e máximo nos 5.570 municípios. Todo `pct_*` é fração em [0, 1] (0,15 = 15%). Definições completas em [`docs/dados/dicionario.md`](docs/dados/dicionario.md#variáveis-do-modelo-final-exemplo-e-faixa).
@@ -191,12 +191,11 @@ foi rejeitado, porque o coeficiente estimado é ≈ 0,89, não 1 (teste da razã
 **6. Juntando categorias (Parte 8.1).** Com testes de razão de verossimilhanças e uma regra
 fixada antes de ver os resultados:
 
-* **Nordeste e Norte** não se distinguem na média (p = 0,236) e foram fundidos. Na dispersão as 5
+* **Nordeste e Norte** não se distinguem na média e foram fundidos. Na dispersão as 5
   regiões continuam separadas;
-* **prefeito de centro e município sem prefeito** não se distinguem da direita (p = 0,474 e
-  0,083) e a regra os funde nela; só o bloco de esquerda fica separado (p = 8e-6). Os modelos
-  ajustados ainda usam a codificação anterior, com "outro" (centro + sem prefeito) como nível
-  próprio: pendência registrada em [12](docs/pressupostos/12-pendencias.md);
+* **prefeito de centro e município sem prefeito** não se distinguem da direita, e a regra os
+  funde nela; só o bloco de esquerda fica separado (p = 8e-6). A fusão vale para a seleção
+  de variáveis (`bb_selecao`) e para o modelo final ([03](docs/pressupostos/03-modelos-candidatos.md));
 * **prefeito eleito em eleição suplementar** não acrescenta nada (p = 0,495) e ficou de fora.
 
 **7. Escolhendo as variáveis: 21 → 13.** A seleção passo a passo por BIC (para trás, para frente
@@ -205,7 +204,7 @@ e nos dois sentidos) chegou ao mesmo conjunto: o voto de 2022 e mais 12 covariá
 `pct_evangelicos`. Outros critérios ficaram com mais variáveis (além do `lag`): AIC com 16 a 18;
 Hosmer-Lemeshow com 18 no primeiro estágio e 14 depois do teste de Wald do passo 4, que
 tirou `log_pop`, `nota_dep` (p = 0,053), `pct_urbana` e `pib_pc`. Como todos erram quase o mesmo
-na validação (de 0,994 a 1,043 p.p.), ficamos com o menor, o do BIC (`bb_selecao`).
+na validação (de 1,005 a 1,055 p.p.), ficamos com o menor, o do BIC (`bb_selecao`).
 
 **Funil das variáveis contínuas** (o `lag` conta em todas as linhas):
 
@@ -223,25 +222,25 @@ contra 9,5 na quase-binomial. Mas os resíduos de vizinhos continuam parecidos (
 
 **9. Validação e escolha (Parte 11).** O teste principal tira uma UF inteira do ajuste, prevê
 essa UF e repete isso para as 27 (LOSO). O erro típico é de cerca de 1 ponto percentual por UF.
-O menor erro foi o de `bb_selecao` (0,994 p.p., EP 0,154), e treze dos 18 modelos ficaram a menos
-de 1 erro-padrão dele (limite de 1,148; o segundo é `bin_logit`, 1,009). Pela regra fixada antes,
-escolhemos o mais simples entre eles, que é o próprio `bb_selecao`, com 20 parâmetros (1,067 quando a seleção de variáveis é refeita dentro de cada dobra, a
+O menor erro foi o de `bb_selecao` (1,005 p.p., EP 0,158), e treze dos 18 modelos ficaram a menos
+de 1 erro-padrão dele (limite de 1,164; o segundo é `bin_logit`, 1,009). Pela regra fixada antes,
+escolhemos o mais simples entre eles, que é o próprio `bb_selecao`, com 19 parâmetros (1,067 quando a seleção de variáveis é refeita dentro de cada dobra, a
 medida sem otimismo). A escolha vem da simplicidade, não de uma vantagem demonstrada ([05](docs/pressupostos/05-validacao-cruzada.md)).
 
 **10. Refinando (Partes 13 a 15).**
 
 * **Dispersão:** varia por região e por porte. O Sudeste é mais homogêneo (θ ≈ 1.086) que o Norte
   (θ ≈ 350), e o teste confirma com folga (LRT 487, 5 gl);
-* **filtro de autovetores:** rejeitado. Melhora o ajuste, mas erra 1,575 p.p. numa UF nova, porque
+* **filtro de autovetores:** rejeitado. Melhora o ajuste, mas erra 1,584 p.p. numa UF nova, porque
   o padrão espacial de uma UF não vale para outra;
-* **SLX** (a média das covariáveis dos vizinhos): aceito, com erro de 1,060 p.p., dentro do limite
-  de 1,209. Mas a correlação residual quase não caiu (Moran de 0,352 para 0,347);
-* **erros-padrão de Conley** a 200 km: ficam em mediana 1,6 vez maiores, e 5 dos 38 termos deixam
+* **SLX** (a média das covariáveis dos vizinhos): aceito, com erro de 1,073 p.p., dentro do limite
+  de 1,209. Mas a correlação residual quase não caiu (Moran de 0,353 para 0,348);
+* **erros-padrão de Conley** a 200 km: ficam em mediana 1,6 vez maiores, e 4 dos 37 termos deixam
   de ser significativos ([07](docs/pressupostos/07-dispersao-regional.md), [08](docs/pressupostos/08-dependencia-espacial.md)).
 
-**11. O resultado (Parte 16).** O modelo final (`bb_slx`, 38 parâmetros) previu 51,82% para Lula
+**11. O resultado (Parte 16).** O modelo final (`bb_slx`, 37 parâmetros) previu 51,82% para Lula
 no Brasil, contra 51,78% reais. O erro médio por região foi de 0,43 p.p.: o maior foi no Norte
-(−0,73) e o menor no Centro-Oeste (+0,03). As 5 regiões e as 27 UFs ficaram dentro dos intervalos
+(−0,72) e o menor no Centro-Oeste (−0,03). As 5 regiões e as 27 UFs ficaram dentro dos intervalos
 de 95%, mas essa cobertura é otimista, porque parte da incerteza foi estimada nas mesmas UFs
 ([09](docs/pressupostos/09-modelo-final.md)).
 
@@ -251,10 +250,13 @@ baixou 0,0006 e o CAR 0,0304. Os resíduos de outras UFs não ajudam a prever um
 ([10](docs/pressupostos/10-extensoes-rejeitadas.md)).
 
 **13. Prevendo durante a apuração (Parte 18).** Ajustamos o modelo só com as urnas já apuradas,
-na ordem real do TSE, e previmos o restante. Ele foi útil em 2022 (4 de 6 cortes) e em 2026 (5
-de 6). Com 25% apurado em 2026, errou 0,27 p.p. por região, contra 0,46 do swing uniforme. Com 5%
-apurado ainda perde para o swing, e o erro do Brasil (1,11 p.p.) fica pior que o da contagem bruta
-(0,97). O ajuste de 2022 não tem `delta_comp`: o análogo exigiria o 2º turno de 2014, que não
+na ordem real do TSE, e previmos o restante. O desenho do modelo (covariáveis, fusão de regiões,
+dispersão, SLX, corte de Conley e σ_UF) é escolhido de novo em cada corte, só com os municípios já
+apurados; assim o teste de 2026 não usa o resultado final de 2026. Ele foi útil em 2022 (4 de 6
+cortes) e em 2026 (5 de 6). Com 25% apurado em 2026, errou 0,24 p.p. por região, contra 0,46 do
+swing uniforme. Com 5% apurado, o erro regional (1,36) já fica abaixo do swing (1,49), mas o erro
+do Brasil (1,02 p.p.) continua pior que o da contagem bruta (0,97). Em 2022, os cortes de 5% e
+10% erram 0,73 e 1,19 p.p. no Brasil. O ajuste de 2022 não tem `delta_comp`: o análogo exigiria o 2º turno de 2014, que não
 temos, e usar o valor do próprio ano seria vazamento ([11](docs/pressupostos/11-apuracao-parcial.md)).
 
 ### O que isso diz sobre 2022 e sobre eleições futuras parecidas
@@ -425,59 +427,58 @@ Y_i \sim \mathrm{BetaBin}(n_i, \pi_i, \theta_i), \quad
 \log \theta_i = Z_i \gamma
 $$
 
-* beta-binomial com ligação logit; 38 parâmetros (32 da média e 6 da dispersão);
+* beta-binomial com ligação logit; 37 parâmetros (31 da média e 6 da dispersão);
 * $z$ são as covariáveis padronizadas (o `lag` e as 12 selecionadas); $W$ é a vizinhança Queen padronizada por linha, e $(Wz)_{ik}$ é a média da variável $k$ nos vizinhos (SLX);
 * $Z_i$ contém dummies de região e $\log n_i$;
 * os erros-padrão são os de Conley a 200 km, de 0,9 a 3,3 vezes os do modelo (mediana 1,6).
 
 ### Coeficientes (escala z)
 
-Cada covariável contínua entra padronizada (média 0, desvio-padrão 1), então $e^\beta$ é a razão de chances do voto em Lula para **+1 desvio-padrão (DP)** da covariável, mantidos os demais termos. A leitura é sobre a **participação municipal** de Lula nos votos válidos, não sobre o comportamento de um eleitor (ver [Limitações](#limitações)). Os 38 termos vêm de `results/tables/final_ep.csv`; os seis últimos (γ) são da dispersão, e $e^\gamma$ multiplica θ.
+Cada covariável contínua entra padronizada (média 0, desvio-padrão 1), então $e^\beta$ é a razão de chances do voto em Lula para **+1 desvio-padrão (DP)** da covariável, mantidos os demais termos. A leitura é sobre a **participação municipal** de Lula nos votos válidos, não sobre o comportamento de um eleitor (ver [Limitações](#limitações)). Os 37 termos vêm de `results/tables/final_ep.csv`; os seis últimos (γ) são da dispersão, e $e^\gamma$ multiplica θ.
 
 | Termo | β (z) | EP Conley | e^β (OR por 1 DP) | Signif. 5% | Leitura |
 | --- | --- | --- | --- | --- | --- |
-| intercepto | 0,1941 | 0,0074 | n/a | sim | logit de Lula no município de referência (Sudeste, prefeito de direita, covariáveis na média): 54,8% |
-| defasagem (logit de 2022) | 0,7678 | 0,0045 | 2,155 | sim | o voto de 2022 domina: +1 DP de Lula em 2022 multiplica a chance de Lula por 2,15 |
+| intercepto | 0,1946 | 0,0074 | n/a | sim | logit de Lula no município de referência (Sudeste, prefeito de direita, covariáveis na média): 54,8% |
+| defasagem (logit de 2022) | 0,7681 | 0,0045 | 2,156 | sim | o voto de 2022 domina: +1 DP de Lula em 2022 multiplica a chance de Lula por 2,16 |
 | % de esquerda na Câmara | 0,0090 | 0,0021 | 1,009 | sim | municípios mais à esquerda no voto para deputado têm Lula mais forte |
-| comparecimento no 1º turno | −0,0168 | 0,0021 | 0,983 | sim | comparecimento maior no 1º turno se associa a Lula um pouco menor |
+| comparecimento no 1º turno | −0,0167 | 0,0021 | 0,983 | sim | comparecimento maior no 1º turno se associa a Lula um pouco menor |
 | variação do comparecimento no 2º turno (2018 a 2022) | −0,0001 | 0,0014 | 1,000 | não | sem associação distinguível de zero, dado o resto |
 | log da densidade | 0,0120 | 0,0035 | 1,012 | sim | municípios mais densos têm Lula mais forte |
 | % de mulheres | 0,0240 | 0,0022 | 1,024 | sim | eleitorado mais feminino se associa a Lula mais forte |
-| % de 16 a 24 anos | −0,0223 | 0,0031 | 0,978 | sim | eleitorado mais jovem se associa a Lula menor |
-| cobertura do Bolsa Família | 0,0376 | 0,0042 | 1,038 | sim | maior cobertura se associa a Lula mais forte; o segundo maior efeito entre as não defasadas, atrás de pretos e pardos |
-| % do VAB agropecuário | −0,0084 | 0,0022 | 0,992 | sim | economia mais agropecuária se associa a Lula menor |
-| % de pretos e pardos | 0,0413 | 0,0049 | 1,042 | sim | mais pretos e pardos se associa a Lula maior (VIF alto, ver ressalva) |
-| % com até fundamental incompleto | −0,0256 | 0,0026 | 0,975 | sim | menos escolaridade se associa a Lula menor, mantido o resto |
-| % sem religião | 0,0040 | 0,0020 | 1,004 | sim | efeito condicional pequeno e positivo |
-| % de indígenas | 0,0218 | 0,0033 | 1,022 | sim | mais indígenas se associa a Lula maior |
-| W·defasagem (logit de 2022) | −0,0168 | 0,0072 | 0,983 | sim | vizinhos com Lula mais forte em 2022 reduzem a chance, dado o próprio município (reversão à média) |
+| % de 16 a 24 anos | −0,0224 | 0,0032 | 0,978 | sim | eleitorado mais jovem se associa a Lula menor |
+| cobertura do Bolsa Família | 0,0375 | 0,0042 | 1,038 | sim | maior cobertura se associa a Lula mais forte; o segundo maior efeito entre as não defasadas, atrás de pretos e pardos |
+| % do VAB agropecuário | −0,0085 | 0,0022 | 0,992 | sim | economia mais agropecuária se associa a Lula menor |
+| % de pretos e pardos | 0,0414 | 0,0049 | 1,042 | sim | mais pretos e pardos se associa a Lula maior (VIF alto, ver ressalva) |
+| % com até fundamental incompleto | −0,0258 | 0,0026 | 0,975 | sim | menos escolaridade se associa a Lula menor, mantido o resto |
+| % sem religião | 0,0041 | 0,0020 | 1,004 | sim | efeito condicional pequeno e positivo |
+| % de indígenas | 0,0219 | 0,0033 | 1,022 | sim | mais indígenas se associa a Lula maior |
+| W·defasagem (logit de 2022) | −0,0169 | 0,0073 | 0,983 | sim | vizinhos com Lula mais forte em 2022 reduzem a chance, dado o próprio município (reversão à média) |
 | W·% de esquerda na Câmara | 0,0069 | 0,0033 | 1,007 | sim | vizinhança mais à esquerda soma um efeito pequeno |
-| W·comparecimento no 1º turno | 0,0018 | 0,0047 | 1,002 | não | sem efeito distinguível de zero |
-| W·variação do comparecimento | −0,0017 | 0,0027 | 0,998 | não | sem efeito distinguível de zero |
-| W·log da densidade | 0,0139 | 0,0059 | 1,014 | sim | vizinhança mais densa soma um efeito positivo |
-| W·% de mulheres | 0,0108 | 0,0044 | 1,011 | sim | vizinhança com mais mulheres soma um efeito positivo |
-| W·% de 16 a 24 anos | −0,0032 | 0,0082 | 0,997 | não | sem efeito distinguível de zero |
-| W·cobertura do Bolsa Família | 0,0497 | 0,0095 | 1,051 | sim | vizinhança com mais Bolsa Família soma um efeito positivo (o maior do bloco espacial) |
+| W·comparecimento no 1º turno | 0,0019 | 0,0047 | 1,002 | não | sem efeito distinguível de zero |
+| W·variação do comparecimento | −0,0017 | 0,0028 | 0,998 | não | sem efeito distinguível de zero |
+| W·log da densidade | 0,0138 | 0,0060 | 1,014 | sim | vizinhança mais densa soma um efeito positivo |
+| W·% de mulheres | 0,0109 | 0,0044 | 1,011 | sim | vizinhança com mais mulheres soma um efeito positivo |
+| W·% de 16 a 24 anos | −0,0031 | 0,0083 | 0,997 | não | sem efeito distinguível de zero |
+| W·cobertura do Bolsa Família | 0,0495 | 0,0096 | 1,051 | sim | vizinhança com mais Bolsa Família soma um efeito positivo (o maior do bloco espacial) |
 | W·% do VAB agropecuário | −0,0058 | 0,0040 | 0,994 | não | vizinhança mais agropecuária reduz a chance, mas só no EP do modelo |
-| W·% de pretos e pardos | −0,0208 | 0,0087 | 0,979 | sim | vizinhança com mais pretos e pardos reduz a chance (VIF alto) |
-| W·% com até fundamental incompleto | 0,0079 | 0,0049 | 1,008 | não | efeito positivo pequeno, só no EP do modelo |
-| W·% sem religião | −0,0010 | 0,0033 | 0,999 | não | sem efeito distinguível de zero |
+| W·% de pretos e pardos | −0,0204 | 0,0088 | 0,980 | sim | vizinhança com mais pretos e pardos reduz a chance (VIF alto) |
+| W·% com até fundamental incompleto | 0,0080 | 0,0050 | 1,008 | não | efeito positivo pequeno, só no EP do modelo |
+| W·% sem religião | −0,0010 | 0,0034 | 0,999 | não | sem efeito distinguível de zero |
 | W·% de indígenas | −0,0074 | 0,0032 | 0,993 | sim | vizinhança com mais indígenas reduz a chance |
-| prefeito de esquerda | −0,0118 | 0,0051 | 0,988 | sim | prefeito de esquerda (contra direita): chance menor |
-| prefeito de centro/sem prefeito | 0,0205 | 0,0089 | 1,021 | sim | prefeito de centro ou sem prefeito (contra direita): chance maior |
-| Centro-Oeste | −0,0193 | 0,0149 | 0,981 | não | contra Sudeste: diferença significativa só no EP do modelo |
-| Sul | −0,0538 | 0,0154 | 0,948 | sim | contra Sudeste: chance menor |
-| Nordeste+Norte | 0,0139 | 0,0148 | 1,014 | não | Nordeste e Norte (fundidos) contra Sudeste: diferença significativa só no EP do modelo |
-| γ intercepto (Sudeste, log n médio) | 6,9902 | 0,1098 | 1085,982 (fator em θ) | sim | log θ do Sudeste: θ ≈ 1.086 |
-| γ Centro-Oeste | −0,2816 | 0,1558 | 0,755 (fator em θ) | não | dispersão maior que a do Sudeste, só no EP do modelo |
-| γ Nordeste | −0,7788 | 0,1313 | 0,459 (fator em θ) | sim | θ menor que o do Sudeste: mais variância extra-binomial |
-| γ Norte | −1,1320 | 0,2080 | 0,322 (fator em θ) | sim | a região mais dispersa: θ ≈ 350 |
-| γ Sul | −0,0410 | 0,1845 | 0,960 (fator em θ) | não | sem diferença distinguível do Sudeste |
-| γ log n | 0,2797 | 0,0419 | 1,323 (fator em θ) | sim | a dispersão cresce com o tamanho do município |
+| prefeito de esquerda | −0,0122 | 0,0051 | 0,988 | sim | prefeito de esquerda (contra direita): chance menor |
+| Centro-Oeste | −0,0196 | 0,0149 | 0,981 | não | contra Sudeste: diferença significativa só no EP do modelo |
+| Sul | −0,0538 | 0,0155 | 0,948 | sim | contra Sudeste: chance menor |
+| Nordeste+Norte | 0,0135 | 0,0148 | 1,014 | não | Nordeste e Norte (fundidos) contra Sudeste: diferença significativa só no EP do modelo |
+| γ intercepto (Sudeste, log n médio) | 6,9906 | 0,1139 | 1086,412 (fator em θ) | sim | log θ do Sudeste: θ ≈ 1.086 |
+| γ Centro-Oeste | −0,2876 | 0,1631 | 0,750 (fator em θ) | não | dispersão maior que a do Sudeste, só no EP do modelo |
+| γ Nordeste | −0,7804 | 0,1349 | 0,458 (fator em θ) | sim | θ menor que o do Sudeste: mais variância extra-binomial |
+| γ Norte | −1,1297 | 0,2109 | 0,323 (fator em θ) | sim | a região mais dispersa: θ ≈ 350 |
+| γ Sul | −0,0418 | 0,1988 | 0,959 (fator em θ) | não | sem diferença distinguível do Sudeste |
+| γ log n | 0,2745 | 0,0421 | 1,316 (fator em θ) | sim | a dispersão cresce com o tamanho do município |
 
 **Ressalva de colinearidade.** No `bb_slx`, sete termos têm VIF > 10: `W·pct_pretos_pardos` (28,5), `pct_pretos_pardos` (24,0), `W·cobertura_pbf` (17,4), `W·defasagem` (16,5), `W·pct_16_24` (13,7), a defasagem (11,7) e `W·log_dens` (10,1). Cada covariável compartilha informação com a própria defasagem espacial, então os coeficientes desses termos, lidos um a um, são frágeis; a previsão não é afetada ([diagnóstico](docs/pressupostos/04-diagnostico.md), seção 8.6).
 
-Leitura geral: a defasagem de 2022 explica quase tudo (OR 2,15 por DP); as demais covariáveis ajustam o nível em poucos pontos percentuais, e a vizinhança (termos `W·`) tem efeitos menores e menos estáveis, o que é coerente com o SLX ter reduzido pouco o I de Moran. A variação do comparecimento (`delta_comp`) não se distingue de zero no modelo final, embora o BIC a tenha mantido.
+Leitura geral: a defasagem de 2022 explica quase tudo (OR 2,16 por DP); as demais covariáveis ajustam o nível em poucos pontos percentuais, e a vizinhança (termos `W·`) tem efeitos menores e menos estáveis, o que é coerente com o SLX ter reduzido pouco o I de Moran. A variação do comparecimento (`delta_comp`) não se distingue de zero no modelo final, embora o BIC a tenha mantido.
 
 ### Superdispersão
 
@@ -491,21 +492,21 @@ Com $n_i$ de milhares, a binomial pura subestima a variância por um fator da or
 
 ### Seleção de variáveis
 
-O passo a passo por BIC (backward, forward e both) dá o mesmo modelo: 12 contínuas além da defasagem, BIC 72.624,48, LOSO 0,994 (1,067 refazendo a seleção em cada dobra). A busca em todos os subconjuntos ficou em BIC 72.630,64, sem alcançar esse ótimo.
+O passo a passo por BIC (backward, forward e both) dá o mesmo modelo: 12 contínuas além da defasagem, BIC 72.624,48, LOSO 1,005 (1,067 refazendo a seleção em cada dobra). A busca em todos os subconjuntos ficou em BIC 72.630,64, sem alcançar esse ótimo.
 
 ### Seleção por validação cruzada (LOSO, MAE por UF em p.p.)
 
 ```text
-melhor              bb_selecao = 0,994 (EP 0,154); segundo bin_logit = 1,009 (EP 0,142)
-limite de 1 EP      1,148   (13 de 18 modelos dentro)
-escolhido           bb_selecao = 0,994 (1,067 aninhado; k = 20, menor número de parâmetros dentro do limite)
+melhor              bb_selecao = 1,005 (EP 0,158); segundo bin_logit = 1,009 (EP 0,142)
+limite de 1 EP      1,164   (13 de 18 modelos dentro)
+escolhido           bb_selecao = 1,005 (1,067 aninhado; k = 19, menor número de parâmetros dentro do limite)
 limite de aceitação L = 1,0669 (aninhado) + 0,1419 = 1,2088
-bb_disp = 0,986 (aceito)   bb_slx = 1,060 (aceito, final)   bb_esf = 1,575 (rejeitado)
+bb_disp = 0,996 (aceito)   bb_slx = 1,073 (aceito, final)   bb_esf = 1,584 (rejeitado)
 ```
 
 Leitura: o MAE de 1,0 p.p. diz que, em média, a participação de Lula prevista para uma UF inteira erra cerca de 1 ponto percentual. A previsão não usa nenhum município dessa UF no ajuste. O erro é por UF porque a UF inteira sai do treino em cada dobra do LOSO.
 
-O `bb_slx` tem MAE por UF de 0,830 no 5-fold e 1,060 no LOSO.
+O `bb_slx` tem MAE por UF de 0,846 no 5-fold e 1,073 no LOSO.
 
 ### Dispersão regional
 
@@ -519,8 +520,8 @@ Leitura: a dispersão varia por região (o Norte tem θ menor, isto é, mais var
 ### Dependência espacial
 
 ```text
-I de Moran dos resíduos: 0,352 (sem termo espacial) -> 0,347 (SLX)
-filtro de autovetores (k = 50): LOSO 1,575 > 1,2088 -> rejeitado
+I de Moran dos resíduos: 0,353 (sem termo espacial) -> 0,348 (SLX)
+filtro de autovetores (k = 50): LOSO 1,584 > 1,2088 -> rejeitado
 krigagem LOSO dos resíduos (queda de 0,0006) e CAR/BYM (queda de 0,0304): rejeitadas
 ```
 
@@ -528,18 +529,18 @@ O SLX é aceito pela regra de validação, mas quase não reduz o I de Moran: a 
 
 ### Estimativas regionais contra o real
 
-Participação de Lula (%) na estimativa fora da amostra (LOSO) com Conley e $\sigma_{UF}$ = 0,0558; intervalo de 95%:
+Participação de Lula (%) na estimativa fora da amostra (LOSO) com Conley e $\sigma_{UF}$ = 0,0570; intervalo de 95%:
 
 | Região | Estimado | Intervalo 95% | Real | Erro (p.p.) | Dentro |
 | --- | --- | --- | --- | --- | --- |
-| Centro-Oeste | 40,02 | [38,55; 41,57] | 39,99 | 0,03 | sim |
-| Nordeste | 69,57 | [68,63; 70,42] | 69,37 | 0,20 | sim |
-| Norte | 49,28 | [47,79; 50,78] | 50,01 | −0,73 | sim |
-| Sudeste | 47,92 | [46,32; 49,58] | 47,24 | 0,68 | sim |
-| Sul | 36,93 | [35,44; 38,47] | 37,42 | −0,50 | sim |
-| Brasil | 51,82 | [51,09; 52,62] | 51,78 | 0,04 | sim |
+| Centro-Oeste | 39,96 | [38,44; 41,42] | 39,99 | −0,03 | sim |
+| Nordeste | 69,58 | [68,56; 70,49] | 69,37 | 0,21 | sim |
+| Norte | 49,28 | [47,75; 50,78] | 50,01 | −0,72 | sim |
+| Sudeste | 47,94 | [46,26; 49,64] | 47,24 | 0,69 | sim |
+| Sul | 36,92 | [35,38; 38,39] | 37,42 | −0,50 | sim |
+| Brasil | 51,82 | [51,02; 52,64] | 51,78 | 0,04 | sim |
 
-Erro regional absoluto médio de 0,427 p.p. nas 5 regiões. As estimativas ficam dentro de 1 p.p. do real em todas as regiões e o Brasil dentro de 0,04 p.p.; o maior erro é o do Norte (−0,73). São só 5 regiões, e o erro regional LOSO não escolhe modelos: é descrição, não evidência de superioridade.
+Erro regional absoluto médio de 0,431 p.p. nas 5 regiões. As estimativas ficam dentro de 1 p.p. do real em todas as regiões e o Brasil dentro de 0,04 p.p.; o maior erro é o do Norte (−0,72). São só 5 regiões, e o erro regional LOSO não escolhe modelos: é descrição, não evidência de superioridade.
 
 ### Cobertura dos intervalos
 
@@ -548,15 +549,15 @@ Erro regional absoluto médio de 0,427 p.p. nas 5 regiões. As estimativas ficam
 | Conley + σ_UF | 100% (27/27) | 5/5 |
 | Conley + σ = 0 | 48,1% (13/27) | 2/5 |
 
-O choque de UF é o que sustenta a cobertura. Como $\sigma_{UF}$ é ajustado nas mesmas UFs em que a cobertura é conferida, ela é **otimista**.
+O choque de UF é o que sustenta a cobertura (com σ_UF, o IC90 cobre 92,6% das UFs). Como $\sigma_{UF}$ é ajustado nas mesmas UFs em que a cobertura é conferida, ela é **otimista**.
 
 ### Apuração parcial
 
 Regra: o modelo é "útil" se vence a extrapolação bruta e o swing em pelo menos 4 de 6 cortes de urnas apuradas (5% a 90%).
 
 * 2022: 4/6 cortes, "modelo útil"; 2026: 5/6, "modelo útil". O veredito é o mesmo com as duas definições de $n_u$ (votos restantes);
-* o Brasil fica dentro do intervalo de 95% em 11 dos 12 cortes (2022 e 2026); a exceção é o corte de 5% em 2026, em que o modelo estima 52,89% contra 51,78% reais;
-* o ganho aparece cedo, mas não em 5% das urnas: em 2026 com 5% apurado, o erro regional médio é 1,62 p.p. no modelo contra 1,49 no swing, e o erro do Brasil é 1,11 p.p. no modelo contra 0,97 na contagem bruta; com 25% o erro regional cai para 0,27 contra 0,46 ([`docs/pressupostos/11-apuracao-parcial.md`](docs/pressupostos/11-apuracao-parcial.md)).
+* o Brasil fica dentro do intervalo de 95% nos 12 cortes (2022 e 2026) e as regiões em 55 de 60 (antes, com o desenho final fixo, 11 de 12 e 50 de 60). O desenho é reescolhido por corte só com os municípios apurados, o que alarga os intervalos (largura média no Brasil de 1,29 para 2,18 p.p. em 2022 e de 1,15 para 1,51 em 2026);
+* o ganho aparece cedo, mas não em 5% das urnas: em 2026 com 5% apurado, o erro regional médio é 1,36 p.p. no modelo contra 1,49 no swing, mas o erro do Brasil é 1,02 p.p. no modelo contra 0,97 na contagem bruta; com 25% o erro regional cai para 0,24 contra 0,46. Em 2022, os cortes de 5% e 10% erram 0,73 e 1,19 p.p. no Brasil; a partir de 50% as estimativas quase não mudam ([`docs/pressupostos/11-apuracao-parcial.md`](docs/pressupostos/11-apuracao-parcial.md)).
 
 ## Limitações
 
@@ -565,14 +566,14 @@ Regra: o modelo é "útil" se vence a extrapolação bruta e o swing em pelo men
 
 Demais limitações:
 
-* **Autocorrelação espacial residual** (I de Moran 0,347): Conley corrige a inferência, não as estimativas pontuais;
+* **Autocorrelação espacial residual** (I de Moran 0,348): Conley corrige a inferência, não as estimativas pontuais;
 * **Cobertura otimista:** $\sigma_{UF}$ vem das mesmas UFs; sem ele, só 13 das 27 UFs ficam dentro do intervalo; falta validação aninhada;
 * **Seleção:** 13 dos 18 modelos ficam dentro de 1 EP, e a escolha repousa na parcimônia, não numa vantagem demonstrada;
 * **Pouca base regional:** só 5 regiões e 27 UFs para avaliar o erro; o erro regional não escolhe modelo;
 * **Regras tardias:** o Wald robusto, o SLX e o corte de Conley foram fixados antes de cada resultado, mas não antes das Partes 13 a 17 inteiras; uma versão anterior da validação vazava informação da UF de teste (corrigida);
 * **Covariáveis defasadas:** o comparecimento é o do 1º turno e nenhuma covariável do 2º turno entra; `pct_vab_agro` usa 2021;
 * **Dados:** Bolsa Família 2022 com 20,07 milhões de famílias, 2,81% abaixo dos 20,65 milhões da folha de setembro de 2022 (Ministério da Cidadania, nota de 16/09/2022, republicada pelo TNH1; o original no gov.br não foi encontrado; a base é família na folha, não NIS distinto pago); a API do MDS está indisponível e a fonte é a CGU;
-* **Apuração parcial:** o desempenho em 5% das urnas não supera o swing. Em 2026 com 5% apurado, o erro do Brasil do modelo (1,11 p.p.) é pior que o da contagem bruta (0,97), e o Brasil fica dentro do intervalo de 95% em 11 dos 12 cortes (a exceção é esse corte);
+* **Apuração parcial:** o desempenho em 5% das urnas não supera a contagem bruta no Brasil. Em 2026 com 5% apurado, o erro do Brasil do modelo (1,02 p.p.) é pior que o da contagem bruta (0,97), embora o Brasil fique dentro do intervalo de 95% nos 12 cortes; em 2022 os cortes de 5% e 10% são os piores (0,73 e 1,19 p.p.);
 * **Modelos de 2022 e 2026 diferem na apuração:** o ajuste parcial de 2022 não tem `delta_comp` nem `w_delta_comp`. O análogo em 2022 exigiria o 2º turno de 2014, que não temos, e usar o valor do próprio ano seria vazamento; o de 2026 mantém o modelo completo.
 
 Pendências abertas, com efeito e correção possível: [`docs/pressupostos/12-pendencias.md`](docs/pressupostos/12-pendencias.md).
@@ -584,7 +585,7 @@ Os 5.570 municípios são um censo, não uma amostra. O ajuste com todos os dado
 A previsão é medida fora da amostra de duas formas:
 
 * **LOSO:** a UF inteira sai do ajuste e recebe previsão só com covariáveis anteriores ao turno. A seleção de variáveis é refeita em cada dobra;
-* **Apuração parcial (Parte 18):** o modelo é ajustado só nos municípios já apurados, na ordem real do TSE. Ele prevê o restante e a previsão é comparada com o resultado final, com a contagem bruta e com o swing uniforme.
+* **Apuração parcial (Parte 18):** o modelo é ajustado só nos municípios já apurados, na ordem real do TSE, e o desenho (covariáveis, fusão de regiões, dispersão, SLX, Conley e σ_UF) é reescolhido em cada corte só com eles. Ele prevê o restante e a previsão é comparada com o resultado final, com a contagem bruta e com o swing uniforme.
 
 Não se sorteia uma amostra aleatória de municípios, por dois motivos:
 

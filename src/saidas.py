@@ -51,7 +51,7 @@ def salvar_json(obj: Any, caminho: str | Path) -> Path:
     return destino
 
 
-_TRACO = "—"
+_TRACO = "-"
 
 
 def _num(v: float, casas: int) -> str:
@@ -71,7 +71,7 @@ def _fmt(f: Any) -> Any:
 
 def _legenda(titulo: str, numero: str | None, nota: str | None) -> str:
     # Legenda e nota são texto puro: "<" de "p < 0,001" não pode virar tag HTML.
-    base = html.escape(titulo if numero is None else f"Tabela {numero} — {titulo}", quote=False)
+    base = html.escape(titulo if numero is None else f"Tabela {numero}: {titulo}", quote=False)
     if nota:
         base += f'<br><span style="font-weight:normal;font-size:smaller">{html.escape(nota, quote=False)}</span>'
     return base

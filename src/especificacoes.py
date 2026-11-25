@@ -508,15 +508,17 @@ CANDIDATOS = _montar_candidatos()
 
 
 def registrar_selecao(variaveis: Iterable[str],
-                      regiao_fundir: tuple[tuple[str, ...], ...] = ()) -> Candidato:
+                      regiao_fundir: tuple[tuple[str, ...], ...] = (),
+                      bloco_grupos: tuple[tuple[str, ...], ...] = BLOCOS_PADRAO) -> Candidato:
     """Adiciona 'bb_selecao' (beta-binomial só com as contínuas selecionadas).
 
     `regiao_fundir` leva ao candidato os níveis de região que a Parte 8 do `02-MLG`
-    decidiu fundir (teste de igualdade de níveis).
+    decidiu fundir (teste de igualdade de níveis) e `bloco_grupos` os grupos de bloco do
+    prefeito que a mesma Parte decidiu manter separados (o resto vira a referência).
     """
     vs = tuple(v for v in CONTINUAS if v in set(variaveis) | {"lag"})
     cand = Candidato("bb_selecao", "betabin", "logit",
-                     Termos(vars=vs, regiao_fundir=regiao_fundir))
+                     Termos(vars=vs, regiao_fundir=regiao_fundir, bloco_grupos=bloco_grupos))
     CANDIDATOS["bb_selecao"] = cand
     return cand
 

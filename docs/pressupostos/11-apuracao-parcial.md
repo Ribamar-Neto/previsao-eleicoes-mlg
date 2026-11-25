@@ -1,7 +1,7 @@
 # Apuração parcial na ordem real do TSE (Parte 18)
 
 `notebooks/03-apuracao-parcial.ipynb`. Tabelas `results/tables/apuracao_*.csv` e figuras
-`results/figures/apuracao_*.png`. Cenário A do [09](09-modelo-final.md). Fonte da ordem:
+`results/figures/apuracao_*.png`. Família `bb_slx` do [09](09-modelo-final.md), com o desenho refeito em cada corte (seção 9). Fonte da ordem:
 `tse_bweb` ([consolidação](../dados/consolidacao.md)).
 
 **Os modelos de 2022 e de 2026 diferem em um termo.** `delta_comp` (e o `w_delta_comp` do SLX) é a variação do comparecimento do 2º turno de 2018 para 2022; seu análogo em 2022 exigiria o 2º turno de 2014 (ausente), e usar `delta_comparecimento_2t_2022` em 2022 seria vazamento. Por isso o ajuste parcial de 2022 descarta os dois termos (`SEM_2022`), a mesma regra de `VARS_EXANTE` em `src/backtest.py`; o de 2026 mantém o modelo completo ([06](06-backtest.md)).
@@ -25,8 +25,9 @@ Veredito por ano; a regra não muda depois de ver os números.
 - **Swing uniforme:** variação média nacional, ponderada, entre a parcela apurada e a do turno
   anterior (2018 para 2022; 2022 para 2026), aplicada à parcela anterior de cada município,
   limitada a [0, 1].
-- **Modelo:** `bb_slx` do [09](09-modelo-final.md), ajustado nos municípios com votos já apurados
-  (padronização só nessas linhas) e usado para prever o restante de cada município.
+- **Modelo:** família `bb_slx` do [09](09-modelo-final.md), com o **desenho escolhido em cada corte**
+  só nos municípios com votos já apurados (seção 9), ajustado nessas linhas (padronização só nelas)
+  e usado para prever o restante de cada município.
 
 Regionais e Brasil somam o apurado com o restante estimado. Alvo: resultado final do 2º turno.
 
@@ -66,18 +67,20 @@ Erro absoluto do Brasil / MAE regional (p.p.). Em negrito, o menor de cada colun
 
 | Ano | Corte | Bruta | Swing | Modelo |
 |---|---|---|---|---|
-| 2022 | 5 | 4,57 / **0,77** | 0,60 / 3,45 | **0,34** / 0,98 |
-| 2022 | 10 | 3,05 / **0,52** | 1,53 / 3,43 | **0,74** / 0,83 |
-| 2022 | 25 | 2,20 / 0,74 | 1,62 / 2,88 | **0,67** / **0,52** |
-| 2022 | 50 | 1,23 / 0,66 | 1,09 / 1,81 | **0,52** / **0,40** |
-| 2022 | 67 | 0,93 / 0,60 | 0,61 / 1,16 | **0,33** / **0,25** |
+| 2022 | 5 | 4,57 / **0,77** | **0,60** / 3,45 | 0,72 / 1,35 |
+| 2022 | 10 | 3,05 / **0,52** | 1,53 / 3,43 | **1,19** / 1,05 |
+| 2022 | 25 | 2,20 / 0,74 | 1,62 / 2,88 | **0,57** / **0,57** |
+| 2022 | 50 | 1,23 / 0,66 | 1,09 / 1,81 | **0,53** / **0,41** |
+| 2022 | 67 | 0,93 / 0,60 | 0,61 / 1,16 | **0,33** / **0,27** |
 | 2022 | 90 | 0,38 / 0,31 | 0,13 / 0,34 | **0,09** / **0,08** |
-| 2026 | 5 | **0,97** / 1,78 | 1,19 / **1,49** | 1,11 / 1,62 |
-| 2026 | 10 | 1,48 / 1,04 | 0,53 / 1,00 | **0,14** / **0,92** |
-| 2026 | 25 | 2,37 / 0,83 | 0,39 / 0,46 | **0,23** / **0,27** |
-| 2026 | 50 | 1,67 / 0,60 | 0,53 / 0,33 | **0,15** / **0,14** |
-| 2026 | 67 | 0,95 / 0,49 | 0,40 / 0,22 | **0,08** / **0,08** |
-| 2026 | 90 | 0,22 / 0,15 | 0,14 / 0,07 | **0,02** / **0,03** |
+| 2026 | 5 | **0,97** / 1,78 | 1,19 / 1,49 | 1,02 / **1,36** |
+| 2026 | 10 | 1,48 / 1,04 | 0,53 / 1,00 | **0,16** / **0,83** |
+| 2026 | 25 | 2,37 / 0,83 | 0,39 / 0,46 | **0,16** / **0,24** |
+| 2026 | 50 | 1,67 / 0,60 | 0,53 / 0,33 | **0,13** / **0,15** |
+| 2026 | 67 | 0,95 / 0,49 | 0,40 / 0,22 | **0,07** / **0,07** |
+| 2026 | 90 | 0,22 / 0,15 | 0,14 / 0,07 | **0,03** / **0,03** |
+
+Fonte: `results/tables/apuracao_2022.csv` e `apuracao_2026.csv`.
 
 ## 5. Veredito pela regra
 
@@ -86,22 +89,25 @@ Erro absoluto do Brasil / MAE regional (p.p.). Em negrito, o menor de cada colun
 | 2022 | 4 de 6 (25, 50, 67, 90) | 4 | modelo útil |
 | 2026 | 5 de 6 (10 a 90) | 4 | modelo útil |
 
-O modelo vence o erro do Brasil em 11 dos 12 cortes (em 2026 a 5 %, 1,11 contra 0,97 da bruta; antes vencia nos 12). Perde o MAE regional nos cortes iniciais
-(2022 a 5 e 10 %; 2026 a 5 %). Os vereditos não mudaram, mas a margem de 2022 é a mínima da regra: a conclusão de 2022 é frágil.
+O modelo vence a bruta no erro do Brasil em 11 dos 12 cortes (perde só em 2026 a 5 %, 1,02 contra 0,97). No MAE
+regional perde para a bruta em 2022 a 5 e 10 % e vence nos 6 cortes de 2026 (4 de 6 em 2022). Em 2022 a 5 % perde
+também o erro do Brasil para o swing (0,72 contra 0,60). Os vereditos não mudaram com o desenho por corte (seção 9), mas
+a margem de 2022 é a mínima da regra: a conclusão de 2022 é frágil.
 
 ## 6. Intervalos
 
-Restante simulado pelo beta-binomial com grupos por UF e covariância de Conley (200 km),
-σ_UF = 0,0558 (Parte 16; antes das covariáveis novas, 0,0564), B = 1000, semente 7; soma ao apurado por região. Cobertura nominal 95 %
-(5 regiões + Brasil, 6 itens por corte):
+Restante simulado pelo beta-binomial com grupos por UF e covariância de Conley, com o corte de Conley (1 a 200 km)
+e o σ_UF (2022: 0,106 a 0,133; 2026: 0,052 a 0,137) **do desenho de cada corte** (seção 9), B = 1000, semente 7; soma ao
+apurado por região. Cobertura nominal 95 % (5 regiões + Brasil, 6 itens por corte):
 
 | Corte | 5 | 10 | 25 | 50 | 67 | 90 |
 |---|---|---|---|---|---|---|
-| 2022 | 0,83 | 1,00 | 1,00 | 1,00 | 1,00 | 0,83 |
-| 2026 | 0,33 | 0,67 | 1,00 | 1,00 | 0,83 | 0,83 |
+| 2022 | 1,00 | 1,00 | 1,00 | 1,00 | 1,00 | 0,83 |
+| 2026 | 0,83 | 1,00 | 1,00 | 0,83 | 0,83 | 0,83 |
 
-O Brasil fica dentro do intervalo em 11 dos 12 cortes (fora em 2026 a 5 %, onde o modelo também erra mais). Largura do Brasil: no máximo 2,2 p.p. (2022 a 5 %; 1,9 em 2026) e no mínimo
-0,23 p.p. (2022 a 90 %).
+O Brasil fica dentro do intervalo nos 12 cortes. As regiões (5 por corte) cobrem 29 de 30 em 2022 e 26 de 30 em 2026
+(55 de 60). Largura média do Brasil: 2,18 p.p. em 2022 e 1,51 em 2026; máxima 3,45 (2022 a 10 %) e 3,79 (2026 a 5 %);
+mínima 0,42 (2022 a 90 %) e 0,23 (2026 a 90 %). Largura média regional: 3,14 (2022) e 2,22 (2026).
 
 **Cobertura por unidade e ano, n_u fixo contra n_u simulado** (cortes cobertos de 6; variação mediana da largura em p.p.;
 `results/tables/apuracao_cobertura_unidade.csv`). Os 6 cortes são aninhados no tempo e as unidades são correlacionadas:
@@ -109,18 +115,16 @@ a tabela é descritiva, não um teste de calibração, e não se soma entre unid
 
 | Unidade | 2022 fixo | 2022 simulado | Δ largura | 2026 fixo | 2026 simulado | Δ largura |
 |---|---|---|---|---|---|---|
-| Brasil | 6 | 6 | +0,028 | 5 | 5 | +0,043 |
-| Centro-Oeste | 6 | 6 | -0,012 | 5 | 5 | -0,021 |
-| Nordeste | 6 | 6 | +0,018 | 4 | 4 | +0,015 |
-| Norte | 4 | 4 | +0,005 | 2 | 1 | +0,009 |
-| Sudeste | 6 | 6 | -0,019 | 6 | 6 | -0,074 |
-| Sul | 6 | 6 | +0,060 | 6 | 6 | +0,033 |
+| Brasil | 6 | 6 | +0,037 | 6 | 6 | +0,038 |
+| Centro-Oeste | 6 | 6 | -0,014 | 6 | 6 | +0,007 |
+| Nordeste | 6 | 6 | +0,015 | 5 | 5 | -0,005 |
+| Norte | 5 | 5 | +0,062 | 3 | 3 | +0,045 |
+| Sudeste | 6 | 6 | +0,046 | 6 | 6 | -0,008 |
+| Sul | 6 | 6 | -0,033 | 6 | 6 | +0,023 |
 
-Resultado: a incerteza de n_u quase não muda os intervalos (|Δ| < 0,08 p.p. contra larguras de 0,23 a 2,2 p.p.); só o Norte
-de 2026 perde um corte coberto ao sortear n_u (2 para 1). sd_UF no corte de 50 %: 0,031 (2022) e 0,044 (2026). A cobertura
-baixa do Norte (2026: 2 de 6 cortes) e do Nordeste (2026: 4 de 6; em 2022 passou de 3 para 6)
-vem de outra fonte que n_u (θ, σ_UF reusado, representatividade, seção 7). A contagem agregada antiga (0,83/1,00/... por corte)
-foi substituída por esta tabela.
+Resultado: a incerteza de n_u não muda nenhuma contagem de cortes cobertos e quase não muda os intervalos (|Δ| < 0,07 p.p.
+contra larguras de 0,23 a 3,8 p.p.). sd_UF no corte de 50 %: 0,031 (2022) e 0,044 (2026). A cobertura baixa do Norte
+(2026: 3 de 6 cortes; 2022: 5) e do Nordeste (2026: 5) vem de outra fonte que n_u (θ, representatividade, seção 7).
 
 Os votos já apurados dos municípios fora do modelo entram uma vez só, no apurado; o termo fixo
 desses municípios é só π_UF x n_u. Antes eram somados duas vezes (só Boa Esperança do Norte, MT,
@@ -134,20 +138,23 @@ reais do restante, nos 20 maiores municípios (capitais e grandes cidades) contr
 
 - Os 20 maiores concentram 24 % a 46 % do restante nacional real.
 - Lacuna absoluta do apurado: 0,7 a 4,4 p.p. nos maiores e 2,8 a 6,9 p.p. nos demais (2026 a
-  10 %: apurado 3,6 p.p. abaixo do restante nos maiores). Com o modelo: 2026, 0,5 a 1,4 p.p. nos
-  maiores e 1,6 a 2,5 nos demais; 2022, 1,3 a 1,6 e 2,4 a 2,9.
-- Em 2026 o modelo reduz a lacuna nos dois grupos na maioria dos cortes; em 2022 reduz nos demais, mas não nos maiores (1,3 a 1,6 p.p. contra 0,7 a 2,1 do apurado). A diferença interna ao
+  10 %: apurado 3,6 p.p. abaixo do restante nos maiores). Com o modelo: 2026, 0,8 a 1,9 p.p. nos
+  maiores e 1,6 a 2,5 nos demais; 2022, 1,2 a 3,1 e 2,4 a 2,8.
+- O modelo reduz a lacuna nos demais municípios nos 12 cortes. Nos maiores reduz em 4 de 6 cortes de 2026 e em
+  1 de 6 de 2022 (1,2 a 3,1 p.p. contra 0,7 a 2,1 do apurado). A diferença interna ao
   município (seção rural contra urbana) só é corrigida em parte pelas covariáveis.
 
 ## 8. Limitações
 
-- σ_UF = 0,0558 (Parte 16) e o corte de Conley (200 km, Parte 15) vêm de 2026 e foram reusados em 2022, que não tem
-  LOSO próprio. [assumed] que valham; a cobertura menor de 2022 nos cortes tardios sugere que não.
-- σ_UF e o corte também foram ajustados nas mesmas 27 UFs ([12](12-pendencias.md)).
+- O desenho de cada corte vem de poucos municípios nos cortes iniciais (1,4 mil a 2,1 mil de 5,5 mil), com LOSO
+  em 24 a 26 UFs; σ_UF e o corte de Conley têm mais ruído ali ([12](12-pendencias.md)).
+- **Piso de 1 km do corte de Conley:** a 5 % de 2026 (corte final) e a 10 % de 2026 (só na etapa R1; o corte final
+  é 50 km) a regra da Parte 15 deu 0 e o piso de 1 km foi aplicado. Conley com 1 km equivale a HC0, isto é, sem
+  correlação espacial: os IC desses cortes ignoram a dependência espacial dos resíduos
+  ([12](12-pendencias.md)).
 - A dispersão por log(n) é ajustada com n apurado e usada para prever com n_u (descasamento):
   θ é avaliado em log(n_u), fora da faixa de log n do ajuste; o erro de θ é ignorado (só o
-  bloco β da covariância de Conley é sorteado); σ_UF da Parte 16 é reusado, não reestimado
-  por corte ([12](12-pendencias.md)).
+  bloco β da covariância de Conley é sorteado) ([12](12-pendencias.md)).
 - n_u é sorteado nos intervalos (seção 3), mas θ segue avaliado no n_u fixo. A cobertura é
   reportada por unidade e ano, de forma descritiva (seção 6).
 - Escolha do n_u feita olhando o n final (seção 3).
@@ -155,3 +162,53 @@ reais do restante, nos 20 maiores municípios (capitais e grandes cidades) contr
   alvo, e seu restante usa a parcela e a taxa de válidos no nível da UF.
 - Sem voto no exterior nas seções do modelo; é tratado como no restante do trabalho.
 - Só dois anos e seis cortes: poucos graus de liberdade para a regra de 4 de 6.
+
+## 9. Desenho escolhido em cada corte (vazamento corrigido)
+
+**O vazamento.** A versão anterior da Parte 18 usava o desenho final do [09](09-modelo-final.md) (covariáveis,
+regiões fundidas, dispersão, SLX, corte de Conley e σ_UF), escolhido no `02-MLG` com o resultado final de 2026. As
+estimativas parciais de 2026 já traziam esse resultado. O teste de 2022 sempre foi honesto: o desenho nunca viu 2022.
+O vazamento favorecia 2026.
+
+**A correção ("correção completa por corte", escolha do usuário em 2026-11-25).** Em cada (ano, corte) o desenho é
+refeito só com D, os municípios com votos apurados (alvo = parcela apurada). As regras R1 a R7 (`src/desenho_parcial.py`,
+`VERSAO = 1`) foram fixadas antes de ver o resultado:
+
+| Regra | Decisão e razão |
+|---|---|
+| R1 | Covariáveis e fusão de regiões por LRT + BIC passo a passo, com as mesmas funções da seleção aninhada do 02: mesmo critério, só muda o conjunto de dados. Padronização só em D; 2022 sem `delta_comp` (parágrafo inicial). |
+| R2 | Corte de Conley pela regra da Parte 15, nos resíduos do desenho final do corte; piso de 1 km quando a regra dá 0 (o ajuste exige um corte positivo). |
+| R3 | LOSO em D (UFs com 5 ou mais municípios apurados, alvo = parcela apurada da UF). L = MAE do R1 + erro-padrão: mesmo limite da seleção aninhada. |
+| R4 | Dispersão pela regra da Parte 13 (Wald de Conley com o corte do próprio ajuste), aceita só se o LOSO fica abaixo de L. |
+| R5 | SLX pela regra da Parte 14 (Moran cai), aceito só se o LOSO fica abaixo de L. Em 2026 a 50 e 67 % e em 2022 a 67 % o MAE com SLX ficou acima do MAE sem SLX; [fact: `src/desenho_parcial.py`, R5] o SLX foi aceito porque a regra exige queda do I de Moran e LOSO ≤ L, não queda do MAE. |
+| R6 | ESF, krigagem e CAR não são retestados: o 02 os rejeitou e eles só acrescentariam termos. |
+| R7 | σ_UF = RMS dos erros em logit do LOSO do desenho final do corte (cai de 0,137 em 2026 a 5 % para 0,052 a 90 %; 2022: 0,133 a 0,106). |
+
+**Falhas.** Uma dobra com `LinAlgError` ou separação perfeita é pulada e registrada; um corte sem desenho conta como
+falha do modelo na regra de utilidade (seção 1). Nenhuma UF foi pulada nos 12 cortes e disp e SLX foram aceitos em todos.
+
+**Entradas.** O 03 não lê mais `final_decisao.json` nem `final_cobertura.csv`; lê só a base municipal (covariáveis
+pré-turno) e `tse_bweb`. O desenho de cada corte fica em `results/tables/apuracao_desenho.csv`.
+
+**Por que manter o modelo por corte.** Ele responde à pergunta da noite da apuração: o que se pode saber naquele
+momento, só com o que já foi contado. Um desenho fixo escolhido depois do resultado não responde a isso.
+
+**Efeito do vazamento (antes → depois).**
+
+| Medida | Antes | Depois |
+|---|---|---|
+| Brasil dentro do IC (12 cortes) | 11 | 12 |
+| Regiões dentro do IC (60 itens) | 50 | 55 |
+| Largura média do IC do Brasil, 2022 / 2026 (p.p.) | 1,29 / 1,15 | 2,18 / 1,51 |
+| Vitórias no MAE regional contra bruta e swing, 2022 / 2026 | 4 de 6 / 5 de 6 | 4 de 6 / 6 de 6 |
+| 2022 a 5 %: erro do Brasil (p.p.) | 0,324 | 0,725 |
+| 2022 a 10 %: erro do Brasil (p.p.) | 0,723 | 1,187 |
+| 2026 a 5 %: erro do Brasil / largura do IC (p.p.) | 1,119 / 1,85 | 1,022 / 3,79 |
+
+- [fact] De 50 % em diante as estimativas mudaram no máximo 0,010 p.p. (2022 a 90 %: 0,094 → 0,086).
+- [fact] A 5 % de 2026 o modelo ainda perde para a bruta no Brasil (1,022 contra 0,965 p.p.); a perda vem do viés de
+  Centro-Oeste (erro regional +2,36) e Nordeste (+2,20, fora do IC), não do vazamento: o erro mudou só 0,097 p.p.
+- [deduced] Os erros baixos de 2022 a 5 e 10 % vinham do desenho escolhido com o resultado final. [assumed] Parte pode
+  ser acaso de um só ano.
+- [deduced] O IC largo vem de σ_UF e da dispersão do desenho do corte. [assumed] A causa de fundo do viés a 5 %
+  (composição da apuração inicial, que não cobre Centro-Oeste e Nordeste) não foi testada.

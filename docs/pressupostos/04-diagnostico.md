@@ -107,17 +107,17 @@ Parte 10 do `02-MLG`: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo
 
 ## 8. Pressupostos dos modelos escolhidos (Passo 6)
 
-`bb_selecao` (menor BIC pela regra de 1 EP; 20 parâmetros) e `bb_slx` (modelo final, θᵢ por município; 38 parâmetros) passam pela bateria completa. Tabelas `results/tables/diag_final_*.csv`; figuras `results/figures/diag_final_*.png`.
+`bb_selecao` (menor BIC pela regra de 1 EP; 19 parâmetros) e `bb_slx` (modelo final, θᵢ por município; 37 parâmetros) passam pela bateria completa. Tabelas `results/tables/diag_final_*.csv`; figuras `results/figures/diag_final_*.png`.
 
 **Referências do método:** ligação (Pregibon, 1980; Hinkley, 1985); GVIF (Fox e Monette, 1992); número de condição (Belsley, Kuh e Welsch, 1980).
 
 **Decisões.** As 7 regras abaixo foram fixadas antes dos resultados. Os testes são diagnóstico: nenhum modelo muda, e os remédios vão para [12-pendencias.md](12-pendencias.md). Inferência dos testes com covariância de Conley a 200 km (corte de [08](08-dependencia-espacial.md)), porque os resíduos são espacialmente dependentes (8.5).
 
-**Os φ e θ daqui não são os de 21,24 e 651.** Aqui, φ de Pearson é o do π̂ de cada beta-binomial lido como binomial, dividido por N − p: 23,9 (`bb_selecao`; o do `bb_slx` não foi recalculado após a nova seleção); θ é a mediana dos θᵢ: 648 para `bb_selecao` (θ constante; o do `bb_slx` não foi recalculado). Os 21,24 e 651 de [01](01-visao-geral.md) e [03](03-modelos-candidatos.md) são de outros modelos: φ do `bin_logit` e θ constante do `bb_logit`. Não há conflito; só não são comparáveis.
+**Os φ e θ daqui não são os de 21,24 e 651.** Aqui, φ de Pearson é o do π̂ de cada beta-binomial lido como binomial, dividido por N − p: 24,2 (`bb_selecao`, `comparacao_modelos.csv`; o do `bb_slx` não foi recalculado); θ é a mediana dos θᵢ: 648 para `bb_selecao` (θ constante; o do `bb_slx` não foi recalculado). Os 21,24 e 651 de [01](01-visao-geral.md) e [03](03-modelos-candidatos.md) são de outros modelos: φ do `bin_logit` e θ constante do `bb_logit`. Não há conflito; só não são comparáveis.
 
 | # | Regra fixada | Veredito `bb_selecao` / `bb_slx` |
 |---|---|---|
-| 1 | Ligação: η̂² padronizado como covariável extra, Wald com Conley; sinaliza se p < 0,05; efeito = P95 e máx. de \|Δπ̂\| | `bb_selecao` não sinaliza (p = 0,098); `bb_slx` sinaliza |
+| 1 | Ligação: η̂² padronizado como covariável extra, Wald com Conley; sinaliza se p < 0,05; efeito = P95 e máx. de \|Δπ̂\| | `bb_selecao` não sinaliza (p = 0,095); `bb_slx` sinaliza |
 | 2 | Linearidade, uma covariável por vez (resíduo parcial em 20 faixas e spline natural de 4 gl): material se p < 0,05 **e** P95 de \|Δπ̂\| ≥ 0,5 p.p. | só `pct_pretos_pardos` falha |
 | 3 | Distribuição: resíduos quantílicos (rng = 0), QQ, envelope B = 49 | escala ok; formato falha |
 | 4 | Variância: DP por região e por quintil de n; Spearman de \|r\| com η̂ e log n | `bb_slx` ok; `bb_selecao` heterogêneo |
@@ -127,11 +127,11 @@ Parte 10 do `02-MLG`: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo
 
 ### 8.1 Ligação
 
-Coeficiente de η̂²: -0,0054 (p Conley 0,098; p do modelo < 0,001) / -0,0076 (p Conley 0,0076). P95 de \|Δπ̂\| = 0,17 / 0,25 p.p.; máximo 0,32 / 0,41 p.p.; ganho de log-verossimilhança 6,8 / 13,7. **Não sinalizada em `bb_selecao`; sinalizada em `bb_slx`**, pela regra. O efeito é pequeno (abaixo de 0,5 p.p.), mas sistemático no `bb_slx`; remédio possível, não aplicado: ligação paramétrica (pendência).
+Coeficiente de η̂²: -0,0054 (p Conley 0,095; p do modelo < 0,001) / -0,0076 (p Conley 0,007). P95 de \|Δπ̂\| = 0,17 / 0,25 p.p.; máximo 0,33 / 0,41 p.p.; ganho de log-verossimilhança 7,0 / 13,9. **Não sinalizada em `bb_selecao`; sinalizada em `bb_slx`**, pela regra. O efeito é pequeno (abaixo de 0,5 p.p.), mas sistemático no `bb_slx`; remédio possível, não aplicado: ligação paramétrica (pendência).
 
 ### 8.2 Linearidade
 
-13 covariáveis contínuas por modelo (a defasagem e as 12 selecionadas). Com p Conley < 0,05: 5 (`bb_selecao`) e 8 (`bb_slx`), quase todas de efeito pequeno. Material pela regra: só `pct_pretos_pardos` (P95 0,64 / 0,63 p.p.; máximo 1,35 / 1,52 p.p.). O maior P95 entre as demais é 0,45 p.p. (`cobertura_pbf` e `pct_sem_religiao` em `bb_selecao`; `pct_sem_religiao` chega a 0,49 em `bb_slx`), abaixo do corte de 0,5. O p-valor sozinho não decide: com N = 5.570 detecta curvaturas sem importância prática, por isso o critério de tamanho.
+13 covariáveis contínuas por modelo (a defasagem e as 12 selecionadas). Com p Conley < 0,05: 5 (`bb_selecao`) e 9 (`bb_slx`); `nao_linear` só em `pct_pretos_pardos`, quase todas de efeito pequeno. Material pela regra: só `pct_pretos_pardos` (P95 0,64 / 0,63 p.p.; máximo 1,34 / 1,52 p.p.). O maior P95 entre as demais é 0,45 p.p. (`cobertura_pbf` e `pct_sem_religiao` em `bb_selecao`; `pct_sem_religiao` chega a 0,49 em `bb_slx`), abaixo do corte de 0,5. O p-valor sozinho não decide: com N = 5.570 detecta curvaturas sem importância prática, por isso o critério de tamanho.
 
 ### 8.3 Distribuição
 
@@ -139,33 +139,33 @@ Coeficiente de η̂²: -0,0054 (p Conley 0,098; p do modelo < 0,001) / -0,0076 (
 |---|---|---|---|---|---|
 | `bb_reglag` (referência, seção 1) | 1,03 | -0,49 | 3,67 | 4,79 | 0,97 |
 | `bb_selecao` | 1,03 | -0,53 | 3,77 | 4,87 | 0,99 |
-| `bb_slx` | 1,02 | -0,43 | 2,24 | 5,01 | 0,84 |
+| `bb_slx` | 1,02 | -0,43 | 2,24 | 4,96 | 0,86 |
 
 Envelope (B = 49), % de pontos fora / acima / abaixo da banda:
 
 | modelo | fora | acima | abaixo |
 |---|---|---|---|
 | `bb_reglag` | 92,4 | 4,38 | 88,0 |
-| `bb_selecao` | 92,7 | 4,97 | 87,7 |
-| `bb_slx` | 77,8 | 6,09 | 71,7 |
+| `bb_selecao` | 92,7 | 4,90 | 87,8 |
+| `bb_slx` | 74,6 | 5,58 | 69,0 |
 
 A dispersão por região baixa a curtose (3,77 para 2,24), mas o padrão "corpo abaixo da banda, caudas acima" persiste. O envelope não valida a distribuição (pendência). A escala está certa (dp ≈ 1).
 
 ### 8.4 Variância
 
-`bb_selecao`: DP por região de 0,82 (Sudeste) a 1,39 (Norte); por quintil de n, Q5 = 0,88. Spearman de \|r\| com η̂ = 0,106 e com log n = -0,081. `bb_slx`: DP por região de 0,99 a 1,07; Q5 = 0,99; Spearman 0,002 e -0,006. Conclusão: a dispersão por região e log n ([07](07-dispersao-regional.md)) resolve a heterogeneidade; a mesma correção explica por que a curtose cai.
+`bb_selecao`: DP por região de 0,82 (Sudeste) a 1,39 (Norte); por quintil de n, Q5 = 0,88. Spearman de \|r\| com η̂ = 0,106 e com log n = -0,081. `bb_slx`: DP por região de 0,99 a 1,07; Q5 = 0,99; Spearman 0,002 e -0,007. Conclusão: a dispersão por região e log n ([07](07-dispersao-regional.md)) resolve a heterogeneidade; a mesma correção explica por que a curtose cai.
 
 ### 8.5 Independência espacial
 
-I de Moran = 0,334 (`bb_selecao`) e 0,347 (`bb_slx`), z simulado 42,3 e 43,8, p simulado 0,001 (o mínimo com 999 permutações). Falha nos dois; o SLX não remove a autocorrelação ([08](08-dependencia-espacial.md)). A correlação residual é tratada na inferência pelo erro-padrão de Conley, não aqui.
+I de Moran = 0,334 (`bb_selecao`) e 0,348 (`bb_slx`), z simulado 42,3 e 43,8, p simulado 0,001 (o mínimo com 999 permutações). Falha nos dois; o SLX não remove a autocorrelação ([08](08-dependencia-espacial.md)). A correlação residual é tratada na inferência pelo erro-padrão de Conley, não aqui.
 
 ### 8.6 Colinearidade do `bb_slx`
 
-Número de condição de Belsley 21,3 (32 colunas). Sete de 28 fatores acima de 10: `w_pct_pretos_pardos` 28,5; `pct_pretos_pardos` 24,0; `w_cobertura_pbf` 17,4; `w_lag` 16,5; `w_pct_16_24` 13,7; `lag` 11,7; `w_log_dens` 10,1. Região: GVIF 31,6 com 3 gl, ajustado 1,78 (limite 3,16); bloco 1,04 ajustado. Razão: cada covariável compartilha informação com a própria defasagem espacial (VIF médio 8,9 nas `w_*` contra 6,5 nas próprias). **Efeito:** a leitura de coeficientes individuais desses termos é frágil; previsão e Wald conjunto não são afetados, e o ganho do SLX foi medido por validação cruzada, não por coeficientes.
+Número de condição de Belsley 21,3 (31 colunas). Sete de 28 fatores acima de 10: `w_pct_pretos_pardos` 28,5; `pct_pretos_pardos` 24,0; `w_cobertura_pbf` 17,4; `w_lag` 16,5; `w_pct_16_24` 13,7; `lag` 11,7; `w_log_dens` 10,1. Região: GVIF 31,6 com 3 gl, ajustado 1,78 (limite 3,16); bloco 1,07 ajustado. Razão: cada covariável compartilha informação com a própria defasagem espacial (VIF médio 8,9 nas `w_*` contra 6,5 nas próprias). **Efeito:** a leitura de coeficientes individuais desses termos é frágil; previsão e Wald conjunto não são afetados, e o ganho do SLX foi medido por validação cruzada, não por coeficientes.
 
 ### 8.7 Influência
 
-Os 10 maiores Cook de um passo são municípios pequenos, não capitais: `bb_selecao` lidera Jutaí/AM (0,024), São João das Missões/MG, Uiramutã/RR; `bb_slx`, São João das Missões/MG (0,039), Jutaí/AM (0,027), Brasília/DF (0,022). Reajuste sem os 10: maior mudança 0,69 EP nos dois (`log_theta` e `bloco_outro`); 1 de 20 e 3 de 38 termos acima de 0,5 EP; 0 trocas de sinal. Contraste com o quase-binomial (seção 4: 25 de 32 acima de 0,5 EP).
+Os 10 maiores Cook de um passo são municípios pequenos, não capitais: `bb_selecao` lidera Jutaí/AM (0,025), São João das Missões/MG, Uiramutã/RR; `bb_slx`, São João das Missões/MG (0,040), Jutaí/AM (0,027), Brasília/DF (0,020). Reajuste sem os 10: maior mudança 0,69 EP no `bb_selecao` (`log_theta`) e 0,67 no `bb_slx` (`disp_reg_Norte`); 1 de 19 e 3 de 37 termos acima de 0,5 EP; 0 trocas de sinal. Contraste com o quase-binomial (seção 4: 25 de 32 acima de 0,5 EP).
 
 ### 8.8 Conclusão
 

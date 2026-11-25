@@ -1,0 +1,77 @@
+{
+ "versao": 1,
+ "termos": {
+  "vars": [
+   "lag",
+   "pct_60_mais",
+   "pct_evangelicos",
+   "pct_urbana",
+   "pct_fund_inc",
+   "w_lag",
+   "w_pct_60_mais",
+   "w_pct_evangelicos",
+   "w_pct_urbana",
+   "w_pct_fund_inc"
+  ],
+  "disp": "regiao_logn",
+  "slx": [
+   "lag",
+   "pct_60_mais",
+   "pct_evangelicos",
+   "pct_urbana",
+   "pct_fund_inc"
+  ],
+  "regiao_fundir": [
+   [
+    "Centro-Oeste",
+    "Nordeste",
+    "Norte",
+    "Sudeste"
+   ]
+  ],
+  "bloco_grupos": []
+ },
+ "corte_km": 150.0,
+ "sigma_uf": 0.1261883490266937,
+ "limite": 2.6968172323169566,
+ "mae_pp": {
+  "r1": 2.232529864899813,
+  "disp": 2.1880998545634553,
+  "slx": 1.9921559192166352,
+  "final": 1.9921559192166352
+ },
+ "ep_r1_pp": 0.4642873674171433,
+ "aceitos": {
+  "disp": true,
+  "slx": true
+ },
+ "wald": {
+  "A": 4.377476793566178e-06,
+  "B": 9.411240314485401e-42
+ },
+ "bic_dispersao": {
+  "const": 26906.535121006214,
+  "regiao": 26650.140299136805,
+  "regiao_logn": 26153.391189503862
+ },
+ "n_ufs_loso": 26,
+ "n_municipios": 2127,
+ "tempo_s": 165.23461985588074,
+ "extra": {
+  "corte_r1_km": 100.0,
+  "wald_cortes_km": {
+   "corte_A_km": 150.0,
+   "corte_B_km": 200.0
+  },
+  "ufs_puladas": {
+   "r1": [],
+   "disp": [],
+   "slx": []
+  },
+  "piso_aplicado": {
+   "r1": false,
+   "final": false,
+   "wald": false
+  }
+ }
+}

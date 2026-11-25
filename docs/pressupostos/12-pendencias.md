@@ -85,33 +85,39 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 
 ## Validação
 
-- **Cobertura dos intervalos (27/27 UFs, 5/5 regiões) é otimista**: σ_UF = 0,0558 foi
-  ajustado nas mesmas UFs; com σ = 0 a cobertura é 13/27 no modelo final com Conley
+- **Cobertura dos intervalos (27/27 UFs, 5/5 regiões) é otimista**: σ_UF = 0,0570 foi
+  ajustado nas mesmas UFs (a cobertura IC90 por UF caiu de 96,3 % para 92,6 % com a rodada atual);
+  com σ = 0 a cobertura é 13/27 no modelo final com Conley
   ([09](09-modelo-final.md), seção 4). Correção: σ_UF por validação aninhada.
 - **Erro regional LOSO favorece binomiais canônicas por construção** ([05](05-validacao-cruzada.md), seção 6);
   não serve para seleção.
 - **13 modelos dentro de 1 EP**: os dados não os separam com clareza [deduced]. A escolha
   de `bb_selecao` repousa na regra de parcimônia, não numa vantagem demonstrada.
-  O modelo final `bb_slx` (LOSO 1,060) fica acima de `bb_selecao` (0,994), dentro da
+  O modelo final `bb_slx` (LOSO 1,073) fica acima de `bb_selecao` (1,005), dentro da
   tolerância de 1,2088.
 
 - **[resolvida] LOSO vazava o 2º turno da UF retida** (comparecimento e n reais de 2026).
   Agora o modelo usa só covariáveis anteriores ao turno e o LOSO pesa a UF retida por n̂
   ([09](09-modelo-final.md), seção 1); as métricas das Partes 11 e 13 a 17 são ponderadas
-  por n̂. O limite de aceitação passou a 1,1358 (LOSO sem vazamento) e, com a seleção aninhada, a 1,2088.
-- **σ_UF (0,0558) também é ajustado nas mesmas 27 UFs**; mesma limitação da cobertura
+  por n̂. O limite de aceitação passou a 1,1358 (LOSO sem vazamento, valor da época) e, com a seleção aninhada, a 1,2088.
+- **σ_UF (0,0570) também é ajustado nas mesmas 27 UFs**; mesma limitação da cobertura
   otimista acima. Correção: validação aninhada.
 - **[resolvida] Seleção de variáveis e fusão Nordeste + Norte usavam o 2º turno de todas as UFs**,
-  o que tornava otimista o LOSO do `bb_selecao` (0,994). Refeitas dentro de cada dobra: 1,067;
+  o que tornava otimista o LOSO do `bb_selecao` (1,005). Refeitas dentro de cada dobra: 1,067;
   a escolha não muda e L passa a 1,2088 ([05](05-validacao-cruzada.md), seção 8).
 - **Extensões com a seleção dos dados completos.** `bb_disp`, `bb_slx` e as rejeitadas herdam
   as variáveis do `bb_selecao` escolhidas com todas as UFs; contra um L aninhado o limite é
-  mais folgado. Nenhuma decisão está perto dele (`bb_slx` 1,060 contra 1,2088). Correção:
+  mais folgado. Nenhuma decisão está perto dele (`bb_slx` 1,073 contra 1,2088). Correção:
   refazer a seleção dentro de cada dobra para as extensões.
 - **[resolvida] Cenário de apuração parcial (ordem real das seções)**: Parte 18, em
   [11](11-apuracao-parcial.md).
-- **σ_UF e corte de Conley de 2026 reusados na apuração parcial de 2022** (sem LOSO próprio).
-  Correção: ajustar σ_UF e o corte para 2022 ([11](11-apuracao-parcial.md)).
+- **[resolvida] σ_UF e corte de Conley de 2026 reusados na apuração parcial de 2022.** Cada
+  (ano, corte) tem agora o seu, só do apurado ([11](11-apuracao-parcial.md), seção 9).
+- **Piso de 1 km do corte de Conley nos cortes iniciais da apuração parcial** (2026 a 5 % e,
+  na etapa R1, a 10 %): Conley com 1 km equivale a HC0 e ignora a correlação espacial, então
+  o IC desses cortes tende a ser estreito demais quanto à dependência espacial.
+  Correção: testar outro piso ou outro estimador para amostras apuradas pequenas
+  ([11](11-apuracao-parcial.md), seção 8).
 
 - **Krigagem: o corte do correlograma (CORTE) vem dos resíduos dentro da amostra com todos
   os dados** (Parte 15, c. 20) e é reusado como alcance da krigagem (c. 33). Efeito:
@@ -132,8 +138,8 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   0,05 p.p. ([11](11-apuracao-parcial.md), seções 3 e 6).
 - **Descasamento de θ na apuração parcial**: θ é avaliado em log(n_u), fora da faixa de
   log n do ajuste (n apurado); o erro de θ é ignorado (só o bloco β da covariância de
-  Conley é sorteado); σ_UF da Parte 16 é reusado, não reestimado por corte
-  ([11](11-apuracao-parcial.md), seção 8).
+  Conley é sorteado); σ_UF vem do LOSO do desenho de cada corte
+  ([11](11-apuracao-parcial.md), seções 8 e 9).
 
 ## Backtest
 
@@ -170,12 +176,14 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **[resolvida] Referência do SLX.** Halleck Vega e Elhorst (2015) conferida (DOI
   10.1111/jors.12188) e incluída em `referencias.md` e em
   [08](08-dependencia-espacial.md), seção 3.
-- **Bloco do prefeito fora da regra de fusão.** Com as 13 variáveis, a regra da Parte 8 funde
-  centro (p = 0,474) e sem prefeito (p = 0,083) na direita e deixa só a esquerda separada
-  (p = 8e-6), mas os modelos ajustados seguem com `bloco_outro` (centro + sem prefeito) como
-  nível próprio (`BLOCOS_PADRAO`), herdado da seleção anterior. Efeito: 1 parâmetro a mais e
-  modelos que não seguem a regra escrita. Correção: fazer os modelos usarem o bloco que a regra
-  escolhe e rodar de novo `02-MLG` e `03-apuracao-parcial`.
+- **[resolvida] Bloco do prefeito e fusão de níveis.** A fusão região/bloco vale só para a
+  linhagem `bb_selecao` (passo de seleção); `bloco_outro` deixou de existir nela. A Parte 6 mantém
+  `BLOCOS_PADRAO` de propósito: compara famílias numa especificação fixa ([03](03-modelos-candidatos.md), [09](09-modelo-final.md)).
+  Os p-valores antigos do passo de fusão (0,236; 0,474; 0,083) não aparecem em nenhuma saída da
+  rodada atual e não foram reproduzidos; quem citar esses valores deve tratá-los como de rodada anterior.
+- **Inconsistências no markdown do `02-MLG` (a corrigir no notebook).** A célula da Parte 6 diz que
+  `bin_probit` é o melhor (0,998; 13 de 18), contra o CSV e a célula seguinte (`bb_selecao`, 1,005); outra
+  cita 11 contínuas, e são 12 além do lag.
 - **Texto dos notebooks com números antigos.** Parte do markdown do `02-MLG` (ex.: seção 8, com
   p = 0,921 e 0,466, e a seção 8.3, com 11 contínuas e BIC 72.844,9) ainda cita a rodada
   anterior; as tabelas e figuras geradas estão certas. Correção: revisar o markdown contra as

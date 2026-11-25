@@ -40,10 +40,10 @@ def test_tabela_legenda_formatos_e_indice_oculto() -> None:
     sty = SA.tabela(df, "Resumo", numero="3", pct=["a"], inteiros=["n"], pvalor=["p"],
                     nota="fonte X", indice=False)
     html = sty.to_html()
-    assert "Tabela 3 — Resumo" in html and "fonte X" in html
+    assert "Tabela 3: Resumo" in html and "fonte X" in html
     assert "12,3%" in html and "1.234" in html
     assert "&lt;0,001" in html or "<0,001" in html
-    assert "—" in html and "0,500" in html
+    assert ">-<" in html and "0,500" in html
     assert 'class="row_heading' not in html
     assert "Resumo" in SA.tabela(df, "Resumo").to_html()
     assert "Tabela" not in SA.tabela(df, "Resumo").to_html()
@@ -78,6 +78,6 @@ def test_salvar_json_utf8_indentado_e_default_str(tmp_path: Path) -> None:
 def test_legenda_e_nota_escapam_html_e_pvalor_mostra_menor_que() -> None:
     df = pd.DataFrame({"p": [0.0001, 0.5]})
     html = SA.tabela(df, "Breslow-Day (p < 0,001)", numero="6", pvalor=["p"], nota="a<b & c").to_html()
-    assert "Tabela 6 — Breslow-Day (p &lt; 0,001)" in html
+    assert "Tabela 6: Breslow-Day (p &lt; 0,001)" in html
     assert "a&lt;b &amp; c" in html
     assert ">&lt;0,001</td>" in html and ">0,500</td>" in html

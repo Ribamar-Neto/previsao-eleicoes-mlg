@@ -30,7 +30,7 @@ resultados e agregar as previsões às 5 regiões.
   vêm de previsões leave-one-state-out (LOSO). O LOSO não usa o 2º turno da UF retida: só
   covariáveis anteriores ao turno, e a UF retida é pesada por n̂ ([09](09-modelo-final.md)).
 - **Nordeste e Norte têm a mesma média.** A região entra na média com os dois fundidos
-  (teste de igualdade, p = 0,236); no bloco do prefeito a regra funde centro e sem prefeito com a direita e deixa a esquerda separada (p = 8e-6). A dispersão
+  (a igualdade não é rejeitada, [03](03-modelos-candidatos.md) seção 8.1); no bloco do prefeito a regra funde centro e sem prefeito com a direita e deixa a esquerda separada (p = 8e-6). A dispersão
   mantém as 5 regiões ([03](03-modelos-candidatos.md), [07](07-dispersao-regional.md)).
 - **GLMM com PQL próprio**, porque o `BinomialBayesMixedGLM` do statsmodels só aceita
   resposta 0/1.
@@ -86,43 +86,48 @@ correlacionados, então treino e teste teriam vizinhos e o erro ficaria subestim
    AIC, Hosmer-Lemeshow e todos os subconjuntos são comparações ([03](03-modelos-candidatos.md)).
 5. Uma extensão do modelo escolhido só é aceita se melhora o seu diagnóstico **e** o MAE por UF
    no LOSO não passa de L = MAE aninhado de `bb_selecao` (seleção refeita em cada dobra) + EP do melhor modelo LOSO =
-   1,0669 + 0,1419 = **1,2088 p.p.** (1,1358 sem aninhar).
+   1,0669 + 0,1419 = **1,2088 p.p.** (1,1472 sem aninhar).
 
 O erro regional LOSO não é critério, porque favorece por construção as binomiais canônicas
 ([05](05-validacao-cruzada.md), seção 6).
 
 ## Resultados finais
 
-- Treze modelos ficam dentro de 1 EP do melhor (`bb_selecao`, 0,994 p.p., EP 0,154; limite
-  1,148). A regra escolhe `bb_selecao` (20 parâmetros, MAE por UF 0,994 p.p., EP 0,154); o
+- Treze modelos ficam dentro de 1 EP do melhor (`bb_selecao`, 1,005 p.p., EP 0,158; limite
+  1,164). A regra escolhe `bb_selecao` (19 parâmetros, MAE por UF 1,005 p.p., EP 0,158); o
   segundo é `bin_logit` (1,009) ([05](05-validacao-cruzada.md)).
 - Resíduos quantílicos: DP 1,03 na beta-binomial e 3,42 na binomial.
 - Sem os 10 municípios mais influentes (capitais), `bb_reglag` muda no máximo 0,18 EP;
   `quasi_reglag` muda 9,5 EP.
 
-Refinamento (Partes 13 a 17 do `02-MLG`): `bb_selecao` virou o modelo final `bb_slx` (38 parâmetros):
-dispersão por região e log n (`bb_disp`; [07](07-dispersao-regional.md); aceita, LOSO 0,986,
-confirmada por Wald robusto) mais covariáveis defasadas espacialmente, SLX (LOSO 1,060 ≤ 1,2088,
-acima do 0,994 de `bb_selecao`; I de Moran dos resíduos só de 0,352 para 0,347). O filtro de
-autovetores foi rejeitado (LOSO 1,575) e a inferência usa EPs de Conley a 200 km, corte
+Refinamento (Partes 13 a 17 do `02-MLG`): `bb_selecao` virou o modelo final `bb_slx` (37 parâmetros):
+dispersão por região e log n (`bb_disp`; [07](07-dispersao-regional.md); aceita, LOSO 0,996,
+confirmada por Wald robusto) mais covariáveis defasadas espacialmente, SLX (LOSO 1,073 ≤ 1,2088,
+acima do 1,005 de `bb_selecao`; I de Moran dos resíduos só de 0,353 para 0,348). O filtro de
+autovetores foi rejeitado (LOSO 1,584) e a inferência usa EPs de Conley a 200 km, corte
 conferido com 2022 ([08](08-dependencia-espacial.md)). Krigagem e CAR nos resíduos foram
-rejeitadas (queda do I de 0,0006 e 0,0304, abaixo do mínimo de 0,05;
+rejeitadas (queda do I de 0,0005 e 0,0311, abaixo do mínimo de 0,05;
 [10](10-extensoes-rejeitadas.md)). O modelo final segue `bb_slx`.
 
-Estimativas regionais do modelo final (LOSO, Conley + σ_UF = 0,0558), Lula %, cenário "UF
+Estimativas regionais do modelo final (LOSO, Conley + σ_UF = 0,0570), Lula %, cenário "UF
 inédita" ([09](09-modelo-final.md)):
 
 | Região | Estimado | IC 95% | Real |
 |---|---|---|---|
-| Centro-Oeste | 40,02 | [38,6; 41,6] | 39,99 |
-| Nordeste | 69,57 | [68,6; 70,4] | 69,37 |
+| Centro-Oeste | 39,96 | [38,4; 41,4] | 39,99 |
+| Nordeste | 69,58 | [68,6; 70,5] | 69,37 |
 | Norte | 49,28 | [47,8; 50,8] | 50,01 |
-| Sudeste | 47,92 | [46,3; 49,6] | 47,24 |
-| Sul | 36,93 | [35,4; 38,5] | 37,42 |
+| Sudeste | 47,94 | [46,3; 49,6] | 47,24 |
+| Sul | 36,92 | [35,4; 38,4] | 37,42 |
 | Brasil | 51,82 | [51,2; 52,5] (90%) | 51,78 |
 
-MAE por UF 1,060 p.p. no LOSO (0,830 no 5-fold); MAE regional 0,427 p.p.
+MAE por UF 1,073 p.p. no LOSO (0,846 no 5-fold); MAE regional 0,431 p.p.
 
-Apuração parcial na ordem real das seções (Parte 18): [11](11-apuracao-parcial.md).
+Apuração parcial na ordem real das seções (Parte 18): [11](11-apuracao-parcial.md). O desenho do
+modelo é refeito em cada corte só com os municípios já apurados (antes usava o desenho final,
+escolhido com o resultado de 2026: vazamento). Resultado: o IC95 do Brasil cobre o final nos 12
+cortes (antes 11), as regiões em 55 de 60 itens (antes 50), com IC mais largos (Brasil, média
+2,18 p.p. em 2022 e 1,51 em 2026); o modelo é útil nos dois anos (4 de 6 e 5 de 6 cortes) e a
+5 % de 2026 ainda perde para a contagem bruta no Brasil (1,02 contra 0,97 p.p.).
 
 Pendências: [12-pendencias.md](12-pendencias.md). Referências: [referencias.md](referencias.md).

@@ -1,11 +1,11 @@
 ano,corte,vence_brasil,vence_regional,vence
-2022,5,True,False,False
+2022,5,False,False,False
 2022,10,True,False,False
 2022,25,True,True,True
 2022,50,True,True,True
 2022,67,True,True,True
 2022,90,True,True,True
-2026,5,False,False,False
+2026,5,False,True,False
 2026,10,True,True,True
 2026,25,True,True,True
 2026,50,True,True,True

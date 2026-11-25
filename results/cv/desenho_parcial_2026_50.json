@@ -1,0 +1,101 @@
+{
+ "versao": 1,
+ "termos": {
+  "vars": [
+   "lag",
+   "pct_dep_esq",
+   "comparecimento",
+   "log_dens",
+   "pct_mulheres",
+   "pct_16_24",
+   "cobertura_pbf",
+   "pct_pretos_pardos",
+   "pct_urbana",
+   "pct_sem_religiao",
+   "pct_indigenas",
+   "w_lag",
+   "w_pct_dep_esq",
+   "w_comparecimento",
+   "w_log_dens",
+   "w_pct_mulheres",
+   "w_pct_16_24",
+   "w_cobertura_pbf",
+   "w_pct_pretos_pardos",
+   "w_pct_urbana",
+   "w_pct_sem_religiao",
+   "w_pct_indigenas"
+  ],
+  "disp": "regiao_logn",
+  "slx": [
+   "lag",
+   "pct_dep_esq",
+   "comparecimento",
+   "log_dens",
+   "pct_mulheres",
+   "pct_16_24",
+   "cobertura_pbf",
+   "pct_pretos_pardos",
+   "pct_urbana",
+   "pct_sem_religiao",
+   "pct_indigenas"
+  ],
+  "regiao_fundir": [
+   [
+    "Nordeste",
+    "Norte"
+   ],
+   [
+    "Centro-Oeste",
+    "Sudeste"
+   ]
+  ],
+  "bloco_grupos": [
+   [
+    "esquerda"
+   ]
+  ]
+ },
+ "corte_km": 200.0,
+ "sigma_uf": 0.05529795068026082,
+ "limite": 1.1964411551421537,
+ "mae_pp": {
+  "r1": 1.0144112055588492,
+  "disp": 0.9826374279469128,
+  "slx": 1.032056846725704,
+  "final": 1.032056846725704
+ },
+ "ep_r1_pp": 0.18202994958330435,
+ "aceitos": {
+  "disp": true,
+  "slx": true
+ },
+ "wald": {
+  "A": 1.7737639744254018e-06,
+  "B": 9.864140116109167e-40
+ },
+ "bic_dispersao": {
+  "const": 55410.859116933316,
+  "regiao": 55135.28206965492,
+  "regiao_logn": 54374.157972771856
+ },
+ "n_ufs_loso": 26,
+ "n_municipios": 4159,
+ "tempo_s": 255.85963034629822,
+ "extra": {
+  "corte_r1_km": 200.0,
+  "wald_cortes_km": {
+   "corte_A_km": 200.0,
+   "corte_B_km": 200.0
+  },
+  "ufs_puladas": {
+   "r1": [],
+   "disp": [],
+   "slx": []
+  },
+  "piso_aplicado": {
+   "r1": false,
+   "final": false,
+   "wald": false
+  }
+ }
+}
