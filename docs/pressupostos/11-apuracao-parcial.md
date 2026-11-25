@@ -105,9 +105,9 @@ apurado por região. Cobertura nominal 95 % (5 regiões + Brasil, 6 itens por co
 | 2022 | 1,00 | 1,00 | 1,00 | 1,00 | 1,00 | 0,83 |
 | 2026 | 0,83 | 1,00 | 1,00 | 0,83 | 0,83 | 0,83 |
 
-O Brasil fica dentro do intervalo nos 12 cortes. As regiões (5 por corte) cobrem 29 de 30 em 2022 e 26 de 30 em 2026
-(55 de 60). Largura média do Brasil: 2,18 p.p. em 2022 e 1,51 em 2026; máxima 3,45 (2022 a 10 %) e 3,79 (2026 a 5 %);
-mínima 0,42 (2022 a 90 %) e 0,23 (2026 a 90 %). Largura média regional: 3,14 (2022) e 2,22 (2026).
+O Brasil fica dentro do intervalo nos 12 cortes. As regiões (5 por corte) cobrem 29 de 30 em 2022 e 27 de 30 em 2026
+(56 de 60). Largura média do Brasil: 2,18 p.p. em 2022 e 1,47 em 2026; máxima 3,45 (2022 a 10 %) e 3,53 (2026 a 5 %);
+mínima 0,42 (2022 a 90 %) e 0,23 (2026 a 90 %). Largura média regional: 3,14 (2022) e 2,21 (2026).
 
 **Cobertura por unidade e ano, n_u fixo contra n_u simulado** (cortes cobertos de 6; variação mediana da largura em p.p.;
 `results/tables/apuracao_cobertura_unidade.csv`). Os 6 cortes são aninhados no tempo e as unidades são correlacionadas:
@@ -115,16 +115,16 @@ a tabela é descritiva, não um teste de calibração, e não se soma entre unid
 
 | Unidade | 2022 fixo | 2022 simulado | Δ largura | 2026 fixo | 2026 simulado | Δ largura |
 |---|---|---|---|---|---|---|
-| Brasil | 6 | 6 | +0,037 | 6 | 6 | +0,038 |
+| Brasil | 6 | 6 | +0,037 | 6 | 6 | +0,073 |
 | Centro-Oeste | 6 | 6 | -0,014 | 6 | 6 | +0,007 |
-| Nordeste | 6 | 6 | +0,015 | 5 | 5 | -0,005 |
-| Norte | 5 | 5 | +0,062 | 3 | 3 | +0,045 |
-| Sudeste | 6 | 6 | +0,046 | 6 | 6 | -0,008 |
+| Nordeste | 6 | 6 | +0,015 | 6 | 5 | -0,019 |
+| Norte | 5 | 5 | +0,062 | 3 | 3 | +0,057 |
+| Sudeste | 6 | 6 | +0,046 | 6 | 6 | +0,035 |
 | Sul | 6 | 6 | -0,033 | 6 | 6 | +0,023 |
 
-Resultado: a incerteza de n_u não muda nenhuma contagem de cortes cobertos e quase não muda os intervalos (|Δ| < 0,07 p.p.
-contra larguras de 0,23 a 3,8 p.p.). sd_UF no corte de 50 %: 0,031 (2022) e 0,044 (2026). A cobertura baixa do Norte
-(2026: 3 de 6 cortes; 2022: 5) e do Nordeste (2026: 5) vem de outra fonte que n_u (θ, representatividade, seção 7).
+Resultado: a incerteza de n_u muda uma só contagem (Nordeste 2026: 6 com n_u fixo, 5 com n_u simulado) e quase não muda os intervalos (|Δ| < 0,08 p.p.
+contra larguras de 0,23 a 3,5 p.p.). sd_UF no corte de 50 %: 0,031 (2022) e 0,044 (2026). A cobertura baixa do Norte
+(2026: 3 de 6 cortes; 2022: 5) vem de outra fonte que n_u (θ, representatividade, seção 7).
 
 Os votos já apurados dos municípios fora do modelo entram uma vez só, no apurado; o termo fixo
 desses municípios é só π_UF x n_u. Antes eram somados duas vezes (só Boa Esperança do Norte, MT,
@@ -148,10 +148,14 @@ reais do restante, nos 20 maiores municípios (capitais e grandes cidades) contr
 
 - O desenho de cada corte vem de poucos municípios nos cortes iniciais (1,4 mil a 2,1 mil de 5,5 mil), com LOSO
   em 24 a 26 UFs; σ_UF e o corte de Conley têm mais ruído ali ([12](12-pendencias.md)).
-- **Piso de 1 km do corte de Conley:** a 5 % de 2026 (corte final) e a 10 % de 2026 (só na etapa R1; o corte final
-  é 50 km) a regra da Parte 15 deu 0 e o piso de 1 km foi aplicado. Conley com 1 km equivale a HC0, isto é, sem
-  correlação espacial: os IC desses cortes ignoram a dependência espacial dos resíduos
-  ([12](12-pendencias.md)).
+- **Corte de referência de 200 km (substitui o piso de 1 km).** Quando a regra da Parte 15 dá 0 km num desenho parcial, o
+  corte é 200 km: a regra aplicada à apuração completa de 2022, conhecida antes do 2º turno de 2026 (sem vazamento).
+  Razão: nenhuma faixa com correlação ≥ 0,05 numa amostra apurada pequena indica poucos pares próximos, não ausência de
+  dependência; com 1 km o Conley seria HC0. Vale para R1, Wald A/B e corte final. Só 2026 a 5 % (corte final: 1 para
+  200 km) e a 10 % (R1 e Wald; o corte final segue 50 km) usaram a regra. A 5 % de 2026 a largura do IC95 (p.p.) foi de
+  3,79 para 3,53 no Brasil, 6,77 para 6,53 no Centro-Oeste, 4,10 para 4,32 no Nordeste (agora dentro do IC), 5,50 para
+  5,50 no Norte, 8,29 para 7,77 no Sudeste e 6,23 para 6,37 no Sul: o corte maior não alargou todos os IC, porque com o
+  núcleo de Bartlett os termos cruzados de municípios próximos podem ser negativos [deduced].
 - A dispersão por log(n) é ajustada com n apurado e usada para prever com n_u (descasamento):
   θ é avaliado em log(n_u), fora da faixa de log n do ajuste; o erro de θ é ignorado (só o
   bloco β da covariância de Conley é sorteado) ([12](12-pendencias.md)).
@@ -177,7 +181,7 @@ refeito só com D, os municípios com votos apurados (alvo = parcela apurada). A
 | Regra | Decisão e razão |
 |---|---|
 | R1 | Covariáveis e fusão de regiões por LRT + BIC passo a passo, com as mesmas funções da seleção aninhada do 02: mesmo critério, só muda o conjunto de dados. Padronização só em D; 2022 sem `delta_comp` (parágrafo inicial). |
-| R2 | Corte de Conley pela regra da Parte 15, nos resíduos do desenho final do corte; piso de 1 km quando a regra dá 0 (o ajuste exige um corte positivo). |
+| R2 | Corte de Conley pela regra da Parte 15, nos resíduos do desenho final do corte; corte de 200 km quando a regra dá 0 (o ajuste exige um corte positivo; seção 8). |
 | R3 | LOSO em D (UFs com 5 ou mais municípios apurados, alvo = parcela apurada da UF). L = MAE do R1 + erro-padrão: mesmo limite da seleção aninhada. |
 | R4 | Dispersão pela regra da Parte 13 (Wald de Conley com o corte do próprio ajuste), aceita só se o LOSO fica abaixo de L. |
 | R5 | SLX pela regra da Parte 14 (Moran cai), aceito só se o LOSO fica abaixo de L. Em 2026 a 50 e 67 % e em 2022 a 67 % o MAE com SLX ficou acima do MAE sem SLX; [fact: `src/desenho_parcial.py`, R5] o SLX foi aceito porque a regra exige queda do I de Moran e LOSO ≤ L, não queda do MAE. |
@@ -198,16 +202,16 @@ momento, só com o que já foi contado. Um desenho fixo escolhido depois do resu
 | Medida | Antes | Depois |
 |---|---|---|
 | Brasil dentro do IC (12 cortes) | 11 | 12 |
-| Regiões dentro do IC (60 itens) | 50 | 55 |
-| Largura média do IC do Brasil, 2022 / 2026 (p.p.) | 1,29 / 1,15 | 2,18 / 1,51 |
+| Regiões dentro do IC (60 itens) | 50 | 56 |
+| Largura média do IC do Brasil, 2022 / 2026 (p.p.) | 1,29 / 1,15 | 2,18 / 1,47 |
 | Vitórias no MAE regional contra bruta e swing, 2022 / 2026 | 4 de 6 / 5 de 6 | 4 de 6 / 6 de 6 |
 | 2022 a 5 %: erro do Brasil (p.p.) | 0,324 | 0,725 |
 | 2022 a 10 %: erro do Brasil (p.p.) | 0,723 | 1,187 |
-| 2026 a 5 %: erro do Brasil / largura do IC (p.p.) | 1,119 / 1,85 | 1,022 / 3,79 |
+| 2026 a 5 %: erro do Brasil / largura do IC (p.p.) | 1,119 / 1,85 | 1,022 / 3,53 |
 
 - [fact] De 50 % em diante as estimativas mudaram no máximo 0,010 p.p. (2022 a 90 %: 0,094 → 0,086).
 - [fact] A 5 % de 2026 o modelo ainda perde para a bruta no Brasil (1,022 contra 0,965 p.p.); a perda vem do viés de
-  Centro-Oeste (erro regional +2,36) e Nordeste (+2,20, fora do IC), não do vazamento: o erro mudou só 0,097 p.p.
+  Centro-Oeste (erro regional +2,36) e Nordeste (+2,20, agora dentro do IC), não do vazamento: o erro mudou só 0,097 p.p.
 - [deduced] Os erros baixos de 2022 a 5 e 10 % vinham do desenho escolhido com o resultado final. [assumed] Parte pode
   ser acaso de um só ano.
 - [deduced] O IC largo vem de σ_UF e da dispersão do desenho do corte. [assumed] A causa de fundo do viés a 5 %

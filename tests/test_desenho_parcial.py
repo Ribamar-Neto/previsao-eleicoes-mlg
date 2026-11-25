@@ -64,7 +64,7 @@ def test_desenho_2022_passa_candidatas_sem_delta_comp(dados: DP.DadosCorte, monk
 
     monkeypatch.setattr(DP, "_selecionar_media", espia)
     with pytest.raises(_Parar):
-        DP.desenho_no_corte(dados, 2022, n_jobs=1)
+        DP.desenho_no_corte(dados, 2022, opcoes=DP.Opcoes(n_jobs=1))
     assert vistas
     assert "delta_comp" not in vistas[0]
 
@@ -147,7 +147,7 @@ def test_desenhos_por_corte_usa_cache(dados: DP.DadosCorte, tmp_path: Path, monk
 
 # --- R1 e decisões R4/R5 ---------------------------------------------------------------------
 def test_r1_devolve_termos_com_lag(dados: DP.DadosCorte) -> None:
-    t = DP._selecionar_media(dados.D, dados.mapa, ("nota_dep", "pct_dep_esq"), 1, "t", lambda m: None)
+    t = DP._selecionar_media(dados.D, dados.mapa, ("nota_dep", "pct_dep_esq"), DP.Opcoes(n_jobs=1, rotulo="t", log=lambda m: None))
     assert isinstance(t, Termos)
     assert t.vars[0] == "lag"
     assert set(t.vars) <= {"lag", "nota_dep", "pct_dep_esq"}
@@ -179,7 +179,7 @@ def _preparar(monkeypatch: pytest.MonkeyPatch, *, disp: str, slx_ok: bool, loso:
 def test_dispersao_rejeitada_se_loso_acima_do_limite(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
     _preparar(monkeypatch, disp="regiao_logn", slx_ok=True,
               loso=_loso_falso({"const": 1.0, "regiao_logn": 5.0}, 1.0))
-    d = DP.desenho_no_corte(dados, 2026, n_jobs=1, candidatas=("nota_dep",))
+    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.termos.disp == "const"
     assert d.aceitos == {"disp": False, "slx": False}
     assert d.mae_pp["disp"] > d.limite
@@ -189,7 +189,7 @@ def test_dispersao_rejeitada_se_loso_acima_do_limite(dados: DP.DadosCorte, monke
 def test_slx_rejeitado_se_loso_acima_do_limite(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
     _preparar(monkeypatch, disp="regiao", slx_ok=True,
               loso=_loso_falso({"const": 1.0, "regiao": 1.0}, 9.0))
-    d = DP.desenho_no_corte(dados, 2026, n_jobs=1, candidatas=("nota_dep",))
+    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.aceitos == {"disp": True, "slx": False}
     assert d.termos.disp == "regiao"
     assert d.termos.slx == ()
@@ -198,7 +198,7 @@ def test_slx_rejeitado_se_loso_acima_do_limite(dados: DP.DadosCorte, monkeypatch
 def test_slx_rejeitado_se_moran_nao_cai(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
     _preparar(monkeypatch, disp="const", slx_ok=False,
               loso=_loso_falso({"const": 1.0}, 0.1))
-    d = DP.desenho_no_corte(dados, 2026, n_jobs=1, candidatas=("nota_dep",))
+    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.aceitos["slx"] is False
     assert "slx" not in d.mae_pp
 
@@ -206,7 +206,7 @@ def test_slx_rejeitado_se_moran_nao_cai(dados: DP.DadosCorte, monkeypatch: pytes
 def test_aceitos_usam_loso_do_desenho_final_no_sigma(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
     f = _loso_falso({"const": 1.0, "regiao": 1.02}, 1.05)
     _preparar(monkeypatch, disp="regiao", slx_ok=True, loso=f)
-    d = DP.desenho_no_corte(dados, 2026, n_jobs=1, candidatas=("nota_dep",))
+    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.aceitos == {"disp": True, "slx": True}
     assert d.termos.slx == ("lag",)
     assert d.sigma_uf == pytest.approx(DP.sigma_uf(f(Candidato("x", "betabin", "logit", d.termos), None, None, 1)))
@@ -216,12 +216,13 @@ def test_aceitos_usam_loso_do_desenho_final_no_sigma(dados: DP.DadosCorte, monke
 
 # --- ponta a ponta com ajustes reais ------------------------------------------------------
 def test_ponta_a_ponta_pequeno(dados: DP.DadosCorte) -> None:
-    d = DP.desenho_no_corte(dados, 2026, n_jobs=1, candidatas=("nota_dep", "pct_dep_esq"), log=lambda m: None)
+    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep", "pct_dep_esq"),
+                            opcoes=DP.Opcoes(n_jobs=1, log=lambda m: None))
     assert isinstance(d.termos, Termos)
     assert d.termos.vars[0] == "lag"
     assert d.n_ufs_loso == 10
     assert d.n_municipios == 100
-    assert d.corte_km >= DP.CORTE_MIN_KM
+    assert d.corte_km > 0
     assert d.sigma_uf > 0
     assert d.limite > d.mae_pp["r1"]
     assert DP.DesenhoParcial.de_dict(d.para_dict()).termos == d.termos
@@ -242,9 +243,9 @@ def test_wald_usa_o_corte_proprio_de_cada_ajuste(dados: DP.DadosCorte, monkeypat
     assert info["corte_B_km"] == 222.0
 
 
-def test_corte_proprio_aplica_piso_e_avisa(monkeypatch: pytest.MonkeyPatch, dados: DP.DadosCorte) -> None:
+def test_corte_proprio_usa_corte_de_referencia_e_avisa(monkeypatch: pytest.MonkeyPatch, dados: DP.DadosCorte) -> None:
     monkeypatch.setattr(S, "corte_de", lambda cg: 0.0)
-    assert DP._corte_proprio(np.random.default_rng(0).normal(size=100), dados.D) == (DP.CORTE_MIN_KM, True)
+    assert DP._corte_proprio(np.random.default_rng(0).normal(size=100), dados.D) == (DP.CORTE_REFERENCIA_KM, True)
     monkeypatch.setattr(S, "corte_de", lambda cg: 200.0)
     assert DP._corte_proprio(np.random.default_rng(0).normal(size=100), dados.D) == (200.0, False)
 
@@ -252,7 +253,7 @@ def test_corte_proprio_aplica_piso_e_avisa(monkeypatch: pytest.MonkeyPatch, dado
 def test_corte_final_vem_do_desenho_final_e_r1_fica_como_diagnostico(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
     _preparar(monkeypatch, disp="regiao", slx_ok=False, loso=_loso_falso({"const": 1.0, "regiao": 1.0}, 1.0))
     monkeypatch.setattr(DP, "_corte_do_desenho", lambda cand, D, mapa: (222.0, False) if cand.termos.disp == "regiao" else (111.0, True))
-    d = DP.desenho_no_corte(dados, 2026, n_jobs=1, candidatas=("nota_dep",))
+    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.corte_km == 222.0
     assert d.extra["corte_r1_km"] == 111.0
     assert d.extra["piso_aplicado"] == {"r1": True, "final": False, "wald": False}

@@ -43,7 +43,7 @@
   ],
   "bloco_grupos": []
  },
- "corte_km": 1.0,
+ "corte_km": 200.0,
  "sigma_uf": 0.13721669654942498,
  "limite": 3.809278520733699,
  "mae_pp": {
@@ -58,8 +58,8 @@
   "slx": true
  },
  "wald": {
-  "A": 7.629849011114187e-15,
-  "B": 4.326088743100024e-28
+  "A": 5.992216082518296e-10,
+  "B": 9.335887698260833e-24
  },
  "bic_dispersao": {
   "const": 17932.913090329803,
@@ -68,12 +68,12 @@
  },
  "n_ufs_loso": 24,
  "n_municipios": 1497,
- "tempo_s": 146.70592999458313,
+ "tempo_s": 138.98612594604492,
  "extra": {
-  "corte_r1_km": 1.0,
+  "corte_r1_km": 200.0,
   "wald_cortes_km": {
-   "corte_A_km": 1.0,
-   "corte_B_km": 1.0
+   "corte_A_km": 200.0,
+   "corte_B_km": 200.0
   },
   "ufs_puladas": {
    "r1": [],

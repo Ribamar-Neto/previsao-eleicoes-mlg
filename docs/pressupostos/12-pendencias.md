@@ -85,10 +85,11 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 
 ## Validação
 
-- **Cobertura dos intervalos (27/27 UFs, 5/5 regiões) é otimista**: σ_UF = 0,0570 foi
-  ajustado nas mesmas UFs (a cobertura IC90 por UF caiu de 96,3 % para 92,6 % com a rodada atual);
-  com σ = 0 a cobertura é 13/27 no modelo final com Conley
-  ([09](09-modelo-final.md), seção 4). Correção: σ_UF por validação aninhada.
+- **[resolvida] Cobertura dos intervalos (27/27 UFs, 5/5 regiões) com σ_UF ajustado nas mesmas UFs.**
+  Com σ_UF aninhado (σ_{-u} das outras 26 UFs, de 0,0529 a 0,0581; σ_{-r} das UFs fora da região)
+  a cobertura é a mesma: 27/27 a 95 %, 92,6 % a 90 %, 5/5 regiões; largura 5,41 p.p. por UF e 2,84
+  por região (contra 5,42 e 2,87). Resta só o tamanho da amostra (5/5 é compatível com cobertura real
+  a partir de ~55 %); com σ = 0 a cobertura é 13/27 ([09](09-modelo-final.md), seção 4).
 - **Erro regional LOSO favorece binomiais canônicas por construção** ([05](05-validacao-cruzada.md), seção 6);
   não serve para seleção.
 - **13 modelos dentro de 1 EP**: os dados não os separam com clareza [deduced]. A escolha
@@ -100,8 +101,8 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   Agora o modelo usa só covariáveis anteriores ao turno e o LOSO pesa a UF retida por n̂
   ([09](09-modelo-final.md), seção 1); as métricas das Partes 11 e 13 a 17 são ponderadas
   por n̂. O limite de aceitação passou a 1,1358 (LOSO sem vazamento, valor da época) e, com a seleção aninhada, a 1,2088.
-- **σ_UF (0,0570) também é ajustado nas mesmas 27 UFs**; mesma limitação da cobertura
-  otimista acima. Correção: validação aninhada.
+- **[resolvida] σ_UF (0,0570) ajustado nas mesmas 27 UFs.** Conferido com σ aninhado, sem efeito na
+  cobertura (item acima).
 - **[resolvida] Seleção de variáveis e fusão Nordeste + Norte usavam o 2º turno de todas as UFs**,
   o que tornava otimista o LOSO do `bb_selecao` (1,005). Refeitas dentro de cada dobra: 1,067;
   a escolha não muda e L passa a 1,2088 ([05](05-validacao-cruzada.md), seção 8).
@@ -113,10 +114,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   [11](11-apuracao-parcial.md).
 - **[resolvida] σ_UF e corte de Conley de 2026 reusados na apuração parcial de 2022.** Cada
   (ano, corte) tem agora o seu, só do apurado ([11](11-apuracao-parcial.md), seção 9).
-- **Piso de 1 km do corte de Conley nos cortes iniciais da apuração parcial** (2026 a 5 % e,
-  na etapa R1, a 10 %): Conley com 1 km equivale a HC0 e ignora a correlação espacial, então
-  o IC desses cortes tende a ser estreito demais quanto à dependência espacial.
-  Correção: testar outro piso ou outro estimador para amostras apuradas pequenas
+- **[resolvida] Piso de 1 km do corte de Conley nos cortes iniciais da apuração parcial.** Conley com
+  1 km equivale a HC0 e ignora a correlação espacial. Quando a regra da Parte 15 dá 0 km num desenho
+  parcial, o corte passa a 200 km, o da regra aplicada à apuração completa de 2022 (conhecida antes
+  do 2º turno de 2026, sem vazamento). Só 2026 a 5 % e 10 % usaram o piso
   ([11](11-apuracao-parcial.md), seção 8).
 
 - **Krigagem: o corte do correlograma (CORTE) vem dos resíduos dentro da amostra com todos
@@ -179,8 +180,8 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **[resolvida] Bloco do prefeito e fusão de níveis.** A fusão região/bloco vale só para a
   linhagem `bb_selecao` (passo de seleção); `bloco_outro` deixou de existir nela. A Parte 6 mantém
   `BLOCOS_PADRAO` de propósito: compara famílias numa especificação fixa ([03](03-modelos-candidatos.md), [09](09-modelo-final.md)).
-  Os p-valores antigos do passo de fusão (0,236; 0,474; 0,083) não aparecem em nenhuma saída da
-  rodada atual e não foram reproduzidos; quem citar esses valores deve tratá-los como de rodada anterior.
+  Os p-valores dos passos de fusão (0,236; 0,474; 0,083) estão nas Tabelas 8.11 e 8.12 do `02-MLG`
+  (`results/tables/fusao_regiao_passos.csv` e `fusao_bloco_passos.csv`) e reproduzem os valores antigos.
 - **Inconsistências no markdown do `02-MLG` (a corrigir no notebook).** A célula da Parte 6 diz que
   `bin_probit` é o melhor (0,998; 13 de 18), contra o CSV e a célula seguinte (`bb_selecao`, 1,005); outra
   cita 11 contínuas, e são 12 além do lag.

@@ -54,7 +54,7 @@
   "slx": true
  },
  "wald": {
-  "A": 5.4263948662904837e-11,
+  "A": 3.982991968113733e-10,
   "B": 9.648630480606826e-68
  },
  "bic_dispersao": {
@@ -64,11 +64,11 @@
  },
  "n_ufs_loso": 25,
  "n_municipios": 2111,
- "tempo_s": 203.19453811645508,
+ "tempo_s": 201.69472432136536,
  "extra": {
-  "corte_r1_km": 1.0,
+  "corte_r1_km": 200.0,
   "wald_cortes_km": {
-   "corte_A_km": 1.0,
+   "corte_A_km": 200.0,
    "corte_B_km": 100.0
   },
   "ufs_puladas": {

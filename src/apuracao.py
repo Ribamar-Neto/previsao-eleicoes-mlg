@@ -18,7 +18,7 @@ Regras de negócio:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -368,18 +368,55 @@ def aplicar_regra(tab: pd.DataFrame, minimo: int = MINIMO_VITORIAS) -> pd.DataFr
 # Estimativas do modelo final por UF e região (`02-MLG`, Parte 16)
 # --------------------------------------------------------------------------
 
-def simular_f(partes: Mapping[str, Mapping[str, Any]], chave: str, sigma: float, *, nhat: np.ndarray,
+def simular_f(partes: Mapping[str, Mapping[str, Any]], chave: str, sigma: float | Sequence[float], *, nhat: np.ndarray,
               link: type[Link], B: int = 1000, seed: int = 7) -> np.ndarray:
     """Votos simulados da UF retida, uma coluna por UF (ordem de `partes`), com o n̂ do LOSO.
 
     `chave` escolhe a covariância de β (`cov_conley` ou `cov_modelo`); `sigma` é o choque de UF.
     O gerador é um só para todas as UFs: a mesma semente reproduz os mesmos sorteios.
+    `sigma` pode ser um vetor, um choque por UF na ordem de `partes` (validação aninhada).
     """
     rng = np.random.default_rng(seed)
+    sig = np.broadcast_to(np.asarray(sigma, float), (len(partes),)).tolist()
     return np.column_stack([
         M.simular_votos_grupo(v["beta"], v[chave], v["X"], nhat[v["te"]], np.zeros(len(v["te"])), link=link,
-                              theta=v["theta"], sigma=sigma, B=B, rng=rng)[:, 0]
-        for v in partes.values()])
+                              theta=v["theta"], sigma=sg, B=B, rng=rng)[:, 0]
+        for v, sg in zip(partes.values(), sig, strict=True)])
+
+
+def sigma_sem(res_logit: pd.Series, excluir: Collection[str]) -> float:
+    """RMS dos resíduos LOSO no logit das UFs fora de `excluir` (σ sem a UF ou a região avaliada)."""
+    resto = res_logit[~res_logit.index.isin(list(excluir))]
+    return float(np.sqrt(np.mean(resto.to_numpy(float) ** 2)))
+
+
+@dataclass(frozen=True)
+class Sorteio:
+    """Entradas fixas da simulação: n̂ do LOSO, ligação, nº de sorteios (`n_boot`) e semente."""
+
+    nhat: np.ndarray
+    link: type[Link]
+    n_boot: int = 1000
+    seed: int = 7
+
+
+def estimar_aninhado(partes: Mapping[str, Mapping[str, Any]], chave: str, res_logit: pd.Series,
+                     kw_resumo: Mapping[str, Any], sorteio: Sorteio) -> pd.DataFrame:
+    """Resumo por UF e região com σ aninhado: UF u usa σ_{-u}; região r usa σ_{-r} (UFs fora de r).
+
+    Brasil não tem versão aninhada (precisaria de todas as UFs) e fica de fora. Mesmos `n_boot` e
+    semente de `simular_f`. O mapa UF→região vem de `kw_resumo["uf_reg"]`.
+    """
+    ufs = list(partes)
+    uf_reg = list(kw_resumo["uf_reg"])
+    kw = {"nhat": sorteio.nhat, "link": sorteio.link, "B": sorteio.n_boot, "seed": sorteio.seed}
+    por_uf = [sigma_sem(res_logit, [u]) for u in ufs]
+    saida = [resumo_f(simular_f(partes, chave, por_uf, **kw), **kw_resumo).query("nivel == 'uf'")]
+    for r in dict.fromkeys(uf_reg):
+        s_r = sigma_sem(res_logit, [u for u, g in zip(ufs, uf_reg, strict=True) if g == r])
+        d = resumo_f(simular_f(partes, chave, s_r, **kw), **kw_resumo)
+        saida.append(d[(d.nivel == "regiao") & (d.nome == r)])
+    return pd.concat(saida, ignore_index=True)
 
 
 def resumo_f(votos: np.ndarray, *, ufs: list[str], regs: list[str], n_uf: np.ndarray, uf_reg: np.ndarray,

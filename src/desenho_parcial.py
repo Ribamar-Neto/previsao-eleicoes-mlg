@@ -11,7 +11,8 @@ Regras:
   (precisaria de 2014, fora da base).
 - R2 corte de Conley: regra da Parte 15 (1ª faixa do correlograma com correlação < 0,05) nos
   resíduos quantílicos do desenho FINAL sobre D (depois de R4 e R5), sem a checagem cruzada com
-  2022. O corte do ajuste R1 fica só como diagnóstico (`extra["corte_r1_km"]`).
+  2022. Se a regra der 0 km, vale `CORTE_REFERENCIA_KM` (200 km, o corte da Parte 15 na contagem
+  completa de 2022). O corte do ajuste R1 fica só como diagnóstico (`extra["corte_r1_km"]`).
 - R3 LOSO em D: cada UF com pelo menos `MIN_MUN_UF` municípios apurados sai do treino; prevê-se o
   share apurado dela (peso = n apurado) contra o observado. Limite L = MAE por UF do R1 + EP do R1.
 - R4 dispersão (Parte 13): Wald sequencial de Conley, cada passo no corte dos resíduos do próprio
@@ -60,13 +61,26 @@ MIN_MUN_UF = 5
 N_JOBS = 14   # mesmo número de processos de selecao.py
 P_FUSAO = 0.05
 P_WALD = 0.01
-CORTE_MIN_KM = 1.0   # corte 0 zeraria o núcleo de Bartlett (divisão por zero); o desenho registra quando vale
+# Corte 0 zeraria o núcleo de Bartlett e Conley a 1 km é igual ao HC0 (intervalos estreitos demais).
+# Nenhuma faixa com correlação >= 0,05 numa amostra apurada pequena indica poucos pares próximos, não
+# ausência de dependência. 200 km é a regra da Parte 15 na contagem completa de 2022, conhecida antes
+# do dia da eleição de 2026 (sem vazamento).
+CORTE_REFERENCIA_KM = 200.0
 FAIXAS_KM: tuple[float, ...] = (0, 10, 25, 50, 75, 100, 150, 200, 300, 400, 600, 800, 1000)
 ANO_SEM_DELTA_COMP = 2022
 SEM_2022: frozenset[str] = frozenset({"delta_comp"})
 PASTA_CACHE = Path(__file__).resolve().parents[1] / "results/cv"
 
 Log = Callable[[str], None]
+
+
+@dataclass(frozen=True)
+class Opcoes:
+    """Execução do desenho: processos, rótulo do log (vazio = o ano) e destino das mensagens."""
+
+    n_jobs: int = N_JOBS
+    rotulo: str = ""
+    log: Log = print
 
 
 @dataclass(frozen=True, eq=False)
@@ -248,12 +262,12 @@ def _candidato(termos: Termos, nome: str = "parcial") -> Candidato:
 
 
 def _selecionar_media(D: pd.DataFrame, mapa: dict[str, str], candidatas: Sequence[str],
-                      n_jobs: int, rotulo: str, log: Log) -> Termos:
+                      opc: Opcoes) -> Termos:
     """R1: fusões por LRT e conjunto de contínuas por BIC (lag sempre dentro)."""
     t0 = Termos(vars=("lag", *candidatas))
     grupos, grupos_bloco = SEL._fusoes(D, mapa, t0, P_FUSAO)
     tf = replace(t0, regiao_fundir=grupos, bloco_grupos=grupos_bloco)
-    _, vs, _ = SEL._melhor_bic(D, mapa, tf, candidatas, n_jobs, rotulo, log)
+    _, vs, _ = SEL._melhor_bic(D, mapa, tf, candidatas, opc.n_jobs, opc.rotulo, opc.log)
     return replace(tf, vars=("lag", *vs))
 
 
@@ -265,10 +279,10 @@ def _residuos(cand: Candidato, aj: Ajuste, D: pd.DataFrame, mapa: dict[str, str]
 
 
 def _corte_proprio(res: np.ndarray, D: pd.DataFrame) -> tuple[float, bool]:
-    """Regra da Parte 15 nos resíduos dados; devolve (corte em km, se o piso foi aplicado)."""
+    """Regra da Parte 15 nos resíduos dados; devolve (corte em km, se valeu `CORTE_REFERENCIA_KM`)."""
     cg = S.correlograma(res, D["lat"].to_numpy(float), D["lon"].to_numpy(float), list(FAIXAS_KM))
     corte = S.corte_de(cg)
-    return (CORTE_MIN_KM, True) if corte < CORTE_MIN_KM else (corte, False)
+    return (corte, False) if corte > 0 else (CORTE_REFERENCIA_KM, True)
 
 
 def _corte_do_desenho(cand: Candidato, D: pd.DataFrame, mapa: dict[str, str]) -> tuple[float, bool]:
@@ -289,7 +303,7 @@ def _wald_dispersao(base: Termos, D: pd.DataFrame, mapa: dict[str, str]
                     ) -> tuple[str, dict[str, float], dict[str, float], dict[str, Any]]:
     """R4: dispersão pelo Wald sequencial de Conley, cada passo no corte do próprio ajuste.
 
-    Devolve (forma, p de A e B, BIC por forma, cortes usados e se o piso valeu).
+    Devolve (forma, p de A e B, BIC por forma, cortes usados e se o corte de referência valeu).
     """
     nobs = len(D)
     aj0 = _candidato(base).ajustar(D, mapa)
@@ -352,62 +366,103 @@ def _escolher_slx(base: Termos, dados: DadosCorte
 # --------------------------------------------------------------------------
 # Entrada pública
 # --------------------------------------------------------------------------
-def desenho_no_corte(dados: DadosCorte, ano: int, *, n_jobs: int = N_JOBS,
-                     candidatas: Sequence[str] | None = None, rotulo: str = "",
-                     log: Log = print) -> DesenhoParcial:
+@dataclass(frozen=True, eq=False)
+class _Estado:
+    """Desenho vigente durante as regras: termos, LOSO e a base em que o LOSO rodou."""
+
+    termos: Termos
+    loso: Loso
+    D: pd.DataFrame
+    mapa: dict[str, str]
+
+
+@dataclass
+class _Trilha:
+    """Números que cada regra deixa para o relatório do desenho."""
+
+    limite: float = 0.0
+    n_ufs: int = 0
+    ep_r1: float = 0.0
+    corte_r1: float = 0.0
+    piso_r1: bool = False
+    forma: str = "const"
+    mae: dict[str, float] = field(default_factory=dict)
+    puladas: dict[str, list[str]] = field(default_factory=dict)
+    aceitos: dict[str, bool] = field(default_factory=lambda: {"disp": False, "slx": False})
+    wald: dict[str, float] = field(default_factory=dict)
+    bic: dict[str, float] = field(default_factory=dict)
+    info_wald: dict[str, Any] = field(default_factory=dict)
+
+
+def _regra_r1_r3(dados_df: pd.DataFrame, mapa: dict[str, str], cands: Sequence[str],
+                 opc: Opcoes) -> tuple[_Estado, _Trilha]:
+    """R1 (termos da média), diagnóstico de corte do R2 e R3 (LOSO e limite L)."""
+    base = _selecionar_media(dados_df, mapa, cands, opc)
+    c1 = _candidato(base)
+    corte_r1, piso_r1 = _corte_do_desenho(c1, dados_df, mapa)
+    l1 = _loso(c1, dados_df, mapa, opc.n_jobs)
+    trilha = _Trilha(limite=l1.mae_pp + l1.ep_pp, n_ufs=len(l1.ufs), ep_r1=l1.ep_pp, corte_r1=corte_r1, piso_r1=piso_r1,
+                     mae={"r1": l1.mae_pp}, puladas={"r1": list(l1.puladas)})
+    return _Estado(base, l1, dados_df, mapa), trilha
+
+
+def _regra_r4(atual: _Estado, trilha: _Trilha, opc: Opcoes) -> _Estado:
+    """R4: dispersão pelo Wald; só entra no desenho se o MAE por UF no LOSO ficar em L."""
+    base = atual.termos
+    trilha.forma, trilha.wald, trilha.bic, trilha.info_wald = _wald_dispersao(base, atual.D, atual.mapa)
+    if trilha.forma == "const":
+        return atual
+    cd = _candidato(replace(base, disp=trilha.forma))
+    ld = _loso(cd, atual.D, atual.mapa, opc.n_jobs)
+    trilha.mae["disp"] = ld.mae_pp
+    trilha.puladas["disp"] = list(ld.puladas)
+    trilha.aceitos["disp"] = ld.mae_pp <= trilha.limite
+    return replace(atual, termos=cd.termos, loso=ld) if trilha.aceitos["disp"] else atual
+
+
+def _regra_r5(atual: _Estado, dados: DadosCorte, trilha: _Trilha, opc: Opcoes) -> _Estado:
+    """R5: SLX, testado só se a dispersão ficou em const ou foi aceita; só entra se o LOSO ficar em L."""
+    if not (trilha.forma == "const" or trilha.aceitos["disp"]):
+        return atual
+    chaves, diag_ok, _, d2 = _escolher_slx(atual.termos, dados)
+    if not diag_ok:
+        return atual
+    cs = _candidato(replace(atual.termos, slx=chaves))
+    ls = _loso(cs, d2.D, d2.mapa, opc.n_jobs)
+    trilha.mae["slx"] = ls.mae_pp
+    trilha.puladas["slx"] = list(ls.puladas)
+    trilha.aceitos["slx"] = ls.mae_pp <= trilha.limite
+    return _Estado(cs.termos, ls, d2.D, d2.mapa) if trilha.aceitos["slx"] else atual
+
+
+def desenho_no_corte(dados: DadosCorte, ano: int, *, candidatas: Sequence[str] | None = None,
+                     opcoes: Opcoes | None = None) -> DesenhoParcial:
     """Desenho do (ano, corte) a partir só dos municípios apurados (regras R1 a R7 do módulo)."""
     t0 = time.time()
     cands = tuple(candidatas) if candidatas is not None else candidatas_do_ano(ano)
+    opcoes = opcoes or Opcoes()
+    opc = replace(opcoes, rotulo=opcoes.rotulo or str(ano))
     D, mapa = dados.D, dados.mapa
-    rotulo = rotulo or str(ano)
-
-    base = _selecionar_media(D, mapa, cands, n_jobs, rotulo, log)            # R1
-    c1 = _candidato(base)
-    corte_r1, piso_r1 = _corte_do_desenho(c1, D, mapa)                        # diagnóstico de R2
-    l1 = _loso(c1, D, mapa, n_jobs)                                           # R3
-    limite = l1.mae_pp + l1.ep_pp
-    mae = {"r1": l1.mae_pp}
-    puladas = {"r1": list(l1.puladas)}
-    final_termos, final_loso = base, l1
-    D_fin, mapa_fin = D, mapa
-
-    forma, p, bic, info_wald = _wald_dispersao(base, D, mapa)                # R4
-    disp_ok = False
-    if forma != "const":
-        cd = _candidato(replace(base, disp=forma))
-        ld = _loso(cd, D, mapa, n_jobs)
-        mae["disp"] = ld.mae_pp
-        puladas["disp"] = list(ld.puladas)
-        disp_ok = ld.mae_pp <= limite
-        if disp_ok:
-            final_termos, final_loso = cd.termos, ld
-
-    slx_ok = False
-    if forma == "const" or disp_ok:                                           # R5
-        base_slx = replace(base, disp=final_termos.disp)
-        chaves, diag_ok, _, d2 = _escolher_slx(base_slx, dados)
-        if diag_ok:
-            cs = _candidato(replace(base_slx, slx=chaves))
-            ls = _loso(cs, d2.D, d2.mapa, n_jobs)
-            mae["slx"] = ls.mae_pp
-            puladas["slx"] = list(ls.puladas)
-            slx_ok = ls.mae_pp <= limite
-            if slx_ok:
-                final_termos, final_loso, D_fin, mapa_fin = cs.termos, ls, d2.D, d2.mapa
-    mae["final"] = final_loso.mae_pp
-    corte, piso_fin = _corte_do_desenho(_candidato(final_termos), D_fin, mapa_fin)   # R2
+    atual, trilha = _regra_r1_r3(D, mapa, cands, opc)                         # R1, R3
+    atual = _regra_r4(atual, trilha, opc)                                      # R4
+    atual = _regra_r5(atual, dados, trilha, opc)                               # R5
+    trilha.mae["final"] = atual.loso.mae_pp
+    corte, piso_fin = _corte_do_desenho(_candidato(atual.termos), atual.D, atual.mapa)   # R2
     return DesenhoParcial(
-        termos=final_termos, corte_km=corte, sigma_uf=sigma_uf(final_loso),   # R7
-        limite=limite, mae_pp=mae, ep_r1_pp=l1.ep_pp,
-        aceitos={"disp": disp_ok, "slx": slx_ok}, wald=p, bic_dispersao=bic,
-        n_ufs_loso=len(l1.ufs), n_municipios=len(D), tempo_s=time.time() - t0,
-        extra={"corte_r1_km": corte_r1, "wald_cortes_km": {k: v for k, v in info_wald.items() if k != "piso"},
-               "ufs_puladas": puladas, "piso_aplicado": {"r1": piso_r1, "final": piso_fin, "wald": bool(info_wald["piso"])}})
+        termos=atual.termos, corte_km=corte, sigma_uf=sigma_uf(atual.loso),   # R7
+        limite=trilha.limite, mae_pp=trilha.mae, ep_r1_pp=trilha.ep_r1,
+        aceitos=trilha.aceitos, wald=trilha.wald, bic_dispersao=trilha.bic,
+        n_ufs_loso=trilha.n_ufs, n_municipios=len(D),
+        tempo_s=time.time() - t0,
+        extra={"corte_r1_km": trilha.corte_r1,
+               "wald_cortes_km": {k: v for k, v in trilha.info_wald.items() if k != "piso"},
+               "ufs_puladas": trilha.puladas,
+               "piso_aplicado": {"r1": trilha.piso_r1, "final": piso_fin, "wald": bool(trilha.info_wald["piso"])}})
 
 
 def desenhos_por_corte(dados_por_corte: Mapping[tuple[int, int], DadosCorte], *,
-                       pasta: Path = PASTA_CACHE, refazer: bool = False, n_jobs: int = N_JOBS,
-                       log: Log = print, falhas: dict[tuple[int, int], str] | None = None
+                       pasta: Path = PASTA_CACHE, refazer: bool = False,
+                       opcoes: Opcoes | None = None, falhas: dict[tuple[int, int], str] | None = None
                        ) -> dict[tuple[int, int], DesenhoParcial]:
     """Desenho de cada (ano, corte); lê o cache quando a `VERSAO` bate e grava o que calcula.
 
@@ -419,7 +474,7 @@ def desenhos_por_corte(dados_por_corte: Mapping[tuple[int, int], DadosCorte], *,
         des = None if refazer else ler_cache(ano, corte, pasta)
         if des is None:
             try:
-                des = desenho_no_corte(dados, ano, n_jobs=n_jobs, rotulo=f"{ano}/{corte}", log=log)
+                des = desenho_no_corte(dados, ano, opcoes=replace(opcoes or Opcoes(), rotulo=f"{ano}/{corte}"))
             except np.linalg.LinAlgError as e:
                 if falhas is not None:
                     falhas[(ano, corte)] = repr(e)[:200]

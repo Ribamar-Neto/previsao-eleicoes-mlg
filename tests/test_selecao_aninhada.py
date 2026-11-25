@@ -157,9 +157,9 @@ def test_analisar_fator_sem_fundir_na_referencia_mantem_nivel() -> None:
 
 
 def test_analisar_fator_dois_niveis_iguais_fundem_em_par() -> None:
-    X, y, n = _fator()
-    X = X.drop(columns="f_D")
-    _, _, cols = analisar_fator(X, y, n, ["f_B", "f_C"], "F", "f_", 0.05, verbose=False)
+    x, y, n = _fator()
+    x = x.drop(columns="f_D")
+    _, _, cols = analisar_fator(x, y, n, ["f_B", "f_C"], "F", "f_", 0.05, verbose=False)
     assert cols == ["f_B+C"]
 
 
@@ -182,3 +182,24 @@ def test_fusoes_regiao_sem_efeito_vai_para_a_referencia() -> None:
     grupos_reg, _ = _fusoes(_dados(efeito_co=0.0), MAPA_2026, TERMOS, 0.05)
     assert ("Nordeste", "Norte") in grupos_reg
     assert ("Centro-Oeste", "Sudeste") in grupos_reg
+
+
+def test_analisar_fator_passos_p_igual_ao_lrt_feito_a_mao() -> None:
+    from scipy import stats
+    x, y, n = _fator()
+    x = x.drop(columns="f_D")
+    passos: list[pd.DataFrame] = []
+    _, _, cols = analisar_fator(x, y, n, ["f_B", "f_C"], "F", "f_", 0.05, verbose=False, passos=passos)
+    assert cols == ["f_B+C"]
+    assert len(passos) == 2  # passo 0 funde B e C; passo 1 só tem f_B+C
+    t0 = passos[0]
+    linha = t0[(t0.nivel_a == "B") & (t0.nivel_b == "C")].iloc[0]
+    cheio = ajuste_bb(x, y, n).llf
+    delta = max(2 * (cheio - ajuste_bb(fundir(x, ["f_B", "f_C"], "f_"), y, n).llf), 0.0)
+    assert linha["delta"] == pytest.approx(delta)
+    assert linha["gl"] == 1
+    assert linha["p"] == pytest.approx(stats.chi2.sf(delta, 1))
+    assert t0["fundido"].sum() == 1
+    assert bool(linha["fundido"])
+    assert set(t0["passo"]) == {0}
+    assert not passos[1]["fundido"].any()

@@ -577,12 +577,15 @@ def mantel_haenszel(df: pd.DataFrame, binaria: str, estrato: str, y_col: str,
 def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str],
                    rotulo: str, prefixo: str, p_fusao: float = 0.05,
                    verbose: bool = True, fundir_na_referencia: bool = True,
-                   ref: str = "ref") -> tuple[pd.DataFrame, Any, list[str]]:
+                   ref: str = "ref",
+                   passos: list[pd.DataFrame] | None = None) -> tuple[pd.DataFrame, Any, list[str]]:
     """Tabela por nível, LRT de retirar o fator e fusão sequencial (regra: p > p_fusao).
 
     Candidatos a cada passo: todo par de níveis e, com `fundir_na_referencia`, todo nível
     na referência `ref` (retira sua dummy). Funde-se o de maior p se p > p_fusao e
     reajusta-se. Devolve (X com as fusões, ajuste final, colunas do fator).
+    Se `passos` é dada, recebe a tabela de cada passo (nivel_a, nivel_b, delta, gl, p, passo,
+    fundido); o retorno não muda.
     """
     res, passo = ajuste_bb(X, y, n), 0
     while True:
@@ -611,6 +614,8 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
             print("LRT de igualdade entre níveis (H0: β_a = β_b):")
             print(T.round(4).to_string(index=False))
         i = int(T.p.idxmax())
+        if passos is not None:
+            passos.append(T.assign(passo=passo, fundido=(T.index == i) & (T.p > p_fusao)))
         if T.p[i] <= p_fusao:
             if verbose:
                 print(f"Nenhum candidato com p > {p_fusao}: nenhum nível é fundido.")

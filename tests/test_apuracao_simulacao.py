@@ -74,3 +74,34 @@ def test_resumo_f_igual_ao_notebook():
     antigo = _resumo_antigo(votos, UFS, REGS, n_uf, uf_reg, obs_uf, obs_reg, 0.5, prev)
     pd.testing.assert_frame_equal(novo, antigo, check_exact=True)
     assert list(novo.nome) == UFS + REGS + ["Brasil"]
+
+
+def test_sigma_sem_rms_das_outras_ufs() -> None:
+    res = pd.Series([0.3, -0.4, 0.5], index=UFS)
+    assert A.sigma_sem(res, ["AA"]) == pytest.approx(np.sqrt((0.16 + 0.25) / 2))
+    assert A.sigma_sem(res, ["AA", "BB"]) == pytest.approx(0.5)
+    assert A.sigma_sem(res, []) == pytest.approx(np.sqrt((0.09 + 0.16 + 0.25) / 3))
+
+
+def test_simular_f_sigma_vetor_igual_escalar_quando_constante() -> None:
+    partes, nhat, link = _partes(lambda k: None), np.full(15, 700.0), E.LIGACOES["logit"]
+    esc = A.simular_f(partes, "cov_conley", 0.2, nhat=nhat, link=link, B=40)
+    vet = A.simular_f(partes, "cov_conley", [0.2, 0.2, 0.2], nhat=nhat, link=link, B=40)
+    np.testing.assert_array_equal(esc, vet)
+
+
+def test_estimar_aninhado_usa_sigma_sem_por_uf_e_regiao() -> None:
+    partes, nhat, link = _partes(lambda k: None), np.full(15, 700.0), E.LIGACOES["logit"]
+    res = pd.Series([0.3, -0.4, 0.5], index=UFS)
+    uf_reg = np.array(["N", "N", "S"])
+    kw = {"ufs": UFS, "regs": REGS, "n_uf": np.array([3000.0, 4000.0, 5000.0]), "uf_reg": uf_reg,
+          "obs_uf": pd.Series([0.4, 0.5, 0.6], index=UFS), "obs_reg": pd.Series([0.45, 0.6], index=REGS),
+          "obs_brasil": 0.5, "prev_uf": pd.Series([0.4, 0.5, 0.6], index=UFS)}
+    d = A.estimar_aninhado(partes, "cov_conley", res, kw, A.Sorteio(nhat, link, n_boot=40))
+    assert list(d.nome) == UFS + REGS
+    assert "Brasil" not in set(d.nome)
+    sig_uf = [A.sigma_sem(res, [u]) for u in UFS]
+    ref = A.resumo_f(A.simular_f(partes, "cov_conley", sig_uf, nhat=nhat, link=link, B=40), **kw)
+    np.testing.assert_array_equal(d[d.nivel == "uf"].q50, ref[ref.nivel == "uf"].q50)
+    ref_s = A.resumo_f(A.simular_f(partes, "cov_conley", A.sigma_sem(res, ["CC"]), nhat=nhat, link=link, B=40), **kw)
+    assert d[d.nome == "S"].q50.iloc[0] == ref_s[ref_s.nome == "S"].q50.iloc[0]

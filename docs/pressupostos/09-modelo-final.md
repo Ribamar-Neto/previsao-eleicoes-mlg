@@ -27,7 +27,7 @@ Para cada UF deixada de fora, ajusta-se nas 26 restantes; o bloco de β da covar
 4. Somam-se os votos por região e Brasil e tomam-se os quantis.
 
 - **σ_UF = 0,0570**: RMS dos resíduos LOSO das UFs no logit (antes: 0,0558 no commit anterior e 0,0564 antes das três covariáveis novas). Razão da escolha: o σ de um GLMM mede a variação entre UFs com todos os dados; ao prever uma UF inédita o erro inclui também a extrapolação do efeito regional, que só o resíduo LOSO mede.
-- **Ressalva.** σ_UF é estimado nas mesmas UFs em que a cobertura é conferida; a cobertura com σ_UF é **otimista**. Pendência: σ_UF por validação aninhada ([12](12-pendencias.md)).
+- **σ_UF aninhado (conferência).** Para pontuar a UF u, o intervalo usa σ_{-u}: RMS dos resíduos LOSO das outras 26 UFs (0,0529 a 0,0581; `results/tables/final_sigma_aninhado.csv`). Para a região r, σ_{-r}: RMS das UFs fora de r (Centro-Oeste 0,0509, Nordeste 0,0588, Norte 0,0552, Sudeste 0,0604, Sul 0,0593). O Brasil não tem versão aninhada (usaria todas as UFs). Razão: a cobertura não pode depender de σ ajustado na UF pontuada.
 - **Alvo "real".** Totais recalculados sobre os 5.570 municípios modelados (Boa Esperança do Norte, MT, fica fora; efeito −0,004 p.p. no Centro-Oeste).
 
 ## 3. Estimativas regionais
@@ -51,15 +51,17 @@ Lula %, Conley + σ_UF, intervalo de 95% (Brasil: 90%). Erro = estimativa − re
 | Covariância + σ | UF 95% | UF 90% | Região 95% | Região 90% |
 |---|---|---|---|---|
 | Conley + σ_UF | 100% (27/27) | 92,6% | 5/5 | 5/5 |
+| Conley + σ_UF aninhado | 100% (27/27) | 92,6% | 5/5 | 5/5 |
 | Conley + σ = 0 | 48,1% (13/27) | 40,7% | 2/5 | 40% |
 | Modelo + σ_UF | 100% (27/27) | 92,6% | 5/5 | 5/5 |
 | Modelo + σ = 0 | 33,3% (9/27) | 29,6% | 2/5 | 20% |
 
-Largura média do IC 95% com Conley + σ_UF: 5,42 p.p. por UF e 2,87 por região (com σ = 0: 2,01 e 0,82).
+Largura média do IC 95% com Conley + σ_UF: 5,42 p.p. por UF e 2,87 por região (com σ = 0: 2,01 e 0,82); com σ_UF aninhado, 5,41 e 2,84 (`final_cobertura.csv`).
 
 - **O choque de UF é o que sustenta a cobertura.** Com σ = 0 só 48% das UFs ficam dentro do IC95 (13 de 27; no commit anterior, 52%), ou 33% com o EP do modelo, porque o erro por UF é um choque comum a todos os municípios da UF que o modelo não vê; com σ_UF a cobertura é de 100%. A cobertura IC90 com σ_UF caiu de 96,3% para 92,6%.
 - **Conley ajuda.** Com σ = 0, passa de 33% para 48% das UFs, pois a covariância de β fica maior.
-- **Otimismo.** Os 100% não provam calibração: com 5 regiões, 5/5 acertos é compatível com cobertura real a partir de ~55%, e σ_UF entra ajustado nas mesmas 27 UFs. A cobertura vale como descrição, não como validação.
+- **σ_UF aninhado não muda a cobertura.** Com σ_{-u} e σ_{-r}, a cobertura é a mesma (27/27 UFs a 95%, 92,6% a 90%, 5/5 regiões) e as larguras quase não mudam. Logo a cobertura não depende de σ ter sido ajustado na UF pontuada.
+- **Otimismo restante.** Só vem do tamanho da amostra: com 5 regiões, 5/5 acertos é compatível com cobertura real a partir de ~55%, e 27 UFs são poucas para estimar cobertura. A cobertura vale como descrição, não como validação.
 
 ## 5. Decisão
 

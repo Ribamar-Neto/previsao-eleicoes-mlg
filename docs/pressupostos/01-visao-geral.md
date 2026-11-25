@@ -126,8 +126,8 @@ MAE por UF 1,073 p.p. no LOSO (0,846 no 5-fold); MAE regional 0,431 p.p.
 Apuração parcial na ordem real das seções (Parte 18): [11](11-apuracao-parcial.md). O desenho do
 modelo é refeito em cada corte só com os municípios já apurados (antes usava o desenho final,
 escolhido com o resultado de 2026: vazamento). Resultado: o IC95 do Brasil cobre o final nos 12
-cortes (antes 11), as regiões em 55 de 60 itens (antes 50), com IC mais largos (Brasil, média
-2,18 p.p. em 2022 e 1,51 em 2026); o modelo é útil nos dois anos (4 de 6 e 5 de 6 cortes) e a
+cortes (antes 11), as regiões em 56 de 60 itens (antes 50), com IC mais largos (Brasil, média
+2,18 p.p. em 2022 e 1,47 em 2026); o modelo é útil nos dois anos (4 de 6 e 5 de 6 cortes) e a
 5 % de 2026 ainda perde para a contagem bruta no Brasil (1,02 contra 0,97 p.p.).
 
 Pendências: [12-pendencias.md](12-pendencias.md). Referências: [referencias.md](referencias.md).

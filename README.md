@@ -549,14 +549,14 @@ Erro regional absoluto médio de 0,431 p.p. nas 5 regiões. As estimativas ficam
 | Conley + σ_UF | 100% (27/27) | 5/5 |
 | Conley + σ = 0 | 48,1% (13/27) | 2/5 |
 
-O choque de UF é o que sustenta a cobertura (com σ_UF, o IC90 cobre 92,6% das UFs). Como $\sigma_{UF}$ é ajustado nas mesmas UFs em que a cobertura é conferida, ela é **otimista**.
+O choque de UF é o que sustenta a cobertura (com σ_UF, o IC90 cobre 92,6% das UFs). Com $\sigma_{UF}$ aninhado (a UF pontuada usa o σ das outras 26; a região, o das UFs fora dela), a cobertura é a mesma: 27/27 UFs a 95%, 92,6% a 90% e 5/5 regiões, com largura de 5,41 p.p. por UF e 2,84 por região. O que resta de otimismo é o tamanho da amostra: 5/5 regiões é compatível com cobertura real a partir de ~55%.
 
 ### Apuração parcial
 
 Regra: o modelo é "útil" se vence a extrapolação bruta e o swing em pelo menos 4 de 6 cortes de urnas apuradas (5% a 90%).
 
 * 2022: 4/6 cortes, "modelo útil"; 2026: 5/6, "modelo útil". O veredito é o mesmo com as duas definições de $n_u$ (votos restantes);
-* o Brasil fica dentro do intervalo de 95% nos 12 cortes (2022 e 2026) e as regiões em 55 de 60 (antes, com o desenho final fixo, 11 de 12 e 50 de 60). O desenho é reescolhido por corte só com os municípios apurados, o que alarga os intervalos (largura média no Brasil de 1,29 para 2,18 p.p. em 2022 e de 1,15 para 1,51 em 2026);
+* o Brasil fica dentro do intervalo de 95% nos 12 cortes (2022 e 2026) e as regiões em 56 de 60 (antes, com o desenho final fixo, 11 de 12 e 50 de 60). O desenho é reescolhido por corte só com os municípios apurados, o que alarga os intervalos (largura média no Brasil de 1,29 para 2,18 p.p. em 2022 e de 1,15 para 1,47 em 2026);
 * o ganho aparece cedo, mas não em 5% das urnas: em 2026 com 5% apurado, o erro regional médio é 1,36 p.p. no modelo contra 1,49 no swing, mas o erro do Brasil é 1,02 p.p. no modelo contra 0,97 na contagem bruta; com 25% o erro regional cai para 0,24 contra 0,46. Em 2022, os cortes de 5% e 10% erram 0,73 e 1,19 p.p. no Brasil; a partir de 50% as estimativas quase não mudam ([`docs/pressupostos/11-apuracao-parcial.md`](docs/pressupostos/11-apuracao-parcial.md)).
 
 ## Limitações
@@ -567,7 +567,7 @@ Regra: o modelo é "útil" se vence a extrapolação bruta e o swing em pelo men
 Demais limitações:
 
 * **Autocorrelação espacial residual** (I de Moran 0,348): Conley corrige a inferência, não as estimativas pontuais;
-* **Cobertura otimista:** $\sigma_{UF}$ vem das mesmas UFs; sem ele, só 13 das 27 UFs ficam dentro do intervalo; falta validação aninhada;
+* **Cobertura com poucas unidades:** sem $\sigma_{UF}$, só 13 das 27 UFs ficam dentro do intervalo; com ele (também aninhado) a cobertura é de 27/27, mas 5 regiões e 27 UFs são poucas para estimar cobertura;
 * **Seleção:** 13 dos 18 modelos ficam dentro de 1 EP, e a escolha repousa na parcimônia, não numa vantagem demonstrada;
 * **Pouca base regional:** só 5 regiões e 27 UFs para avaliar o erro; o erro regional não escolhe modelo;
 * **Regras tardias:** o Wald robusto, o SLX e o corte de Conley foram fixados antes de cada resultado, mas não antes das Partes 13 a 17 inteiras; uma versão anterior da validação vazava informação da UF de teste (corrigida);
