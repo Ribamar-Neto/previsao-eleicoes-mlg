@@ -34,6 +34,7 @@ MAPA_FIT_2022 = {
     "pct_60_mais": "pct_60_mais_2022", "pct_superior": "pct_superior_completo_2022",
     "pct_analfabeto": "pct_analfabeto_2022", "cobertura_pbf": "cobertura_pbf_2022",
     "pib_pc": "pib_per_capita_2021",
+    "pct_fund_inc": "pct_ate_fund_incompleto_2022",
 }
 # --- Previsão de 2026: o mesmo mapa deslocado 4 anos ----------------------------------
 MAPA_PREV_2026 = {
@@ -46,6 +47,7 @@ MAPA_PREV_2026 = {
     "pct_60_mais": "pct_60_mais_2026", "pct_superior": "pct_superior_completo_2026",
     "pct_analfabeto": "pct_analfabeto_2026", "cobertura_pbf": "cobertura_pbf_2026",
     "pib_pc": "pib_per_capita_2023",
+    "pct_fund_inc": "pct_ate_fund_incompleto_2026",
 }
 
 

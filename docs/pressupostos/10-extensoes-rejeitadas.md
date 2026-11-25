@@ -8,8 +8,8 @@ Os dois remédios para a correlação residual do modelo final foram testados so
 
 Aceitar a extensão (`bb_slx_krig` ou `bb_slx_car`, isto é, `bb_slx` mais um efeito espacial nos resíduos) se e só se:
 
-1. o I de Moran dos resíduos logit fora da amostra (LOSO, agrupados) cai pelo menos 0,05 em relação ao de `bb_slx` (0,4224);
-2. o MAE por UF no LOSO é no máximo 1,2515 p.p. (limite L de [08](08-dependencia-espacial.md), seção 1).
+1. o I de Moran dos resíduos logit fora da amostra (LOSO, agrupados) cai pelo menos 0,05 em relação ao de `bb_slx` (0,4394);
+2. o MAE por UF no LOSO é no máximo 1,2088 p.p. (limite L de [08](08-dependencia-espacial.md), seção 1).
 
 Razão da queda mínima: a regra do SLX não tinha uma, e um remédio que quase não muda a estrutura espacial foi aceito ([08](08-dependencia-espacial.md), seção 3). A regra é a mesma para os dois remédios, para que sejam comparáveis. O CAR era a alternativa que restava na pendência de autocorrelação residual ([12](12-pendencias.md)).
 
@@ -19,10 +19,10 @@ Resíduos de `bb_slx`, dentro da amostra:
 
 | matriz de vizinhança | I de Moran |
 |---|---|
-| W completa | 0,3361 |
-| só vínculos dentro da mesma UF | 0,3439 |
-| só vínculos entre UFs | 0,1570 |
-| W completa, depois de tirar a média da UF | 0,2683 |
+| W completa | 0,3474 |
+| só vínculos dentro da mesma UF | 0,3575 |
+| só vínculos entre UFs | 0,1449 |
+| W completa, depois de tirar a média da UF | 0,2733 |
 
 ## 3. Krigagem dos resíduos
 
@@ -31,16 +31,16 @@ Resíduos de `bb_slx`, dentro da amostra:
 
 | medida | `bb_slx_krig` | `bb_slx` |
 |---|---|---|
-| MAE por UF, LOSO (p.p.) | 1,0771 | 1,0777 |
-| MAE por UF, 5 dobras (p.p.) | 0,8435 | 0,8459 |
-| I de Moran dos resíduos LOSO | 0,4222 | 0,4224 |
+| MAE por UF, LOSO (p.p.) | 1,0593 | 1,0602 |
+| MAE por UF, 5 dobras (p.p.) | 0,8160 | 0,8299 |
+| I de Moran dos resíduos LOSO | 0,4388 | 0,4394 |
 
-- Queda do I: 0,0003 (de 0,4224 para 0,4222), contra o mínimo de 0,05.
-- ρ̂ no LOSO: média 0,005 (0 a 0,041). Nas 5 dobras: média 0,004, máximo 0,019.
-- **Decisão: rejeitada.** O critério 1 falha; o 2 passa (1,0771 ≤ 1,2515). `aceitas.krig = false` em `final_decisao.json`.
+- Queda do I: 0,0006 (de 0,4394 para 0,4388), contra o mínimo de 0,05.
+- ρ̂ no LOSO: média 0,019 (0 a 0,074). Nas 5 dobras: média 0,026, máximo 0,062.
+- **Decisão: rejeitada.** O critério 1 falha; o 2 passa (1,0593 ≤ 1,2088). `aceitas.krig = false` em `final_decisao.json`.
 - [deduced] Resíduos do outro lado da fronteira de uma UF quase não preveem a UF deixada de fora (ρ̂ ≈ 0), por isso a krigagem quase não corrige.
-- [deduced] Os vínculos dentro da UF carregam mais correlação (0,34) que os entre UFs (0,16). Tirar a média da UF reduz o I em cerca de um quinto (0,336 para 0,268). Parte da correlação é, então, um choque no nível da UF, já coberto por σ_UF nos intervalos da Parte 16 ([09](09-modelo-final.md)). O resto é agrupamento local dentro das UFs, que as covariáveis e as UFs vizinhas não explicam.
-- [deduced] O I dos resíduos LOSO (0,42) fica acima do de dentro da amostra (0,34) porque todos os municípios da UF deixada de fora compartilham o mesmo erro de extrapolação.
+- [deduced] Os vínculos dentro da UF carregam mais correlação (0,36) que os entre UFs (0,14). Tirar a média da UF reduz o I em cerca de um quinto (0,347 para 0,273). Parte da correlação é, então, um choque no nível da UF, já coberto por σ_UF nos intervalos da Parte 16 ([09](09-modelo-final.md)). O resto é agrupamento local dentro das UFs, que as covariáveis e as UFs vizinhas não explicam.
+- [deduced] O I dos resíduos LOSO (0,44) fica acima do de dentro da amostra (0,35) porque todos os municípios da UF deixada de fora compartilham o mesmo erro de extrapolação.
 
 - **Limitação.** O corte do correlograma vem dos resíduos dentro da amostra com todos os
   dados (Parte 15, c. 20) e é reusado como alcance da krigagem (c. 33): vazamento leve
@@ -56,29 +56,29 @@ Resíduos de `bb_slx`, dentro da amostra:
 
 | medida | `bb_slx_car` | `bb_slx` |
 |---|---|---|
-| MAE por UF, LOSO (p.p.) | 1,0037 | 1,0777 |
-| MAE por UF, 5 dobras (p.p.) | 0,4736 | 0,8459 |
-| I de Moran dos resíduos LOSO | 0,3949 | 0,4224 |
-| I de Moran dos resíduos, 5 dobras | −0,0429 | 0,3207 |
-| MAE regional LOSO (p.p.) | 0,5634 | 0,4260 |
-| erro nacional LOSO (p.p.) | 0,231 | 0,167 |
+| MAE por UF, LOSO (p.p.) | 0,9839 | 1,0602 |
+| MAE por UF, 5 dobras (p.p.) | 0,4240 | 0,8299 |
+| I de Moran dos resíduos LOSO | 0,4091 | 0,4394 |
+| I de Moran dos resíduos, 5 dobras | −0,0494 | 0,3312 |
+| MAE regional LOSO (p.p.) | 0,5855 | 0,4270 |
+| erro nacional LOSO (p.p.) | 0,322 | 0,219 |
 
-- Queda do I no LOSO: 0,0275, contra o mínimo de 0,05.
+- Queda do I no LOSO: 0,0304, contra o mínimo de 0,05.
 
 Parâmetros estimados no treino (por dobra):
 
 | parâmetro | LOSO: média (mín a máx) | 5 dobras: média (mín a máx) |
 |---|---|---|
-| τ | 0,0153 (0,0136 a 0,0176) | 0,0096 (0,0079 a 0,0128) |
-| λ | 0,798 (0,495 a 0,935) | 0,811 (0,495 a 0,914) |
-| σ² | 0,0023 | 0,0031 |
+| τ | 0,0137 (0,0126 a 0,0170) | 0,0100 (0,0079 a 0,0131) |
+| λ | 0,908 (0,495 a 0,950) | 0,743 (0,495 a 0,923) |
+| σ² | 0,0027 | 0,0026 |
 
-- **Decisão: rejeitada.** O critério 1 falha (0,0275 < 0,05); o 2 passa (1,0037 ≤ 1,2515). `aceitas.car = false`.
-- [fact] O CAR reduz o MAE por UF do LOSO em 0,07 p.p., mas piora o MAE regional (0,426 para 0,563) e o erro nacional (0,17 para 0,23). O ganho por UF não se soma nas regiões.
-- [fact] O I de Moran LOSO cai só 0,027. Os resíduos de uma UF inteira deixada de fora continuam correlacionados entre si.
-- [deduced] Diferente da krigagem (ρ̂ ≈ 0), o CAR acha estrutura forte nos resíduos de treino (λ médio 0,80), porque aprende a correlação entre vizinhos da mesma UF. Essa correlação não atravessa a divisa, então só os municípios de fronteira da UF nova são corrigidos.
-- [deduced] No 5-fold o CAR tem muito ganho (MAE por UF 0,846 para 0,474; I de −0,04) porque cada município de teste tem vizinhos de treino. Esse esquema não imita a previsão de uma UF nova e não entra na decisão.
-- [deduced] Um λ mínimo de 0,495 em algumas dobras está perto do ponto de partida do otimizador (λ ≈ 0,5); a verossimilhança é plana em λ nessas dobras ou a busca parou cedo. Não foi investigado, e a decisão (queda de 0,027 contra 0,05) não é sensível a um ajuste fino de λ de forma conhecida [assumed].
+- **Decisão: rejeitada.** O critério 1 falha (0,0304 < 0,05); o 2 passa (0,9839 ≤ 1,2088). `aceitas.car = false`.
+- [fact] O CAR reduz o MAE por UF do LOSO em 0,08 p.p., mas piora o MAE regional (0,427 para 0,585) e o erro nacional (0,22 para 0,32). O ganho por UF não se soma nas regiões.
+- [fact] O I de Moran LOSO cai só 0,030. Os resíduos de uma UF inteira deixada de fora continuam correlacionados entre si.
+- [deduced] Diferente da krigagem (ρ̂ ≈ 0), o CAR acha estrutura forte nos resíduos de treino (λ médio 0,91), porque aprende a correlação entre vizinhos da mesma UF. Essa correlação não atravessa a divisa, então só os municípios de fronteira da UF nova são corrigidos.
+- [deduced] No 5-fold o CAR tem muito ganho (MAE por UF 0,830 para 0,424; I de −0,05) porque cada município de teste tem vizinhos de treino. Esse esquema não imita a previsão de uma UF nova e não entra na decisão.
+- [deduced] Um λ mínimo de 0,495 em algumas dobras está perto do ponto de partida do otimizador (λ ≈ 0,5); a verossimilhança é plana em λ nessas dobras ou a busca parou cedo. Não foi investigado, e a decisão (queda de 0,030 contra 0,05) não é sensível a um ajuste fino de λ de forma conhecida [assumed].
 
 - **Limitação (krigagem e CAR).** ρ e o ajuste do CAR usam resíduos sem peso, embora a
   variância deles seja cerca de 1/n; o I de Moran fora da amostra também é sem peso. A
@@ -100,20 +100,20 @@ como os grandes em ρ, no CAR e no I de Moran.
   no I de Moran). Os resíduos atuais são logit; aqui se padroniza a versão na escala da proporção.
 - ρ, krigagem LOSO e CAR rodam sobre z, com o mesmo corte, W, dobras e sementes. A correção volta à
   proporção como ẑ·sd, somada a π̂.
-- Mesmos critérios de antes (queda do I >= 0,05; MAE por UF LOSO <= limite 1,2515 p.p.).
+- Mesmos critérios de antes (queda do I >= 0,05; MAE por UF LOSO <= limite 1,2088 p.p.).
 
 **Resultado** (`results/tables/sensibilidade_ponderada_krig_car.csv`, LOSO).
 
 | Métrica | Krigagem atual | Krigagem ponderada | CAR atual | CAR ponderado |
 |---|---|---|---|---|
-| ρ médio / λ médio | 0,0050 | 0,0075 | 0,798 | 0,896 |
-| MAE por UF (p.p.) | 1,077 | 1,079 | 1,004 | 0,989 |
-| MAE regional (p.p.) | 0,428 | 0,624 | 0,563 | 0,607 |
-| I de Moran fora da amostra, base | 0,4224 | 0,3728 | 0,4224 | 0,3728 |
-| Queda do I (exige 0,05) | 0,0003 | −0,0091 | 0,0275 | 0,0251 |
+| ρ médio / λ médio | 0,0190 | 0,0292 | 0,908 | 0,858 |
+| MAE por UF (p.p.) | 1,059 | 1,120 | 0,984 | 0,992 |
+| MAE regional (p.p.) | 0,433 | 0,630 | 0,585 | 0,620 |
+| I de Moran fora da amostra, base | 0,4394 | 0,3882 | 0,4394 | 0,3882 |
+| Queda do I (exige 0,05) | 0,0006 | −0,0010 | 0,0304 | 0,0244 |
 
 [fact] Nenhuma decisão muda: o critério do MAE passa e o do I de Moran falha, nas duas versões, para
-krigagem e CAR. [fact] Padronizar derruba o I do modelo base de 0,4224 para 0,3728: parte da
+krigagem e CAR. [fact] Padronizar derruba o I do modelo base de 0,4394 para 0,3882: parte da
 correlação espacial vem dos municípios pequenos. [deduced] O MAE regional piora com a correção
 ponderada, como já piorava no CAR atual.
 

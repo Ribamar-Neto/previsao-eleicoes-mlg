@@ -41,18 +41,18 @@ A Parte 5 em diante compara e **não escolhe** o modelo final: a escolha é por 
 
 **Função.** VIF das covariáveis, e GLM binomial (`statsmodels.GLM`, `Binomial`) com cinco ligações: logit, probit, cloglog, loglog, cauchit.
 
-**Parâmetros.** Mesmo preditor linear nas cinco; 24 colunas além da constante (18 contínuas, 2 dummies de bloco do prefeito, 4 de região).
+**Parâmetros.** Mesmo preditor linear nas cinco; 27 colunas além da constante (21 contínuas, com a defasagem; 2 dummies de bloco do prefeito; 4 de região).
 
 **Pressupostos.** Independência condicional e variância binomial. Verossimilhanças com a mesma resposta e o mesmo k são comparáveis por AIC/BIC.
 
 **Decisões e razões.**
-- Nenhum VIF passou de 10 (máximo 7,5, `pct_16_24`), então nenhuma covariável foi removida.
+- Nenhum VIF passou de 10 (máximo 7,84, `pct_16_24`), então nenhuma covariável foi removida.
 - `bloco_prefeito_2024`: 'centro' (49) e 'sem_prefeito' (16) foram fundidos em 'outro' (65) para a dummy ter estimativa estável. Referências: 'direita' e 'Sudeste'.
 - `pib_per_capita_2023` entra em log; o log é aplicado dentro de `montar_X`.
 
 **Resultado e conclusão.**
-- O logit tem o menor AIC/BIC entre as cinco ligações (AIC ≈ 172,6 mil; probit ≈ 176,3 mil; as demais ≥ 213 mil).
-- Deviance/gl ≈ 21,8 e φ de Pearson ≈ 21,8: forte sobredispersão. Os EPs do binomial puro são pequenos demais e seus testes não valem.
+- O logit tem o menor AIC/BIC entre as cinco ligações (AIC ≈ 169,6 mil; probit ≈ 173,2 mil; as demais ≥ 210,0 mil).
+- Deviance/gl ≈ 21,21 e φ de Pearson ≈ 21,24: forte sobredispersão. Os EPs do binomial puro são pequenos demais e seus testes não valem.
 - A ligação logit fica; probit, cloglog, loglog e cauchit saem dos candidatos.
 
 ## Parte 7 - Sobredispersão
@@ -68,13 +68,13 @@ A Parte 5 em diante compara e **não escolhe** o modelo final: a escolha é por 
 
 **Pressupostos.** No beta-binomial, Var(Y) = nπ(1−π)[1 + (n−1)ρ] e πᵢ ~ Beta com precisão θ.
 
-**Decisão técnica.** O ajuste padrão por BFGS de `BetaBinomial` para cedo (gtol frouxo): a log-verossimilhança ficou cerca de 390 abaixo do ótimo. O `Candidato.ajustar` faz um polimento com L-BFGS e mantém o melhor ajuste. Os resultados abaixo são do ajuste polido.
+**Decisão técnica.** O ajuste padrão por BFGS de `BetaBinomial` para cedo (gtol frouxo): a log-verossimilhança ficou bem abaixo do ótimo. O `Candidato.ajustar` faz um polimento com L-BFGS e mantém o melhor ajuste. Os resultados abaixo são do ajuste polido.
 
 **Resultado.**
-- Quase-binomial: φ ≈ 21,8, EPs ≈ 4,67 vezes maiores; coeficientes idênticos aos do binomial.
-- Beta-binomial: θ ≈ 624, ρ ≈ 0,0016. A correlação é pequena, mas com nᵢ de milhares 1 + (n−1)ρ é da ordem de 20.
+- Quase-binomial: φ ≈ 21,24, EPs ≈ 4,61 vezes maiores; coeficientes idênticos aos do binomial.
+- Beta-binomial: θ ≈ 651, ρ ≈ 0,0015. A correlação é pequena, mas com nᵢ de milhares 1 + (n−1)ρ é da ordem de 20.
 - Os resíduos quantílicos têm desvio 3,4 no binomial e ≈ 1,03 no beta-binomial.
-- Coeficientes do beta-binomial diferem dos do binomial, porque a variância extra tira o domínio dos municípios grandes. Exemplo: `bloco_outro` cai de 0,084 para 0,022, e `pct_vab_agro` de −0,020 para −0,009.
+- Coeficientes do beta-binomial diferem dos do binomial, porque a variância extra tira o domínio dos municípios grandes. Exemplo: `bloco_outro` cai de 0,087 para 0,016, e `pct_vab_agro` de −0,018 para −0,008.
 
 **Conclusão.** O beta-binomial é o único tratamento que dá verossimilhança utilizável e descreve a dispersão. O quase-binomial mantém os pesos por votos e serve para ponto e EP corrigido. A comparação gera `coef_binomial_quasi_bb.csv` e as figuras `mlg_*`.
 
@@ -100,27 +100,27 @@ A Parte 5 em diante compara e **não escolhe** o modelo final: a escolha é por 
 - O L1 usa duas linhas por município (pesos p e 1−p, cada município com peso 1), X padronizado, e não pondera por votos.
 
 **Resultado e conclusões.**
-- **Offset rejeitado.** O coeficiente livre do lag é ≈ 0,90 (z ≈ −29 contra 1). LRT do offset contra livre: 2ΔlogL ≈ 775 (gl = 1). O AIC piora ≈ 773. Os municípios regridem à média em relação a 2022.
-- Spline do lag (LRT ≈ 34, 3 gl) e região × lag (LRT ≈ 59, 4 gl) melhoram a verossimilhança de modo significativo, mas pouco o erro ponderado. Interações positivas e significativas no Norte e no Centro-Oeste.
-- UF fixa melhora muito: ΔAIC ≈ −788 contra a região no beta-binomial. No quase-binomial o erro ponderado cai de 1,06 para 0,91 p.p. (F ≈ 46, 22 gl).
-- GLMM: σ_UF ≈ 0,05 no logit; efeitos de UF de −0,09 (GO) a +0,10 (AC). Dá o mesmo erro ponderado que o efeito fixo (0,91 p.p.) e aceita UF nova (efeito 0).
+- **Offset rejeitado.** O coeficiente livre do lag é ≈ 0,89 (z ≈ −30 contra 1). LRT do offset contra livre: 2ΔlogL ≈ 831 (gl = 1). O AIC piora ≈ 829. Os municípios regridem à média em relação a 2022.
+- Spline do lag (LRT ≈ 21, 3 gl) e região × lag (LRT ≈ 51, 4 gl) melhoram a verossimilhança de modo significativo, mas pouco o erro ponderado. Interações positivas no Norte (0,040) e no Centro-Oeste (0,019; p = 0,045).
+- UF fixa melhora muito: ΔAIC ≈ −934 contra a região no beta-binomial. No quase-binomial o erro ponderado cai de 1,04 para 0,88 p.p. (F ≈ 53, 22 gl).
+- GLMM: σ_UF ≈ 0,054 no logit; efeitos de UF de −0,09 (RS) a +0,10. Dá o mesmo erro ponderado que o efeito fixo (0,88 p.p.) e aceita UF nova (efeito 0).
 - `BinomialBayesMixedGLM` do statsmodels exige resposta 0/1 e recusa dados agrupados. Por isso o GLMM é o PQL próprio de `especificacoes.py`.
-- **Fusão de regiões na média.** Nordeste e Norte são fundidos (teste de igualdade, p = 0,921); o bloco do prefeito não é fundido (p = 8e-4). A dispersão continua com as 5 regiões: a fusão vale só para a média.
-- **Seleção de variáveis.** Backward, forward e both por BIC dão o mesmo conjunto: 11 contínuas além da defasagem (saem `nota_dep`, `delta_comp`, `log_pop`, `pct_60_mais`, `pib_pc` e `pct_urbana`); BIC 72.844,87 e MAE por UF no LOSO 1,035. Modelo `bb_selecao` (nome anterior: backward).
-- **Outros critérios, para comparar.** AIC (os três sentidos): 15 variáveis, LOSO 1,003. Hosmer-Lemeshow (Paula, seção 4.6.9; P_E = 0,20 e P_S = 0,25): o primeiro estágio termina em 15 variáveis. Como no passo 4 do livro (p. 360), antes das interações cada coeficiente passa por um teste de Wald e sai uma variável por vez, a de maior p acima de 0,05, porque o limiar frouxo do LRT deixa entrar variáveis sem efeito claro; sai `nota_dep` (p = 0,053), restam 14 (BIC 72.850,1; LOSO 1,013). A tabela do π de todas as candidatas por iteração segue as Tabelas 4.8 e 4.9. Todos os subconjuntos (triagem pelo BIC quase-binomial e reajuste beta-binomial dos 200 melhores): melhor BIC 72.848,8 com 13 variáveis, **que não achou o ótimo do stepwise** (72.844,87). É uma fraqueza da triagem, registrada, e não muda a escolha.
-- [deduced] O AIC e os subconjuntos têm LOSO melhor que o BIC (1,003 e 1,000 contra 1,035), mas a diferença fica dentro de 1 EP ([05](05-validacao-cruzada.md)); o BIC segue como critério por parcimônia.
-- L1: C(1 EP) = 0,03 mantém 6 de 24 (lag, log_dens, pct_mulheres, cobertura_pbf, pct_vab_agro, pct_pretos_pardos). O C de menor perda de CV (100) está na borda da grade e não encolhe nada: a CV pede pouca penalização. A versão esparsa ajusta mal (erro ponderado ≈ 2,4 p.p.).
+- **Fusão de regiões na média.** Nordeste e Norte são fundidos (teste de igualdade, p = 0,236); no bloco, a regra de 8.1 funde centro e sem prefeito na direita e mantém só a esquerda separada, mas os modelos candidatos seguem com `bloco_outro` (centro + sem prefeito), em `BLOCOS_PADRAO`. A dispersão continua com as 5 regiões: a fusão vale só para a média.
+- **Seleção de variáveis.** Backward, forward e both por BIC dão o mesmo conjunto: 12 contínuas além da defasagem (`pct_dep_esq`, `comparecimento`, `delta_comp`, `log_dens`, `pct_mulheres`, `pct_16_24`, `cobertura_pbf`, `pct_vab_agro`, `pct_pretos_pardos`, `pct_fund_inc`, `pct_sem_religiao`, `pct_indigenas`); saem `nota_dep`, `log_pop`, `pct_60_mais`, `pct_superior`, `pct_analfabeto`, `pib_pc`, `pct_evangelicos` e `pct_urbana`, de 20 candidatas (o modelo cheio tem BIC 42,5 acima); BIC 72.624,48 e MAE por UF no LOSO 0,994. Modelo `bb_selecao` (nome anterior: backward).
+- **Outros critérios, para comparar.** AIC: backward mantém 18 variáveis (BIC 72.656,9; LOSO 1,028); forward e both mantêm 16 (LOSO 1,024). Hosmer-Lemeshow (Paula, seção 4.6.9; P_E = 0,20 e P_S = 0,25): o primeiro estágio termina em 18 variáveis. Como no passo 4 do livro (p. 360), antes das interações cada coeficiente passa por um teste de Wald e sai uma variável por vez, a de maior p acima de 0,05, porque o limiar frouxo do LRT deixa entrar variáveis sem efeito claro; saem `pct_urbana` (p = 0,130), `pib_pc` (0,169), `log_pop` (0,060) e `nota_dep` (0,053), restam 14 (BIC 72.633,8; LOSO 1,043). A tabela do π de todas as candidatas por iteração segue as Tabelas 4.8 e 4.9. Todos os subconjuntos (triagem pelo BIC quase-binomial e reajuste beta-binomial dos 200 melhores): melhor BIC 72.630,6 com 13 variáveis (LOSO 1,010), **que não achou o ótimo do stepwise** (72.624,48). É uma fraqueza da triagem, registrada, e não muda a escolha.
+- [deduced] O BIC tem o menor LOSO (0,994, contra 1,010 dos subconjuntos, 1,024 a 1,028 do AIC e 1,043 do Hosmer-Lemeshow com Wald), e também a maior parcimônia; as diferenças ficam dentro de 1 EP ([05](05-validacao-cruzada.md)).
+- L1: C(1 EP) mantém 6 de 27 colunas (lag, log_dens, pct_mulheres, cobertura_pbf, pct_vab_agro, pct_pretos_pardos). O C de menor perda de CV (100) está na borda da grade e não encolhe nada: a CV pede pouca penalização. A versão esparsa ajusta mal (erro ponderado ≈ 2,4 p.p.).
 
 ### 8.1 Categóricas e binária: regra de fusão de níveis
 Roteiro de Paula (2013, seções 2.10.2, 4.2 a 4.4 e 4.6.5). A regra foi fixada antes de ver os resultados, para a fusão não depender do que se queria achar. As tabelas por nível que propõem os testes estão em [02](02-aed.md), seção 3.1.
 - **Regra.** Cada fator parte dos níveis brutos (região: referência Sudeste; bloco: referência direita). A cada passo os candidatos são todos os pares de níveis fora da referência e cada nível fora da referência fundido na referência. Funde-se o de maior p do LRT se p > 0,05, reajusta-se e repete-se até nenhum candidato ter p > 0,05.
 - **Binária.** `prefeito_suplementar_2024` entra só se o LRT de adicioná-la, depois das fusões, der p ≤ 0,05.
-- **Onde testar.** Todos os LRT são no beta-binomial completo (18 contínuas), porque o ψ bruto e o LRT univariado confundem o fator com as demais covariáveis. Os EP de Wald ignoram a correlação espacial; a significância sob essa correlação é checada com EP de Conley ([08](08-dependencia-espacial.md)).
+- **Onde testar.** Todos os LRT são no beta-binomial completo (20 contínuas, além da defasagem), porque o ψ bruto e o LRT univariado confundem o fator com as demais covariáveis. Os EP de Wald ignoram a correlação espacial; a significância sob essa correlação é checada com EP de Conley ([08](08-dependencia-espacial.md)).
 - **Resultado nos dados completos.**
-  - Região: retirar o fator inteiro, já com Nordeste e Norte fundidos, custa Δ = 233,4 (3 gl). A fusão sai do passo seguinte: Nordeste = Norte não é rejeitada (p = 0,921) e é o maior p do passo, então se fundem. Depois, Nordeste+Norte contra o Sudeste dá p = 0,018 e todos os outros candidatos têm p < 1e-8: a regra para. A log-verossimilhança não muda (-36.327,71 para -36.327,72).
-  - Bloco: esquerda fica separada (OR 0,984; esquerda = direita rejeitada, p < 1e-4). Centro = sem_prefeito não é rejeitada (p = 0,466), então se fundem; o grupo contra a direita dá p = 0,046 e a regra para. Isso reproduz o agrupamento anterior (esquerda; centro+sem_prefeito). Com 49 e 16 municípios o teste tem pouco poder para separar centro de sem_prefeito.
-  - Suplementar: OR 0,992, p = 0,649: fica fora do modelo.
-  - Consequência: `CANDIDATOS` e as Partes 11 e 18 não mudam.
+  - Região: retirar o fator inteiro, já com Nordeste e Norte fundidos, custa Δ = 208,7 (3 gl). A fusão sai do passo seguinte: Nordeste = Norte não é rejeitada (p = 0,236) e é o maior p do passo, então se fundem. Depois, Nordeste+Norte contra o Sudeste dá p = 0,0026 e todos os outros candidatos têm p < 1e-4: a regra para. A log-verossimilhança quase não muda (-36.218,37 para -36.219,08).
+  - Bloco: retirar o fator inteiro custa Δ = 23,5 (3 gl). Nos níveis brutos, esquerda tem OR 0,983, centro 1,009 (p = 0,474) e sem_prefeito 1,039 (p = 0,082). Centro = sem_prefeito não é rejeitada (p = 0,244), mas a regra parte da fusão de maior p: centro entra na direita (p = 0,474), depois sem_prefeito (p = 0,083), e para em esquerda = direita rejeitada (Δ = 20,0; p = 8e-6). Sobra só a esquerda separada (log-verossimilhança -36.220,15). Com 49 e 16 municípios o teste tem pouco poder para separar centro de sem_prefeito.
+  - Suplementar (27 municípios): OR 0,989, p = 0,495: fica fora do modelo.
+  - Consequência: `CANDIDATOS` e as Partes 11 e 18 não mudam; eles mantêm `bloco_outro` (centro + sem prefeito), que a regra agora dispensaria.
 - **Seleção aninhada no LOSO.** As fusões são refeitas em cada dobra, para o erro de validação não depender de uma fusão escolhida com a região de teste; contagens por dobra em [05](05-validacao-cruzada.md).
 
 ## Parte 9 - Comparação
@@ -130,14 +130,14 @@ Roteiro de Paula (2013, seções 2.10.2, 4.2 a 4.4 e 4.6.5). A regra foi fixada 
 **Pressupostos.** Colunas `aic`/`bic` só existem para verossimilhanças binomiais sobre (y, n): binomial, beta-binomial e L1 (aproximação sem a penalização). Quase-binomial e GLMM têm `qaic` (só o quase-binomial) ou `NaN`. Regressão beta, OLS e WLS têm outra resposta, então ficam em `NaN`.
 
 **Resultado (dentro da amostra; modelo: AIC / BIC / φ de Pearson / erro ponderado em p.p.).**
-- `bb_uf`: 71.919 / 72.238 / n.a. / 1,17
-- `bb_reglag`: 72.656 / 72.855 / n.a. / 1,14
-- `bb_spline`: 72.680 / 72.872 / n.a. / 1,17
-- `bb_logit`: 72.707 / 72.880 / n.a. / 1,15
-- `bb_selecao`: 72.719 / 72.845 / n.a. / 1,15
-- `bb_offset`: 73.480 / 73.646 / n.a. / 1,35
-- `bin_logit`: 172.593 / 172.759 / 21,8 / 1,06
-- `quasi_*` (reglag, uf): QAIC ≈ 8,0 mil e 8,5 mil / n.a. / 21,6 e 17,9 / 1,06 e 0,91
+- `bb_uf`: 71.561 / 71.899 / n.a. / 1,17
+- `bb_reglag`: 72.452 / 72.670 / n.a. / 1,19
+- `bb_spline`: 72.480 / 72.692 / n.a. / 1,21
+- `bb_logit`: 72.495 / 72.687 / n.a. / 1,20
+- `bb_selecao`: 72.499 / 72.631 / n.a. / 1,19
+- `bb_offset`: 73.324 / 73.510 / n.a. / 1,40
+- `bin_logit`: 169.553 / 169.739 / 21,2 / 1,04
+- `quasi_*` (reglag, uf): QAIC ≈ 8,1 mil e 8,7 mil / n.a. / 21,0 e 16,9 / 1,03 e 0,88
 
 **Atenção.** O erro ponderado dentro da amostra favorece o binomial e o quase-binomial, porque eles pesam por votos. O beta-binomial dá menos peso a municípios grandes e tem erro ponderado maior. Isso não ordena os modelos fora da amostra.
 

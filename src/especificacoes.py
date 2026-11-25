@@ -44,6 +44,8 @@ MAPA_2026 = {
     "pib_pc": "pib_per_capita_2023",  # o log é aplicado em montar_X
     "pct_vab_agro": "pct_vab_agro_2021", "pct_evangelicos": "pct_evangelicos_2022",
     "pct_pretos_pardos": "pct_pretos_pardos_2022", "pct_urbana": "pct_urbana_2022",
+    "pct_fund_inc": "pct_ate_fund_incompleto_2026", "pct_sem_religiao": "pct_sem_religiao_2022",
+    "pct_indigenas": "pct_indigenas_2022",
     "regiao": "regiao", "uf": "sigla_uf",
     "suplementar": "prefeito_suplementar_2024",
 }
@@ -51,7 +53,8 @@ MAPA_2026_PRE = MAPA_2026  # apelido até o `02-MLG` e o `03-apuracao-parcial` d
 CONTINUAS = ["lag", "nota_dep", "pct_dep_esq", "comparecimento", "delta_comp",
              "log_pop", "log_dens", "pct_mulheres", "pct_16_24", "pct_60_mais",
              "pct_superior", "pct_analfabeto", "cobertura_pbf", "pib_pc",
-             "pct_vab_agro", "pct_evangelicos", "pct_pretos_pardos", "pct_urbana"]
+             "pct_vab_agro", "pct_evangelicos", "pct_pretos_pardos", "pct_urbana",
+             "pct_fund_inc", "pct_sem_religiao", "pct_indigenas"]
 REGIOES = ["Centro-Oeste", "Nordeste", "Norte", "Sul"]
 REGIAO_REF = "Sudeste"
 UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT",

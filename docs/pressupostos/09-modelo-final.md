@@ -2,7 +2,7 @@
 
 Notebook `notebooks/02-MLG.ipynb`. Tabelas em `results/tables/final_estimativas_regionais.csv`, `final_estimativas_uf.csv`, `final_cobertura.csv` e `final_comparacao_regional.csv`; figura `results/figures/final_regional.png`. Decisões anteriores: dispersão em [07](07-dispersao-regional.md), filtro espacial, SLX e Conley em [08](08-dependencia-espacial.md), extensões rejeitadas em [10](10-extensoes-rejeitadas.md).
 
-**Modelo final = `bb_slx`**: beta-binomial com os termos de média de `bb_selecao` (Nordeste e Norte fundidos), dispersão por região e log n (`bb_disp`, [07](07-dispersao-regional.md)) mais SLX, isto é, W·x das 12 variáveis dos vizinhos ([08](08-dependencia-espacial.md)). Tem **36 parâmetros** (30 de β e 6 de γ). MAE por UF: 0,846 p.p. no 5-fold e 1,078 no LOSO (limite de aceitação 1,2515; o valor fica acima do de `bb_selecao`, 1,035, dentro da tolerância). Os EPs são os de Conley a 200 km.
+**Modelo final = `bb_slx`**: beta-binomial com os termos de média de `bb_selecao` (Nordeste e Norte fundidos), dispersão por região e log n (`bb_disp`, [07](07-dispersao-regional.md)) mais SLX, isto é, W·x das 13 variáveis dos vizinhos ([08](08-dependencia-espacial.md)). Tem **38 parâmetros** (32 de β e 6 de γ). MAE por UF: 0,830 p.p. no 5-fold e 1,060 no LOSO (limite de aceitação 1,2088; o valor fica acima do de `bb_selecao`, 0,994, dentro da tolerância). Os EPs são os de Conley a 200 km.
 
 ## 1. Regra de informação: o que cada estimativa pode saber
 
@@ -15,7 +15,7 @@ Cada número do trabalho responde a uma pergunta e só pode usar a informação 
 
 ### Todos os dados ou uma amostra?
 
-Os municípios são um censo. Uma amostra aleatória de municípios seria um teste mais fraco que o LOSO, por dois fatos de dependência espacial: vizinhos votam parecido (I de Moran da proporção observada 0,90) e o que o modelo não explica também é espacial (I dos resíduos 0,34 dentro da amostra e 0,42 no LOSO, [10](10-extensoes-rejeitadas.md)). Numa amostra aleatória cada município retido teria vizinhos de treino com resíduos parecidos, e o erro sairia otimista: o mesmo efeito do 5-fold (MAE por UF 0,846 contra 1,078 no LOSO). O LOSO retira a UF inteira e só deixa os vizinhos da divisa, por isso é o teste honesto desta pergunta.
+Os municípios são um censo. Uma amostra aleatória de municípios seria um teste mais fraco que o LOSO, por dois fatos de dependência espacial: vizinhos votam parecido (I de Moran da proporção observada 0,90) e o que o modelo não explica também é espacial (I dos resíduos 0,35 dentro da amostra e 0,44 no LOSO, [10](10-extensoes-rejeitadas.md)). Numa amostra aleatória cada município retido teria vizinhos de treino com resíduos parecidos, e o erro sairia otimista: o mesmo efeito do 5-fold (MAE por UF 0,830 contra 1,060 no LOSO). O LOSO retira a UF inteira e só deixa os vizinhos da divisa, por isso é o teste honesto desta pergunta.
 
 ## 2. Receita das estimativas
 
@@ -26,7 +26,7 @@ Para cada UF deixada de fora, ajusta-se nas 26 restantes; o bloco de β da covar
 3. Y ~ BetaBin(n̂, πθ, (1−π)θ), com θ previsto por município.
 4. Somam-se os votos por região e Brasil e tomam-se os quantis.
 
-- **σ_UF = 0,0564**: RMS dos resíduos LOSO das UFs no logit (antes, no desenho com cenário separado, 0,0552). Razão da escolha: o σ de um GLMM mede a variação entre UFs com todos os dados; ao prever uma UF inédita o erro inclui também a extrapolação do efeito regional, que só o resíduo LOSO mede.
+- **σ_UF = 0,0558**: RMS dos resíduos LOSO das UFs no logit (antes das três covariáveis novas, 0,0564). Razão da escolha: o σ de um GLMM mede a variação entre UFs com todos os dados; ao prever uma UF inédita o erro inclui também a extrapolação do efeito regional, que só o resíduo LOSO mede.
 - **Ressalva.** σ_UF é estimado nas mesmas UFs em que a cobertura é conferida; a cobertura com σ_UF é **otimista**. Pendência: σ_UF por validação aninhada ([12](12-pendencias.md)).
 - **Alvo "real".** Totais recalculados sobre os 5.570 municípios modelados (Boa Esperança do Norte, MT, fica fora; efeito −0,004 p.p. no Centro-Oeste).
 
@@ -36,34 +36,34 @@ Lula %, Conley + σ_UF, intervalo de 95% (Brasil: 90%). Erro = estimativa − re
 
 | Região | Real | Estimado | IC | erro (p.p.) |
 |---|---|---|---|---|
-| Centro-Oeste | 39,99 | 40,09 | [38,58; 41,62] | +0,10 |
-| Nordeste | 69,37 | 69,44 | [68,49; 70,29] | +0,07 |
-| Norte | 50,01 | 49,18 | [47,68; 50,72] | −0,82 |
-| Sudeste | 47,24 | 47,89 | [46,33; 49,56] | +0,65 |
-| Sul | 37,42 | 36,93 | [35,45; 38,46] | −0,49 |
-| Brasil | 51,78 | 51,76 | [51,11; 52,40] (90%) | −0,02 |
+| Centro-Oeste | 39,99 | 40,02 | [38,55; 41,57] | +0,03 |
+| Nordeste | 69,37 | 69,57 | [68,63; 70,42] | +0,20 |
+| Norte | 50,01 | 49,28 | [47,79; 50,78] | −0,73 |
+| Sudeste | 47,24 | 47,92 | [46,32; 49,58] | +0,68 |
+| Sul | 37,42 | 36,93 | [35,44; 38,47] | −0,50 |
+| Brasil | 51,78 | 51,82 | [51,18; 52,49] (90%) | +0,04 |
 
-- Erro regional absoluto médio 0,426 p.p. (as 5 regiões); por UF, 1,078 p.p. (LOSO). São só 5 regiões, e o erro regional LOSO não escolhe modelos ([05](05-validacao-cruzada.md), seção 6): é descrição, não evidência de superioridade.
+- Erro regional absoluto médio 0,427 p.p. (as 5 regiões); por UF, 1,060 p.p. (LOSO). São só 5 regiões, e o erro regional LOSO não escolhe modelos ([05](05-validacao-cruzada.md), seção 6): é descrição, não evidência de superioridade.
 - O intervalo do Norte inclui o empate de 50%: o modelo não separa o Norte de um resultado equilibrado. Nordeste e Sul ficam separados dos demais com folga.
 
 ## 4. Cobertura
 
 | Covariância + σ | UF 95% | UF 90% | Região 95% | Região 90% |
 |---|---|---|---|---|
-| Conley + σ_UF | 100% (27/27) | 100% | 5/5 | 5/5 |
-| Conley + σ = 0 | 51,9% (14/27) | 40,7% | 2/5 | 40% |
+| Conley + σ_UF | 100% (27/27) | 96,3% | 5/5 | 5/5 |
+| Conley + σ = 0 | 48,1% (13/27) | 40,7% | 2/5 | 40% |
 | Modelo + σ_UF | 100% (27/27) | 92,6% | 5/5 | 5/5 |
-| Modelo + σ = 0 | 33,3% (9/27) | 33,3% | 2/5 | 40% |
+| Modelo + σ = 0 | 37,0% (10/27) | 25,9% | 2/5 | 20% |
 
-Largura média do IC 95% com Conley + σ_UF: 5,30 p.p. por UF e 2,83 por região (com σ = 0: 2,04 e 0,87).
+Largura média do IC 95% com Conley + σ_UF: 5,28 p.p. por UF e 2,82 por região (com σ = 0: 2,00 e 0,83).
 
-- **O choque de UF é o que sustenta a cobertura.** Com σ = 0 a cobertura por UF cai a 52% (Conley) ou 33% (modelo): ruído binomial e de θ sozinhos não cobrem o erro de extrapolar para uma UF nova.
-- **Conley ajuda.** Com σ = 0, passa de 33% para 52% das UFs, pois a covariância de β fica maior.
+- **O choque de UF é o que sustenta a cobertura.** Com σ = 0 a cobertura por UF cai a 48% (Conley) ou 37% (modelo): ruído binomial e de θ sozinhos não cobrem o erro de extrapolar para uma UF nova.
+- **Conley ajuda.** Com σ = 0, passa de 37% para 48% das UFs, pois a covariância de β fica maior.
 - **Otimismo.** Os 100% não provam calibração: com 5 regiões, 5/5 acertos é compatível com cobertura real a partir de ~55%, e σ_UF entra ajustado nas mesmas 27 UFs. A cobertura vale como descrição, não como validação.
 
 ## 5. Decisão
 
-Os resultados do projeto vêm do modelo final `bb_slx` com EPs de Conley. `bb_selecao` segue como o modelo escolhido pela regra de seleção do [doc 01](01-visao-geral.md); o modelo final é o refinamento dele (dispersão por região e log n, mais SLX das 12 variáveis). Nenhuma aceitação ou rejeição das extensões mudou na revisão; só a fusão de Nordeste e Norte na média e o nome do modelo (renomeado para `bb_selecao`).
+Os resultados do projeto vêm do modelo final `bb_slx` com EPs de Conley. `bb_selecao` segue como o modelo escolhido pela regra de seleção do [doc 01](01-visao-geral.md); o modelo final é o refinamento dele (dispersão por região e log n, mais SLX das 13 variáveis). Nenhuma aceitação ou rejeição das extensões mudou com as três covariáveis novas (fund. incompleto, sem religião, indígenas); o conjunto de variáveis perde três das 12 anteriores e ganha quatro ([01](01-visao-geral.md)).
 
 ## Referências
 
