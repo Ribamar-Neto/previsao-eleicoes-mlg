@@ -587,7 +587,7 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
     Se `passos` é dada, recebe a tabela de cada passo (nivel_a, nivel_b, delta, gl, p, passo,
     fundido); o retorno não muda.
     """
-    res, passo = ajuste_bb(X, y, n), 0
+    res, passo, ref_atual = ajuste_bb(X, y, n), 0, ref
     while True:
         if verbose:
             print(f"=== {rotulo}, passo {passo}: {len(cols)} níveis fora da referência; loglik = {res.llf:,.2f}")
@@ -607,7 +607,7 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
         for alvo, X_red in candidatos:
             d2, gl2, p2 = lrt(res, X, X_red, y, n)
             linhas.append({"nivel_a": alvo[0][len(prefixo):],
-                           "nivel_b": alvo[1][len(prefixo):] if len(alvo) > 1 else ref,
+                           "nivel_b": alvo[1][len(prefixo):] if len(alvo) > 1 else ref_atual,
                            "delta": d2, "gl": gl2, "p": p2})
         T = pd.DataFrame(linhas)
         if verbose:
@@ -623,6 +623,8 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
         alvo, X_novo = candidatos[i]
         if verbose:
             print(f"Funde {T.nivel_a[i]} e {T.nivel_b[i]} (p = {T.p[i]:.3f} > {p_fusao}) e reajusta.")
+        if len(alvo) == 1:
+            ref_atual = f"{ref_atual}+{T.nivel_a[i]}"
         novas = [c for c in X_novo.columns if c not in X.columns]
         cols = [c for c in cols if c not in alvo] + novas
         X = X_novo

@@ -114,6 +114,7 @@ A Parte 5 em diante compara e **não escolhe** o modelo final: a escolha é por 
 ### 8.1 Categóricas e binária: regra de fusão de níveis
 Roteiro de Paula (2013, seções 2.10.2, 4.2 a 4.4 e 4.6.5). A regra foi fixada antes de ver os resultados, para a fusão não depender do que se queria achar. As tabelas por nível que propõem os testes estão em [02](02-aed.md), seção 3.1.
 - **Regra.** Cada fator parte dos níveis brutos (região: referência Sudeste; bloco: referência direita). A cada passo os candidatos são todos os pares de níveis fora da referência e cada nível fora da referência fundido na referência. Funde-se o de maior p do LRT se p > 0,05, reajusta-se e repete-se até nenhum candidato ter p > 0,05.
+- **Rótulo da referência nas tabelas de passos.** O rótulo da referência acumula os níveis já fundidos nela (direita, depois direita+centro, depois direita+centro+sem_prefeito), para cada passo mostrar o que a referência contém; só o rótulo muda, não os números nem as decisões.
 - **Binária.** `prefeito_suplementar_2024` entra só se o LRT de adicioná-la, depois das fusões, der p ≤ 0,05.
 - **Onde testar.** Todos os LRT são no beta-binomial completo (20 contínuas, além da defasagem), porque o ψ bruto e o LRT univariado confundem o fator com as demais covariáveis. Os EP de Wald ignoram a correlação espacial; a significância sob essa correlação é checada com EP de Conley ([08](08-dependencia-espacial.md)).
 - **Resultado nos dados completos.**

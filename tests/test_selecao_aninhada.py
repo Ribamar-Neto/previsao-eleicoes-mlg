@@ -203,3 +203,16 @@ def test_analisar_fator_passos_p_igual_ao_lrt_feito_a_mao() -> None:
     assert bool(linha["fundido"])
     assert set(t0["passo"]) == {0}
     assert not passos[1]["fundido"].any()
+
+
+def test_analisar_fator_rotulo_da_referencia_acumula_niveis_fundidos() -> None:
+    x, y, n = _fator()
+    passos: list[pd.DataFrame] = []
+    analisar_fator(x, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05, verbose=False,
+                   ref="A", passos=passos)
+    fundidos_na_ref = [p[p.fundido & p.nivel_b.str.startswith("A")] for p in passos]
+    primeiro = next(i for i, f in enumerate(fundidos_na_ref) if not f.empty)
+    nivel = fundidos_na_ref[primeiro].nivel_a.iloc[0]
+    seguinte = passos[primeiro + 1]
+    rotulos = set(seguinte.loc[seguinte.nivel_b.str.startswith("A"), "nivel_b"])
+    assert rotulos == {f"A+{nivel}"}
