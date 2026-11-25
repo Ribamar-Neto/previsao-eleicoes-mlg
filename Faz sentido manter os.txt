@@ -1,0 +1,37 @@
+- Faz sentido manter os dados da votação do 2° turno completo no dataset da criação do modelo? isso tem sido feito? Se a ideia é criar um modelo estatístico, a ideia é garantir conformidade ao conjunto de dados. Mas sendo para previsão, a gente trabalha com uma amostra disso e vê o resultado contra o todo, que imagino que seja o que estamos fazendo, certo? O que seria mais apropriado: fazer com os dados todos e garantir conformidade do modelo aos dados (abordagem conformista), ou, para propósitos de curiosidade e modelagem do mundo real, fazer com uma amostra dos dados reais finais da eleição 2° turno (abordagem preditiva)?
+- README:
+	- Melhorar descrição das variáveis (mais detalhado, com exemplo e range)
+	- Explicação dos resultados ficou muito concisa, seria bom a interpretação dos números junto
+	- Destacar melhor as limitações. A da falácia ecológica é um ponto bem importante
+Colocar explicação teórica no código:
+- Sobredispersão
+	Causas:
+	- Correlação entre as réplicas binárias
+	- Variação entre as probabilidades de sucesso de um mesmo grupo.
+- Beta-binomial
+	- Binomial subestima a variância
+	- Interpretação: Ela considera como se todo município tivesse a mesma probabilidade de votar em um candidato
+	- Beta-binomial: Tem a mesma média da binomial, porém variância maior. Ela "corrige" a igenuidade da Binomial ao modelar a probabilidade de "sucesso" (em nosso contexto, probabilidade de votar no candidato X) por meio de uma distribuição Beta. Com isso, é possível acrescentar dados demográficos, geográficos, etc que permitem modelar de forma mais realista a probabilidade de determinada cidade votar no candidato X.
+- Tratamento das variáveis categóricas, analisando cada categoria individualmente igual à atividade 1 e 2 realizada anteriormente.
+- Uso do algoritmo step-wise com as variações. Depois de usar isso, comparar com o modelo gerado a partir de todos os modelos possíveis.
+- seleção de variáveis do livro, calculando pi e delta a cada iteração
+- Remover seções redundantes do notebook
+
+- Atividade Poisson Ronald
+
+
+
+
+- Realizar explorações a respeito das variáveis categóricas e binárias:
+	- Realizar a análise individual sobre os valores possíveis tal como foi feito pelo Gilberto de Paula no seu livro (Downloads/texto2026.pdf)
+	- Usar o resultado dessa análise para agrupar variáveis que faça sentido
+	- Modificar o notebook de modelos usando esse resultado, sem ser uma "seção nova". Basta atualizar onde é necessário. Se não tiver jeito, cria uma seção nova ou uma seção intermediárias.
+- Mover todas as importações pro início
+- Atualizar skills com a origin
+- Remover funções auxiliares do código principal, e criar funções auxiliares para abstrair as operações nas células que não são essenciais
+- Adicionar comentários in-line que auxiliem na interpretação
+- Manter as imagens nos notebooks (no de mlg, não tem imagens quando se olha pela visualização do github; corrija se for um erro, deixe assim se for normal)
+- Adicionar plot dos gráficos e mapas com análises nos notebooks (verificar resultados com prints antes de marcar como "feito")
+- Manter somente as tabelas essenciais para as interpretações, de modo que estejam formatadas, concisas e com títulos descritivos
+- Eliminar duplicação de operações e verificações em notebooks diferentes (checar operações iguais desnecessárias). Caso precise mostrar o resultado em outro notebook, pode referenciar o notebook de onde o valor original veio e usar o valor diretamente.
+- Usar simple-english nos textos em português de algumas células e ver se faz sentido usar no resto do notebook, avaliando mudança de sentido das frases e clareza.
