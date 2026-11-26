@@ -141,6 +141,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   log n do ajuste (n apurado); o erro de θ é ignorado (só o bloco β da covariância de
   Conley é sorteado); σ_UF vem do LOSO do desenho de cada corte
   ([11](11-apuracao-parcial.md), seções 8 e 9).
+- **IC largo na apuração parcial vem da ordem de apuração.** As primeiras seções (capitais e grandes cidades) não
+  são amostra aleatória da UF. O encolhimento por UF (BLUP) estreitou o IC e perdeu cobertura em 2026 (Brasil 6/6 → 4/6,
+  regiões 27/30 → 20/30) e foi rejeitado ([13](13-apuracao-extensoes-rejeitadas.md)). Correção possível: encolhimento
+  que pondere o apurado pela semelhança com o restante da UF, calibrado com critério que inclua a cobertura.
 
 ## Backtest
 

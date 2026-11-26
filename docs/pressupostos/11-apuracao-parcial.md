@@ -216,3 +216,5 @@ momento, só com o que já foi contado. Um desenho fixo escolhido depois do resu
   ser acaso de um só ano.
 - [deduced] O IC largo vem de σ_UF e da dispersão do desenho do corte. [assumed] A causa de fundo do viés a 5 %
   (composição da apuração inicial, que não cobre Centro-Oeste e Nordeste) não foi testada.
+- Encolher o restante pelo desvio do apurado na UF estreita o IC e perde cobertura em 2026: rejeitado
+  ([13](13-apuracao-extensoes-rejeitadas.md)).

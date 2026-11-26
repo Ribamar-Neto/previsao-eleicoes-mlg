@@ -16,6 +16,7 @@
 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) | Krigagem e CAR/BYM nos resíduos (rejeitadas, também com peso por n), decomposição do I de Moran |
 | [11-apuracao-parcial.md](11-apuracao-parcial.md) | Apuração parcial na ordem real do TSE (2022 e 2026), com o desenho refeito em cada corte (vazamento corrigido), IC do Brasil em 12 de 12 cortes, corte de Conley de referência de 200 km, incerteza de n_u e cobertura por unidade |
 | [12-pendencias.md](12-pendencias.md) | Pendências abertas, com efeito e correção possível |
+| [13-apuracao-extensoes-rejeitadas.md](13-apuracao-extensoes-rejeitadas.md) | Encolhimento por UF (BLUP), parcela apurada do município e desenho fixo de 2026 na apuração parcial (rejeitados: o IC estreita e perde cobertura); por que o IC largo é o preço da ordem de apuração |
 | [referencias.md](referencias.md) | Referências únicas e conferidas (Paula, com as seções usadas) |
 
 Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
@@ -36,3 +37,4 @@ Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 | `02-MLG` | 16 | [09-modelo-final.md](09-modelo-final.md) |
 | `02-MLG` | 17 | [10-extensoes-rejeitadas.md](10-extensoes-rejeitadas.md) |
 | `03-apuracao-parcial` | 18 | [11-apuracao-parcial.md](11-apuracao-parcial.md) |
+| `03-apuracao-parcial` | 18 (extensões rejeitadas) | [13-apuracao-extensoes-rejeitadas.md](13-apuracao-extensoes-rejeitadas.md) |
