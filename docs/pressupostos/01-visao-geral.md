@@ -54,9 +54,15 @@ resultados e agregar as previsões às 5 regiões.
 - **Ajustes repetidos de propósito.** Os reajustes do `bb_slx` por dobra nas Partes 16 e 17
   ficam em cada parte, porque rodam em processos paralelos e o compartilhamento dos ajustes
   não foi testado.
-- **Gráficos em PNG estático (kaleido).** Os gráficos Plotly são exportados em PNG para
-  `results/figures`; os `.html` foram apagados. Razão: o GitHub não renderiza a saída JSON do
-  Plotly nos notebooks, e o leitor veria células vazias.
+- **Gráficos interativos no notebook, PNG em `results/figures`.** No notebook os gráficos
+  Plotly são interativos (hover com o município, zoom); cada um também é exportado em PNG
+  (kaleido) para os docs. Razão: a leitura é no Jupyter, e o hover identifica os pontos
+  atípicos. Compatibilidade com o visualizador do GitHub deixou de ser requisito (decisão do
+  autor, 2026-11-25); no GitHub as células de gráfico aparecem vazias.
+- **Uma leitura por gráfico.** Cada gráfico tem logo abaixo um parágrafo
+  `**Leitura do gráfico.**`: o que olhar e o que o resultado atual diz na prática. Os números
+  de teste e o veredito pela regra ficam numa célula `**Leitura.**` separada, e a leitura do
+  gráfico não os repete. Razão: duas leituras do mesmo gráfico divergem quando uma muda.
 - **Regra das tabelas.** Uma tabela fica no notebook só quando uma célula de interpretação
   cita seus números para uma decisão; senão vira gráfico, lista de indicadores ou nada (o CSV
   guarda o detalhe).

@@ -1,6 +1,6 @@
 # Diagnóstico dos modelos binomiais (Parte 10 do `02-MLG`)
 
-Parte 10 do `02-MLG`: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo 6, dos modelos escolhidos, na seção 8. Ordem de execução: o Passo 6 lê `results/tables/final_decisao.json`, escrito pela Parte 15 do mesmo notebook; o Passo 6 roda depois da Parte 15 (Run-All único, valores em memória); sem o json o Passo 6 só analisa o `bb_selecao` e usa o corte de Conley de 200 km, sem aviso. Tabelas em `results/tables/diag_*.csv`, figuras em `results/figures/diag_*.png`, funções gráficas em `notebooks/graficos_diagnostico.py`.
+Parte 10 do `02-MLG`: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo 6, dos modelos escolhidos, na seção 8. Ordem de execução: o Passo 6 lê `results/tables/final_decisao.json`, escrito pela Parte 15 do mesmo notebook; o Passo 6 roda depois da Parte 15 (Run-All único, valores em memória); sem o json o Passo 6 só analisa o `bb_selecao` e usa o corte de Conley de 200 km, sem aviso. Tabelas em `results/tables/diag_*.csv`, figuras em `results/figures/diag_*.png`, funções gráficas em `src/graficos.py`.
 
 **Objetivo.** Verificar os pressupostos de `bin_logit`, `quasi_reglag`, `bb_logit`, `bb_reglag`, `bb_spline` e `glmm_uf` antes da validação cruzada (Parte 11). Este documento não escolhe modelo.
 
@@ -52,6 +52,7 @@ Parte 10 do `02-MLG`: Passos 1 a 5 e conclusão antiga nas seções 1 a 7; Passo
 
 - **Fórmulas:** h = diag(W^½ X (X'WX)⁻¹ X' W^½) com W = nπ̂(1-π̂); D = r_P² h / (φ̂ p (1-h)²), r_P resíduo de Pearson, φ̂ = 21,56, p = 29 (Pregibon, 1981; Cook, 1977; Williams, 1987). Feito à mão porque `get_influence()` não trata a resposta de duas colunas com φ de Pearson própria.
 - **Pressuposto:** o ajuste não depende de poucas observações. Referências 2p/N e 4/N sinalizam 483 e 419 municípios; num N desse tamanho servem só de triagem. A prova é o reajuste.
+- **Cortes no gráfico de Cook:** linhas em 4/N (triagem: acima dela, em vermelho, vale olhar o município) e em D = 1 (regra clássica de Cook: muito influente). Eixo em log, porque Brasília e São Paulo (D > 1) comprimem os demais em zero na escala linear.
 - **Resultado.** Top 10 por Cook: Brasília (D = 6,15; h = 0,67), São Paulo (2,95; h = 0,57), Manaus (0,92), Fortaleza (0,49), Recife (0,39), Goiânia (0,25), Feira de Santana (0,10), Belém (0,09), Campos dos Goytacazes (0,07), Macapá (0,06). Todos são capitais ou grandes cidades, porque W cresce com n.
 - **Reajuste sem esses 10** (`diag_sem_influentes.csv`; a padronização é refeita no subconjunto, efeito desprezível):
 

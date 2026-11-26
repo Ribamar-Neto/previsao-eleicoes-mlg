@@ -19,7 +19,7 @@ def test_qq_normal_um_traco_por_modelo_mais_diagonal() -> None:
 def test_residuos_contra_tres_tracos_por_painel() -> None:
     rng = np.random.default_rng(0)
     x = rng.normal(size=60)
-    fig = G.residuos_contra(x, {"a": rng.normal(size=60), "b": rng.normal(size=60)}, "x", "t", faixas=5)
+    fig = G.residuos_contra(x, {"a": rng.normal(size=60), "b": rng.normal(size=60)}, "x", "t")
     assert len(fig.data) == 4
 
 

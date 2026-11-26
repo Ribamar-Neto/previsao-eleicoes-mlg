@@ -22,6 +22,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 import statsmodels.api as sm
+from numpy.typing import ArrayLike
 from plotly.subplots import make_subplots
 from scipy import stats
 from statsmodels.nonparametric.smoothers_lowess import lowess
@@ -43,15 +44,13 @@ pio.templates["eleicoes"] = go.layout.Template(layout={
 })
 pio.templates.default = "plotly_white+eleicoes"
 
-# GitHub não renderiza o JSON do Plotly: toda figura vira PNG estático (no notebook e em results/figures).
+# No notebook as figuras são interativas (hover, zoom); o PNG em results/figures é a cópia estática que os docs citam.
+# Decisão do autor: compatibilidade com o visualizador do GitHub não é requisito.
 LARGURA_PNG = 900
 ALTURA_PNG = 520
 ESCALA_PNG = 1.5
 PASTA_FIGURAS_PADRAO = Path(__file__).resolve().parent.parent / "results" / "figures"
-pio.renderers.default = "png"
-pio.renderers["png"].width = LARGURA_PNG
-pio.renderers["png"].height = ALTURA_PNG
-pio.renderers["png"].scale = ESCALA_PNG
+pio.renderers.default = "notebook_connected"
 
 _servidor_kaleido: bool = False
 
@@ -139,9 +138,11 @@ def mostrar_e_salvar(fig: go.Figure, nome: str | None = None, titulo: str | None
         fig.update_layout(title=titulo, margin={"t": 90})
     if altura is not None or largura is not None:
         fig.update_layout(height=altura, width=largura)
+    if fig.layout.height is None:
+        fig.update_layout(height=ALTURA_PNG)  # mesma altura no notebook e no PNG
     if nome:
         salvar(fig, nome)
-    fig.show(width=fig.layout.width or LARGURA_PNG, height=fig.layout.height or ALTURA_PNG)  # o renderer ignora o tamanho do layout
+    fig.show()
 
 
 def histograma(valores: Any, nome_var: str, pesos: Any = None, name: str | None = None,
@@ -352,7 +353,10 @@ def _amostra(n: int, maximo: int = 1500, seed: int = 0) -> np.ndarray:
     return np.sort(np.random.default_rng(seed).choice(n, maximo, replace=False))
 
 
-def _medias_por_faixa(x: Any, r: Any, faixas: int = 20) -> tuple[np.ndarray, np.ndarray]:
+FAIXAS_TENDENCIA = 20  # faixas da curva de tendência do resíduo
+
+
+def _medias_por_faixa(x: ArrayLike, r: ArrayLike, faixas: int) -> tuple[np.ndarray, np.ndarray]:
     """Média do resíduo em faixas de x com o mesmo número de pontos (curva de tendência)."""
     x, r = np.asarray(x, float), np.asarray(r, float)
     ordem = np.argsort(x)
@@ -379,21 +383,31 @@ def meio_normal(envelopes: Mapping[str, Mapping[str, np.ndarray]],
     return fig
 
 
-def residuos_contra(x: Any, residuos: Mapping[str, Any], xtitulo: str, titulo: str, faixas: int = 20) -> go.Figure:
-    """Painéis (um por modelo) de resíduo contra `x`, com a média por faixa em vermelho."""
+def residuos_contra(x: ArrayLike, residuos: Mapping[str, Any], xtitulo: str, titulo: str,
+                    rotulos: Sequence[str] | None = None) -> go.Figure:
+    """Painéis (um por modelo) de resíduo contra `x`, com a média por faixa em vermelho.
+
+    O título do eixo x é um só, sob todos os painéis: repetido em cada painel estreito os textos se sobrepõem.
+    """
     x = np.asarray(x, float)
-    fig = make_subplots(rows=1, cols=len(residuos), subplot_titles=list(residuos), shared_yaxes=True)
+    fig = make_subplots(rows=1, cols=len(residuos), subplot_titles=list(residuos), shared_yaxes=True,
+                        horizontal_spacing=0.02)
     for j, (nome, r) in enumerate(residuos.items(), start=1):
         r = np.asarray(r, float)
         idx = _amostra(len(r), 1200)
-        fig.add_scatter(x=x[idx], y=r[idx], mode="markers", marker={"size": 3, "opacity": 0.35},
+        texto = None if rotulos is None else [rotulos[i] for i in idx]
+        fig.add_scatter(x=x[idx], y=r[idx], mode="markers", marker={"size": 3, "opacity": 0.35}, name=nome,
+                        hovertext=texto, hovertemplate="%{hovertext}<br>x = %{x:.3f}<br>resíduo = %{y:.2f}<extra></extra>",
                         showlegend=False, row=1, col=j)
-        mx, mr = _medias_por_faixa(x, r, faixas)
-        fig.add_scatter(x=mx, y=mr, mode="lines+markers", line={"color": "crimson"},
+        mx, mr = _medias_por_faixa(x, r, FAIXAS_TENDENCIA)
+        fig.add_scatter(x=mx, y=mr, mode="lines+markers", line={"color": "crimson"}, name="média por faixa",
+                        hovertemplate="média por faixa<br>x = %{x:.3f}<br>resíduo = %{y:.2f}<extra></extra>",
                         showlegend=False, row=1, col=j)
         fig.add_hline(y=0, line_dash="dash", line_color="gray", row=1, col=j)
-        fig.update_xaxes(title_text=xtitulo, row=1, col=j)
-    fig.update_layout(title=titulo, template="plotly_white", height=420)
+    fig.add_annotation(text=xtitulo, xref="paper", yref="paper", x=0.5, y=-0.14, xanchor="center", yanchor="top",
+                       showarrow=False, font={"size": 14})
+    fig.update_yaxes(title_text="resíduo quantílico", row=1, col=1)
+    fig.update_layout(title=titulo, template="plotly_white", height=440, margin={"b": 90})
     return fig
 
 
@@ -553,25 +567,37 @@ def painel_diagnostico(h: Any, cook: Any, residuo: Any, ajustado: Any, *, p: int
                        titulo: str, rotulo_residuo: str = "Resíduo quantílico") -> go.Figure:
     """Painel 2x2 de diagnóstico (estilo Paula): alavanca, Cook e resíduo contra o índice, e resíduo contra π̂.
 
-    Cortes de alavanca em 2p/n e 3p/n; resíduos fora de ±2 e ±3 merecem atenção; os 5 maiores Cook são rotulados.
+    Cortes de alavanca em 2p/n e 3p/n; Cook em 4/n (influente, merece olhar) e 1 (regra clássica: muito
+    influente), com eixo em log porque poucos municípios grandes comprimem o resto em zero; resíduos fora de
+    ±2 e ±3 merecem atenção; os 5 maiores Cook são rotulados.
     """
     h, cook = np.asarray(h, float), np.asarray(cook, float)
     residuo, ajustado = np.asarray(residuo, float), np.asarray(ajustado, float)
     n = len(h)
     idx = np.arange(1, n + 1)
+    corte_cook = 4 / n
+    cook_log = np.clip(cook, 1e-8, None)  # o eixo log descarta zeros
     fig = make_subplots(rows=2, cols=2, vertical_spacing=0.16, horizontal_spacing=0.1, subplot_titles=(
         f"Alavanca h<sub>ii</sub> (linhas: 2p/n = {2 * p / n:.4f} e 3p/n = {3 * p / n:.4f})".replace(".", ","),
-        "Distância de Cook", f"{rotulo_residuo} × índice", f"{rotulo_residuo} × π̂"))
-    marcador = {"color": "#5b9be0", "size": 3}
-    for (r, c), y in {(1, 1): h, (1, 2): cook, (2, 1): residuo, (2, 2): residuo}.items():
+        f"Distância de Cook, escala log (linhas: 4/n = {corte_cook:.5f} e 1)".replace(".", ","),
+        f"{rotulo_residuo} × índice", f"{rotulo_residuo} × π̂"))
+    nomes_mun = list(rotulos) if rotulos is not None else [str(i) for i in idx]
+    cor_cook = np.where(cook > corte_cook, COR_CRITICO, "#5b9be0")
+    for (r, c), y in {(1, 1): h, (1, 2): cook_log, (2, 1): residuo, (2, 2): residuo}.items():
         x = ajustado if (r, c) == (2, 2) else idx
-        fig.add_trace(go.Scatter(x=x, y=y, mode="markers", marker=marcador, showlegend=False), row=r, col=c)
+        marcador = {"color": cor_cook if (r, c) == (1, 2) else "#5b9be0", "size": 3}
+        fig.add_trace(go.Scatter(x=x, y=y, mode="markers", marker=marcador, showlegend=False, hovertext=nomes_mun,
+                                 hovertemplate="%{hovertext}<br>x = %{x:.4g}<br>y = %{y:.4g}<extra></extra>"), row=r, col=c)
     _linhas_h(fig, [2 * p / n, 3 * p / n], 1, 1)
+    # Sem annotation_text: em eixo log o plotly posiciona o rótulo da hline no valor bruto, fora da linha.
+    for valor in (corte_cook, 1.0):
+        fig.add_hline(y=valor, line_dash="dash", line_color=COR_CRITICO if valor == 1 else COR_REFERENCIA, line_width=1.2,
+                      row=1, col=2)
+    fig.update_yaxes(type="log", exponentformat="power", row=1, col=2)
     _linhas_h(fig, [-3, -2, 2, 3], 2, 1)
     _linhas_h(fig, [-2, 2], 2, 2)
     topo = np.argsort(cook)[::-1][:5]
-    nomes = [rotulos[i] if rotulos is not None else str(idx[i]) for i in topo]
-    fig.add_trace(go.Scatter(x=idx[topo], y=cook[topo], mode="markers+text", text=nomes,
+    fig.add_trace(go.Scatter(x=idx[topo], y=cook_log[topo], mode="markers+text", text=[nomes_mun[i] for i in topo],
                              textposition=["top center", "top center", "bottom center", "top center", "bottom center"],
                              textfont={"size": 10, "color": CINZA_TEXTO}, cliponaxis=False,
                              marker={"color": COR_CRITICO, "size": 6}, showlegend=False), row=1, col=2)
