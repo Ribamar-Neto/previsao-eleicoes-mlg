@@ -235,7 +235,12 @@ def test_wald_usa_o_corte_proprio_de_cada_ajuste(dados: DP.DadosCorte, monkeypat
     monkeypatch.setattr(DP, "P_WALD", 2.0)   # p < 2 sempre: passos A e B rodam
     monkeypatch.setattr(DP, "_corte_proprio", lambda res, D: (next(cortes), False))
     cov = S.cov_conley
-    monkeypatch.setattr(S, "cov_conley", lambda m, la, lo, c: (usados.append(c), cov(m, la, lo, c))[1])
+
+    def cov_registrando(m: object, la: np.ndarray, lo: np.ndarray, c: float) -> np.ndarray:
+        usados.append(c)
+        return cov(m, la, lo, c)
+
+    monkeypatch.setattr(S, "cov_conley", cov_registrando)
     forma, _, _, info = DP._wald_dispersao(Termos(vars=("lag", "nota_dep")), dados.D, dados.mapa)
     assert forma == "regiao_logn"
     assert usados == [111.0, 222.0]

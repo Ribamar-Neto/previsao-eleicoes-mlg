@@ -23,6 +23,8 @@ Os mapas são coropléticos Plotly exportados em PNG (kaleido), com geometria si
 - **Conclusão**: inclinações abaixo de 1 indicam regressão à média (municípios extremos se aproximam do centro), mais forte em 2022 ← 2018 (houve mudança de candidato) do que em 2026 ← 2022 (mesma candidatura de Lula). Isso valida
   `logit_pt_2t_2022` como covariável central e justifica estimar o coeficiente em vez de fixá-lo em 1 (modelo com offset). O swing médio ponderado por região em 2026 é pequeno
   (Sudeste +0,06, Norte +0,04, Sul −0,03, Nordeste −0,02, Centro-Oeste +0,01 log-odds), logo o efeito regional é fraco, mas existe.
+  Por município o quadro é outro: o PT perde em 78% deles (swing mediano −0,10), e o sinal positivo do Sudeste vem das cidades grandes.
+  Em 2022 ← 2018 a reta cruza y = x perto do logit 0,65 (66% para o PT): abaixo disso o PT ganhou, acima perdeu.
 
 ## Parte 3: Covariáveis
 - **Escopo**: 24 numéricas (com `log(pib_per_capita_2023)`) mais duas indicadoras de `bloco_prefeito_2024` (esquerda e centro; base: direita e sem prefeito) e o fator `regiao`.
@@ -58,7 +60,8 @@ Os mapas são coropléticos Plotly exportados em PNG (kaleido), com geometria si
 Roteiro de Paula (2013): tabela descritiva por nível (seção 2.10.5), razão de chances ψ de cada nível contra uma referência, sem dicotomizar sem motivo (4.4), tabela 2×2 e Mantel-Haenszel por estrato para a binária (4.2 e 4.3) e LRT univariado como passo 1 de Hosmer-Lemeshow (4.6.5). Referências: região Sudeste, bloco direita.
 - **ψ e IC são só descritivos.** São calculados sobre os totais de votos e ignoram a superdispersão entre municípios, então os IC ficam estreitos demais. O teste formal é o LRT no beta-binomial ([03](03-modelos-candidatos.md), seção 8.1).
 - **ψ brutos.** Região contra o Sudeste: Nordeste 2,529, Norte 1,117, Centro-Oeste 0,744, Sul 0,668. Bloco contra a direita (4.770 municípios): esquerda 1,706, centro 1,049 (49 municípios), sem_prefeito 0,904 (16). Norte e centro/sem_prefeito, com ψ perto de 1 ou poucos municípios, viram candidatos a fusão.
-- **UF só descreve.** ψ de 0,443 (RR) a 3,670 (PI); UFs vizinhas parecem parecidas, o que sugere que a região explica parte da UF. As UFs não são agrupadas ([12](12-pendencias.md)).
+- **UF só descreve.** ψ de 0,443 (RR) a 3,670 (PI); as nove UFs do Nordeste são as nove maiores e UFs vizinhas parecem parecidas, o que sugere que a região explica parte da UF.
+  Exceção: o Norte se divide (PA, AM e AP com ψ de 1,31 a 1,43; RR, RO e AC entre os menores), então um fator único para o Norte mistura dois grupos. As UFs não são agrupadas ([12](12-pendencias.md)).
 - **Mantel-Haenszel.** Estrato com linha ou coluna vazia sai do cálculo, porque o estimador não existe nele: o Norte não tem prefeito suplementar, então o MH da suplementar por região usa 4 estratos. OR bruto 0,955 e OR de MH 0,881.
 - **Breslow-Day.** Rejeita a homogeneidade entre regiões (p ≈ 0), mas com contagens de votos e sem correção de superdispersão ele rejeita diferenças pequenas: é só um sinal, não decide nada.
 - **Confusão.** O ψ bruto pode enganar: a esquerda pode estar concentrada em regiões que já votam mais em Lula (hipótese não checada) e a defasagem de 2022 pode absorver parte do bloco. Por isso os agrupamentos sugeridos pelo ψ são só hipóteses, e a decisão vem do LRT no beta-binomial completo, com todas as covariáveis.
@@ -75,6 +78,7 @@ Roteiro de Paula (2013): tabela descritiva por nível (seção 2.10.5), razão d
 
   p = 0,001 é o mínimo possível com 999 permutações.
 - **LISA** (`esda.Moran_Local`, 999 permutações, p < 0,05 sem correção para múltiplos testes) do swing: 3.508 não significativos, 1.045 Alto-Alto, 844 Baixo-Baixo, 90 Alto-Baixo, 83 Baixo-Alto.
+- **Diagrama de Moran do swing**: 76% dos municípios caem em AA ou BB e 24% em AB ou BA, quase todos perto da origem.
 - **Conclusão**: o voto tem dependência espacial muito forte e o swing, mesmo já descontando o nível anterior, ainda tem I = 0,54: a defasagem e o fator `regiao` não bastam.
   Os resíduos dos GLMs devem ser testados por Moran antes de confiar em erros-padrão clássicos; se a dependência persistir, usar erros robustos por UF, termo espacial ou defasagem espacial do swing como covariável.
   O LISA sem correção superestima agrupamentos; use-o descritivamente.

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, cast
 
 from statsmodels.genmod.families.links import Link
@@ -409,12 +410,12 @@ def estimar_aninhado(partes: Mapping[str, Mapping[str, Any]], chave: str, res_lo
     """
     ufs = list(partes)
     uf_reg = list(kw_resumo["uf_reg"])
-    kw = {"nhat": sorteio.nhat, "link": sorteio.link, "B": sorteio.n_boot, "seed": sorteio.seed}
     por_uf = [sigma_sem(res_logit, [u]) for u in ufs]
-    saida = [resumo_f(simular_f(partes, chave, por_uf, **kw), **kw_resumo).query("nivel == 'uf'")]
+    sim = partial(simular_f, partes, chave, nhat=sorteio.nhat, link=sorteio.link, B=sorteio.n_boot, seed=sorteio.seed)
+    saida = [resumo_f(sim(por_uf), **kw_resumo).query("nivel == 'uf'")]
     for r in dict.fromkeys(uf_reg):
         s_r = sigma_sem(res_logit, [u for u, g in zip(ufs, uf_reg, strict=True) if g == r])
-        d = resumo_f(simular_f(partes, chave, s_r, **kw), **kw_resumo)
+        d = resumo_f(sim(s_r), **kw_resumo)
         saida.append(d[(d.nivel == "regiao") & (d.nome == r)])
     return pd.concat(saida, ignore_index=True)
 

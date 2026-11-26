@@ -123,6 +123,7 @@ def main() -> None:
         t = votos_deputado(ano, blocos)
         nao_map |= set(t.attrs["nao_mapeados"])
         base = t if base is None else base.merge(t, on=["id_municipio_tse", "sigla_uf"], how="outer")
+    assert base is not None  # os três anos de deputado sempre geram tabela
     for ano in (2020, 2024):
         p = prefeitos(ano, blocos)
         nao_map |= set(p.attrs["nao_mapeados"])

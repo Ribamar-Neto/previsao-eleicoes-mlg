@@ -250,23 +250,25 @@ def residuos_quantilicos_rapido(y: npt.ArrayLike, n: npt.ArrayLike, pi: npt.Arra
     """
     rng = np.random.default_rng(rng)
     y, n = np.asarray(y).astype(np.int64), np.asarray(n).astype(np.int64)
-    pi = np.clip(np.asarray(pi, float), 1e-9, 1 - 1e-9)
+    pv = np.clip(np.asarray(pi, float), 1e-9, 1 - 1e-9)
     if theta is None:
-        F = lambda k: stats.binom.cdf(k, n, pi)
-    else:
-        theta = np.asarray(theta, float)  # escalar ou um theta por linha
-        J = np.maximum(base, np.ceil(c * np.sqrt(n / theta))).astype(int)
-        nivel = base * 2 ** np.ceil(np.log2(J / base)).astype(int)
 
-        def F(k: np.ndarray) -> np.ndarray:
+        def fda(k: np.ndarray) -> np.ndarray:
+            return stats.binom.cdf(k, n, pv)
+    else:
+        tv = np.asarray(theta, float)  # escalar ou um theta por linha
+        pontos = np.maximum(base, np.ceil(c * np.sqrt(n / tv))).astype(int)
+        nivel = base * 2 ** np.ceil(np.log2(pontos / base)).astype(int)
+
+        def fda(k: np.ndarray) -> np.ndarray:
             out = np.empty(len(k))
-            for Jb in np.unique(nivel):
-                i = np.where(nivel == Jb)[0]
-                th = theta if theta.ndim == 0 else theta[i]
-                p = stats.beta.ppf(((np.arange(Jb) + 0.5) / Jb)[:, None], pi[i] * th, (1 - pi[i]) * th)
+            for jb in np.unique(nivel):
+                i = np.where(nivel == jb)[0]
+                th = tv if tv.ndim == 0 else tv[i]
+                p = stats.beta.ppf(((np.arange(jb) + 0.5) / jb)[:, None], pv[i] * th, (1 - pv[i]) * th)
                 out[i] = stats.binom.cdf(k[i][None, :], n[i][None, :], p).mean(axis=0)
             return out
-    lo, hi = F(y - 1), F(y)
+    lo, hi = fda(y - 1), fda(y)
     u = np.clip(lo + rng.uniform(size=y.shape) * (hi - lo), 1e-10, 1 - 1e-10)
     return stats.norm.ppf(u)
 
