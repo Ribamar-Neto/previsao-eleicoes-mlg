@@ -4,6 +4,7 @@ Y_i = votos do candidato A, n_i = votos válidos (A + B), pi_i = P(voto em A).
 Os modelos aqui complementam o statsmodels: beta-binomial, agregação por
 votos, validação cruzada, métricas, resíduos quantílicos e intervalos.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -32,8 +33,11 @@ def cov_psd(cov: np.ndarray, tol: float = 1e-8) -> np.ndarray:
     if val[0] >= 0:
         return c
     if val[0] < -tol * val[-1]:
-        warnings.warn(f"{AVISO_NAO_PSD} (autovalor mín/máx = {val[0] / val[-1]:.3g}); "
-                      "autovalores negativos cortados em 0 para amostrar", stacklevel=2)
+        warnings.warn(
+            f"{AVISO_NAO_PSD} (autovalor mín/máx = {val[0] / val[-1]:.3g}); "
+            "autovalores negativos cortados em 0 para amostrar",
+            stacklevel=2,
+        )
     return (vet * np.clip(val, 0.0, None)) @ vet.T
 
 
@@ -87,9 +91,7 @@ class BetaBinomial(GenericLikelihoodModel):
             nomes_exog.extend(nomes or [f"disp_{j}" for j in range(Z.shape[1])])
             self.k_extra = Z.shape[1]
             self.nparams = self._p + Z.shape[1]
-        self._log_binom = (
-            gammaln(self.n + 1) - gammaln(self.endog + 1) - gammaln(self.n - self.endog + 1)
-        )
+        self._log_binom = gammaln(self.n + 1) - gammaln(self.endog + 1) - gammaln(self.n - self.endog + 1)
 
     def _pi(self, params, exog=None):
         exog = self.exog if exog is None else exog
@@ -100,7 +102,7 @@ class BetaBinomial(GenericLikelihoodModel):
         if self.exog_disp is None:
             return np.exp(params[-1])
         Z = self.exog_disp if exog_disp is None else np.asarray(exog_disp, float)
-        return np.exp(Z @ np.asarray(params)[self._p:])
+        return np.exp(Z @ np.asarray(params)[self._p :])
 
     def loglikeobs(self, params):
         pi = self._pi(params)
@@ -117,7 +119,7 @@ class BetaBinomial(GenericLikelihoodModel):
         if self.exog_disp is None:
             return super().score_obs(params, **kwds)
         params = np.asarray(params, float)
-        eta = self.exog @ params[:self._p]
+        eta = self.exog @ params[: self._p]
         pi = _pi_de_eta(eta, self.link)
         theta = self._theta(params)
         a, b = pi * theta, (1 - pi) * theta
@@ -143,7 +145,8 @@ class BetaBinomial(GenericLikelihoodModel):
         # Chute inicial: GLM binomial; theta pelo momento da dispersão de Pearson.
         y, n = self.endog, self.n
         glm = sm.GLM(
-            np.column_stack([y, n - y]), self.exog,
+            np.column_stack([y, n - y]),
+            self.exog,
             family=sm.families.Binomial(link=self.link),
         ).fit()
         pi = np.clip(glm.fittedvalues, _EPS, 1 - _EPS)
@@ -160,8 +163,9 @@ class BetaBinomial(GenericLikelihoodModel):
             return np.append(np.asarray(glm.params), gam)
         return np.append(np.asarray(glm.params), lt)
 
-    def fit(self, start_params=None, method="bfgs", maxiter=2000, full_output=1,
-            disp=False, callback=None, retall=0, **kwds):
+    def fit(
+        self, start_params=None, method="bfgs", maxiter=2000, full_output=1, disp=False, callback=None, retall=0, **kwds
+    ):
         if start_params is None:
             start_params = self._start()
         # gtol sobre a log-verossimilhança SOMADA: um limite proporcional a N (1e-4*N)
@@ -170,8 +174,14 @@ class BetaBinomial(GenericLikelihoodModel):
         if method == "bfgs":
             kwds.setdefault("gtol", 1e-3)
         return super().fit(
-            start_params=start_params, method=method, maxiter=maxiter,
-            full_output=full_output, disp=disp, callback=callback, retall=retall, **kwds
+            start_params=start_params,
+            method=method,
+            maxiter=maxiter,
+            full_output=full_output,
+            disp=disp,
+            callback=callback,
+            retall=retall,
+            **kwds,
         )
 
 
@@ -226,15 +236,13 @@ def folds_kfold(n_obs: int, k: int = 5, seed: int = 0):
     """Lista de (idx_treino, idx_teste); cada índice é teste exatamente uma vez."""
     perm = np.random.default_rng(seed).permutation(n_obs)
     partes = np.array_split(perm, k)
-    return [(np.sort(np.concatenate(partes[:i] + partes[i + 1:])), np.sort(p))
-            for i, p in enumerate(partes)]
+    return [(np.sort(np.concatenate(partes[:i] + partes[i + 1 :])), np.sort(p)) for i, p in enumerate(partes)]
 
 
 def folds_por_grupo(grupos):
     """Leave-one-group-out (ex.: um estado fora por vez)."""
     grupos = np.asarray(grupos)
-    return [(np.flatnonzero(grupos != g), np.flatnonzero(grupos == g))
-            for g in pd.unique(grupos)]
+    return [(np.flatnonzero(grupos != g), np.flatnonzero(grupos == g)) for g in pd.unique(grupos)]
 
 
 def predicoes_cv(ajustar, prever, dados: pd.DataFrame, folds) -> np.ndarray:
@@ -323,8 +331,9 @@ def envelope_meio_normal(residuos_fn, simular_fn, ajustar_fn, B=99, nivel=0.95, 
 # --------------------------------------------------------------------------
 # Intervalos de previsão para agregados
 # --------------------------------------------------------------------------
-def simular_agregado(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
-                     B=1000, rng=None, lote=100) -> pd.DataFrame:
+def simular_agregado(
+    beta_hat, cov_beta, X, n, grupos, link=None, theta=None, B=1000, rng=None, lote=100
+) -> pd.DataFrame:
     """Intervalos de previsão paramétricos para o share por grupo.
 
     beta ~ N(beta_hat, cov); pi = g^-1(X beta); Y ~ Bin(n, pi) ou, com theta,
@@ -349,7 +358,7 @@ def simular_agregado(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
         pi = _pi_de_eta(betas @ X.T, link)
         if theta is not None:
             pi = rng.beta(pi * theta, (1 - pi) * theta)
-        nb = n[feitos:feitos + b] if n.ndim == 2 else n[None, :]
+        nb = n[feitos : feitos + b] if n.ndim == 2 else n[None, :]
         Y = rng.binomial(nb, pi)
         partes.append((G.T @ Y.T.astype(float)).T / den)
         feitos += b
@@ -361,8 +370,9 @@ def simular_agregado(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
     )
 
 
-def simular_votos_grupo(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
-                        sigma=0.0, B=1000, rng=None, lote=100, offset=None):
+def simular_votos_grupo(
+    beta_hat, cov_beta, X, n, grupos, link=None, theta=None, sigma=0.0, B=1000, rng=None, lote=100, offset=None
+):
     """Votos simulados por grupo: matriz B x G (colunas na ordem de np.unique(grupos)).
 
     beta ~ N(beta_hat, cov); choque de grupo delta_g ~ N(0, sigma^2) somado ao
@@ -389,7 +399,7 @@ def simular_votos_grupo(beta_hat, cov_beta, X, n, grupos, link=None, theta=None,
         pi = _pi_de_eta(eta, link)
         if theta is not None:
             pi = rng.beta(pi * theta, (1 - pi) * theta)
-        nb = n[feitos:feitos + b] if n.ndim == 2 else n[None, :]
+        nb = n[feitos : feitos + b] if n.ndim == 2 else n[None, :]
         Y = rng.binomial(nb, pi)
         partes.append((G.T @ Y.T.astype(float)).T)
         feitos += b

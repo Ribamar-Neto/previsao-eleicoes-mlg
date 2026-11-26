@@ -9,9 +9,17 @@ from src.coleta import tse_bweb as b
 def _bruto(ano: int, agreg: str = "#NULO#") -> pd.DataFrame:
     data = "30/10/2022 17:34:43" if ano == 2022 else "2026-10-25 17:34:43"
     col = b.COL_AGREGADAS[ano]
-    base = {"SG_UF": "AC", "CD_MUNICIPIO": "1392", "NR_ZONA": "1", "NR_SECAO": "3",
-            "CD_CARGO_PERGUNTA": "1", "DT_BU_RECEBIDO": data, "QT_APTOS": "185",
-            "QT_COMPARECIMENTO": "147", col: agreg}
+    base = {
+        "SG_UF": "AC",
+        "CD_MUNICIPIO": "1392",
+        "NR_ZONA": "1",
+        "NR_SECAO": "3",
+        "CD_CARGO_PERGUNTA": "1",
+        "DT_BU_RECEBIDO": data,
+        "QT_APTOS": "185",
+        "QT_COMPARECIMENTO": "147",
+        col: agreg,
+    }
     linhas = [
         {**base, "NR_VOTAVEL": "13", "QT_VOTOS": "48"},
         {**base, "NR_VOTAVEL": "22", "QT_VOTOS": "90"},

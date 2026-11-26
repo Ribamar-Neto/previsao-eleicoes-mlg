@@ -83,8 +83,9 @@ def votos_restantes(aptos_pendentes: pd.Series, taxa: pd.Series) -> pd.Series:
     return (aptos_pendentes.astype(float) * taxa.astype(float)).round()
 
 
-def montar_base(secoes: pd.DataFrame, dfm: pd.DataFrame, ano: int, recebida: pd.Series,
-                definicao: str = DEFINICAO_TAXA) -> pd.DataFrame:
+def montar_base(
+    secoes: pd.DataFrame, dfm: pd.DataFrame, ano: int, recebida: pd.Series, definicao: str = DEFINICAO_TAXA
+) -> pd.DataFrame:
     """Uma linha por município (código TSE) das seções do `ano`, no corte `recebida`.
 
     Colunas: uf, regiao, y_c, n_c (apurados), aptos_pend, aptos_rec, taxa, n_u, y_final, n_final, prev
@@ -99,7 +100,9 @@ def montar_base(secoes: pd.DataFrame, dfm: pd.DataFrame, ano: int, recebida: pd.
     base["y_c"] = rec["votos_lula"].reindex(base.index).fillna(0).astype(float)
     base["n_c"] = rec["validos"].reindex(base.index).fillna(0).astype(float)
     base["aptos_pend"] = ap.reindex(base.index).fillna(0).astype(float)
-    base["aptos_rec"] = s[s["_rec"]].groupby("cd_municipio_tse")["aptos"].sum().reindex(base.index).fillna(0).astype(float)
+    base["aptos_rec"] = (
+        s[s["_rec"]].groupby("cd_municipio_tse")["aptos"].sum().reindex(base.index).fillna(0).astype(float)
+    )
     base["y_final"] = fin["votos_lula"].astype(float)
     base["n_final"] = fin["validos"].astype(float)
     m = dfm.assign(cd=dfm["id_municipio_tse"].astype("int64")).set_index("cd")
@@ -179,6 +182,7 @@ def erros(est: pd.Series, real: pd.Series) -> tuple[float, float]:
 @dataclass
 class ParcialModelo:
     """π̂ de todos os municípios do parquet e insumos da simulação de intervalos."""
+
     pi: np.ndarray
     beta: np.ndarray
     cov: np.ndarray
@@ -187,9 +191,17 @@ class ParcialModelo:
     n_treino: int
 
 
-def ajustar_parcial(cand: E.Candidato, dfm: pd.DataFrame, mapa: dict[str, str], y_c: np.ndarray,
-                    n_c: np.ndarray, n_u: np.ndarray, lat: np.ndarray, lon: np.ndarray,
-                    corte_km: float) -> ParcialModelo:
+def ajustar_parcial(
+    cand: E.Candidato,
+    dfm: pd.DataFrame,
+    mapa: dict[str, str],
+    y_c: np.ndarray,
+    n_c: np.ndarray,
+    n_u: np.ndarray,
+    lat: np.ndarray,
+    lon: np.ndarray,
+    corte_km: float,
+) -> ParcialModelo:
     """Ajusta `cand` nos (y_c, n_c) com n_c > 0 e prevê π̂ do restante em todos os municípios.
 
     A padronização vem só das linhas de treino. O n da linha de previsão é o n_u (dispersão
@@ -208,12 +220,14 @@ def ajustar_parcial(cand: E.Candidato, dfm: pd.DataFrame, mapa: dict[str, str], 
     return ParcialModelo(
         pi=np.asarray(cand.prever(aj, dte, mapa), float),
         beta=np.asarray(aj.modelo.params, float)[:nb],
-        cov=cov, X=X.to_numpy(float),
-        theta=E.prever_theta(aj, dte, mapa), n_treino=int(ok.sum()),
+        cov=cov,
+        X=X.to_numpy(float),
+        theta=E.prever_theta(aj, dte, mapa),
+        n_treino=int(ok.sum()),
     )
 
 
-MIN_MUN_UF = 5   # abaixo disso a UF sorteia o resíduo municipal do pool nacional
+MIN_MUN_UF = 5  # abaixo disso a UF sorteia o resíduo municipal do pool nacional
 
 
 def _residuos_nu(base: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, float]:
@@ -262,9 +276,17 @@ def fatores_nu(base: pd.DataFrame, B: int, semente: int) -> np.ndarray:
     return k
 
 
-def intervalos(pm: ParcialModelo, base_m: pd.DataFrame, base: pd.DataFrame, pi_uf: pd.Series,
-               ligacao: str, sigma_uf: float, B: int, semente: int,
-               fatores: np.ndarray | None = None) -> pd.DataFrame:
+def intervalos(
+    pm: ParcialModelo,
+    base_m: pd.DataFrame,
+    base: pd.DataFrame,
+    pi_uf: pd.Series,
+    ligacao: str,
+    sigma_uf: float,
+    B: int,
+    semente: int,
+    fatores: np.ndarray | None = None,
+) -> pd.DataFrame:
     """IC 95 % do share por região e Brasil: votos já apurados + restante simulado.
 
     `base_m` = linhas do parquet (ordem de `pm`); município fora do modelo entra fixo no
@@ -278,9 +300,18 @@ def intervalos(pm: ParcialModelo, base_m: pd.DataFrame, base: pd.DataFrame, pi_u
         nu_b = np.rint(base["n_u"].to_numpy(float)[None, :] * fatores)
         pos = base.index.get_indexer(base_m.index)
         n_u = np.where(pos[None, :] >= 0, nu_b[:, np.maximum(pos, 0)], n_u[None, :])
-    sims = M.simular_votos_grupo(pm.beta, pm.cov, pm.X, n_u, base_m["uf"].to_numpy(),
-                                 link=E.LIGACOES[ligacao], theta=pm.theta, sigma=sigma_uf,
-                                 B=B, rng=semente)
+    sims = M.simular_votos_grupo(
+        pm.beta,
+        pm.cov,
+        pm.X,
+        n_u,
+        base_m["uf"].to_numpy(),
+        link=E.LIGACOES[ligacao],
+        theta=pm.theta,
+        sigma=sigma_uf,
+        B=B,
+        rng=semente,
+    )
     ufs = np.unique(base_m["uf"].to_numpy())
     reg_da_uf = base_m.groupby("uf")["regiao"].first().reindex(ufs).astype(str)
     regs = sorted(set(base["regiao"]))
@@ -330,10 +361,13 @@ def representatividade(base: pd.DataFrame, pi: pd.Series | None, n_maiores: int 
     for nome, sel in (("maiores", top), ("demais", ~top)):
         m = ok & sel
         w = resto[m]
-        lin = {"grupo": nome, "n_municipios": int(m.sum()),
-               "pct_restante_real": 100.0 * float(w.sum() / resto[ok].sum()) if ok.any() else np.nan,
-               "lacuna_apurado_pp": 100.0 * float(((sh_c - sh_r)[m] * w).sum() / w.sum()) if m.any() else np.nan,
-               "abs_apurado_pp": 100.0 * float(((sh_c - sh_r).abs()[m] * w).sum() / w.sum()) if m.any() else np.nan}
+        lin = {
+            "grupo": nome,
+            "n_municipios": int(m.sum()),
+            "pct_restante_real": 100.0 * float(w.sum() / resto[ok].sum()) if ok.any() else np.nan,
+            "lacuna_apurado_pp": 100.0 * float(((sh_c - sh_r)[m] * w).sum() / w.sum()) if m.any() else np.nan,
+            "abs_apurado_pp": 100.0 * float(((sh_c - sh_r).abs()[m] * w).sum() / w.sum()) if m.any() else np.nan,
+        }
         if pi is not None:
             p = pi.reindex(base.index)
             lin["lacuna_modelo_pp"] = 100.0 * float(((p - sh_r)[m] * w).sum() / w.sum()) if m.any() else np.nan
@@ -358,10 +392,12 @@ def aplicar_regra(tab: pd.DataFrame, minimo: int = MINIMO_VITORIAS) -> pd.DataFr
             m = p.loc["modelo"]
             outros = p.drop(index="modelo")
             if (m["erro_brasil_pp"] < outros["erro_brasil_pp"]).all() and (
-                    m["mae_regional_pp"] < outros["mae_regional_pp"]).all():
+                m["mae_regional_pp"] < outros["mae_regional_pp"]
+            ).all():
                 vit += 1
-        linhas.append({"ano": ano, "cortes": len(cortes), "vitorias_modelo": vit,
-                       "minimo": minimo, "util": vit >= minimo})
+        linhas.append(
+            {"ano": ano, "cortes": len(cortes), "vitorias_modelo": vit, "minimo": minimo, "util": vit >= minimo}
+        )
     return pd.DataFrame(linhas)
 
 
@@ -369,8 +405,17 @@ def aplicar_regra(tab: pd.DataFrame, minimo: int = MINIMO_VITORIAS) -> pd.DataFr
 # Estimativas do modelo final por UF e região (`02-MLG`, Parte 16)
 # --------------------------------------------------------------------------
 
-def simular_f(partes: Mapping[str, Mapping[str, Any]], chave: str, sigma: float | Sequence[float], *, nhat: np.ndarray,
-              link: type[Link], B: int = 1000, seed: int = 7) -> np.ndarray:
+
+def simular_f(
+    partes: Mapping[str, Mapping[str, Any]],
+    chave: str,
+    sigma: float | Sequence[float],
+    *,
+    nhat: np.ndarray,
+    link: type[Link],
+    B: int = 1000,
+    seed: int = 7,
+) -> np.ndarray:
     """Votos simulados da UF retida, uma coluna por UF (ordem de `partes`), com o n̂ do LOSO.
 
     `chave` escolhe a covariância de β (`cov_conley` ou `cov_modelo`); `sigma` é o choque de UF.
@@ -379,10 +424,23 @@ def simular_f(partes: Mapping[str, Mapping[str, Any]], chave: str, sigma: float 
     """
     rng = np.random.default_rng(seed)
     sig = np.broadcast_to(np.asarray(sigma, float), (len(partes),)).tolist()
-    return np.column_stack([
-        M.simular_votos_grupo(v["beta"], v[chave], v["X"], nhat[v["te"]], np.zeros(len(v["te"])), link=link,
-                              theta=v["theta"], sigma=sg, B=B, rng=rng)[:, 0]
-        for v, sg in zip(partes.values(), sig, strict=True)])
+    return np.column_stack(
+        [
+            M.simular_votos_grupo(
+                v["beta"],
+                v[chave],
+                v["X"],
+                nhat[v["te"]],
+                np.zeros(len(v["te"])),
+                link=link,
+                theta=v["theta"],
+                sigma=sg,
+                B=B,
+                rng=rng,
+            )[:, 0]
+            for v, sg in zip(partes.values(), sig, strict=True)
+        ]
+    )
 
 
 def sigma_sem(res_logit: pd.Series, excluir: Collection[str]) -> float:
@@ -401,8 +459,13 @@ class Sorteio:
     seed: int = 7
 
 
-def estimar_aninhado(partes: Mapping[str, Mapping[str, Any]], chave: str, res_logit: pd.Series,
-                     kw_resumo: Mapping[str, Any], sorteio: Sorteio) -> pd.DataFrame:
+def estimar_aninhado(
+    partes: Mapping[str, Mapping[str, Any]],
+    chave: str,
+    res_logit: pd.Series,
+    kw_resumo: Mapping[str, Any],
+    sorteio: Sorteio,
+) -> pd.DataFrame:
     """Resumo por UF e região com σ aninhado: UF u usa σ_{-u}; região r usa σ_{-r} (UFs fora de r).
 
     Brasil não tem versão aninhada (precisaria de todas as UFs) e fica de fora. Mesmos `n_boot` e
@@ -420,8 +483,18 @@ def estimar_aninhado(partes: Mapping[str, Mapping[str, Any]], chave: str, res_lo
     return pd.concat(saida, ignore_index=True)
 
 
-def resumo_f(votos: np.ndarray, *, ufs: list[str], regs: list[str], n_uf: np.ndarray, uf_reg: np.ndarray,
-             obs_uf: pd.Series, obs_reg: pd.Series, obs_brasil: float, prev_uf: pd.Series) -> pd.DataFrame:
+def resumo_f(
+    votos: np.ndarray,
+    *,
+    ufs: list[str],
+    regs: list[str],
+    n_uf: np.ndarray,
+    uf_reg: np.ndarray,
+    obs_uf: pd.Series,
+    obs_reg: pd.Series,
+    obs_brasil: float,
+    prev_uf: pd.Series,
+) -> pd.DataFrame:
     """Ponto (previsão LOSO agregada com n̂) e quantis dos votos simulados, por UF, região e Brasil."""
     linhas: dict[tuple[str, str], tuple[np.ndarray, float, float]] = {}
     for i, u in enumerate(ufs):
@@ -438,8 +511,19 @@ def resumo_f(votos: np.ndarray, *, ufs: list[str], regs: list[str], n_uf: np.nda
             pt = prev_n[uf_reg == nome].sum() / nn
         else:
             pt = prev_uf[nome] if nivel == "uf" else prev_n.sum() / nn
-        out.append({"nivel": nivel, "nome": nome, "lula_pct": pt * 100, "q025": q[0] * 100, "q05": q[1] * 100, "q50": q[2] * 100,
-                    "q95": q[3] * 100, "q975": q[4] * 100, "real_pct": real * 100})
+        out.append(
+            {
+                "nivel": nivel,
+                "nome": nome,
+                "lula_pct": pt * 100,
+                "q025": q[0] * 100,
+                "q05": q[1] * 100,
+                "q50": q[2] * 100,
+                "q95": q[3] * 100,
+                "q975": q[4] * 100,
+                "real_pct": real * 100,
+            }
+        )
     d = pd.DataFrame(out)
     d["erro_pp"] = d.lula_pct - d.real_pct
     d["dentro_ic95"] = (d.real_pct >= d.q025) & (d.real_pct <= d.q975)

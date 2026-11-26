@@ -10,7 +10,9 @@ def test_carregar_base_reordena_geometria(tmp_path):
     pasta = tmp_path / "data/processed"
     pasta.mkdir(parents=True)
     pd.DataFrame({"id_municipio": [2, 1, 3], "v": [1.0, 2.0, 3.0]}).to_parquet(pasta / "municipios.parquet")
-    geo = pd.DataFrame({"id_municipio": [1, 2, 3], "geometry": [box(0, 0, 1, 1).wkb, box(1, 0, 2, 1).wkb, box(2, 0, 3, 1).wkb]})
+    geo = pd.DataFrame(
+        {"id_municipio": [1, 2, 3], "geometry": [box(0, 0, 1, 1).wkb, box(1, 0, 2, 1).wkb, box(2, 0, 3, 1).wkb]}
+    )
     geo.to_parquet(pasta / "municipios_geo.parquet")
     b = D.carregar_base(tmp_path)
     assert list(b.ids) == ["2", "1", "3"]

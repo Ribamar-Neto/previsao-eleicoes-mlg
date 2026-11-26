@@ -1,4 +1,5 @@
 """Gravação padronizada de saídas: bytes do CSV, do HTML e do JSON."""
+
 from pathlib import Path
 
 import numpy as np
@@ -37,8 +38,7 @@ def test_salvar_fig_grava_so_png(tmp_path: Path) -> None:
 
 def test_tabela_legenda_formatos_e_indice_oculto() -> None:
     df = pd.DataFrame({"a": [0.123, np.nan], "n": [1234, 5], "p": [0.0001, 0.5], "t": ["x", "y"]})
-    sty = SA.tabela(df, "Resumo", numero="3", pct=["a"], inteiros=["n"], pvalor=["p"],
-                    nota="fonte X", indice=False)
+    sty = SA.tabela(df, "Resumo", numero="3", pct=["a"], inteiros=["n"], pvalor=["p"], nota="fonte X", indice=False)
     html = sty.to_html()
     assert "Tabela 3: Resumo" in html and "fonte X" in html
     assert "12,3%" in html and "1.234" in html

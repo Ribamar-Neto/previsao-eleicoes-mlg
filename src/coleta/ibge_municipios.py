@@ -36,13 +36,9 @@ from src.coleta.comum import (
 PASTA = RAW / "ibge_municipios"
 URL_IBGE = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado"
 URL_BETAFCC = (
-    "https://raw.githubusercontent.com/betafcc/Municipios-Brasileiros-TSE/"
-    "master/municipios_brasileiros_tse.csv"
+    "https://raw.githubusercontent.com/betafcc/Municipios-Brasileiros-TSE/master/municipios_brasileiros_tse.csv"
 )
-URL_TSE = (
-    "https://cdn.tse.jus.br/estatistica/sead/odsele/detalhe_votacao_munzona/"
-    "detalhe_votacao_munzona_{ano}.zip"
-)
+URL_TSE = "https://cdn.tse.jus.br/estatistica/sead/odsele/detalhe_votacao_munzona/detalhe_votacao_munzona_{ano}.zip"
 URL_MALHA = (
     "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR"
     "?intrarregiao=municipio&formato=application/vnd.geo+json&qualidade=intermediaria"
@@ -125,9 +121,7 @@ def montar_equivalencia(ibge: pd.DataFrame, tse: pd.DataFrame) -> pd.DataFrame:
         right_on="codigo_tse",
         how="left",
     ).merge(
-        ibge[["id_municipio", "sigla_uf", "chave"]].rename(
-            columns={"sigla_uf": "uf_ibge", "chave": "chave_ibge"}
-        ),
+        ibge[["id_municipio", "sigla_uf", "chave"]].rename(columns={"sigla_uf": "uf_ibge", "chave": "chave_ibge"}),
         left_on="codigo_ibge",
         right_on="id_municipio",
         how="left",
@@ -138,9 +132,7 @@ def montar_equivalencia(ibge: pd.DataFrame, tse: pd.DataFrame) -> pd.DataFrame:
 
     # 2) Resto por nome dentro da UF, só entre os códigos IBGE ainda livres.
     livres = ibge[~ibge["id_municipio"].isin(pares["id_municipio"])]
-    por_nome = sobra_tse.merge(
-        livres[["id_municipio", "sigla_uf", "chave"]], on=["sigla_uf", "chave"], how="left"
-    )
+    por_nome = sobra_tse.merge(livres[["id_municipio", "sigla_uf", "chave"]], on=["sigla_uf", "chave"], how="left")
     por_nome["metodo"] = "nome_na_uf"
     pares = pd.concat([pares, por_nome[por_nome["id_municipio"].notna()]], ignore_index=True)
     sem_par = por_nome[por_nome["id_municipio"].isna()]
@@ -156,9 +148,7 @@ def montar_equivalencia(ibge: pd.DataFrame, tse: pd.DataFrame) -> pd.DataFrame:
         right_on="codigo_ibge",
         how="left",
     )
-    faltam = faltam[
-        faltam["codigo_tse"].notna() & ~faltam["codigo_tse"].isin(pares["id_municipio_tse"])
-    ]
+    faltam = faltam[faltam["codigo_tse"].notna() & ~faltam["codigo_tse"].isin(pares["id_municipio_tse"])]
     nomes_tse = tse_u.set_index("id_municipio_tse")["nome_tse"]
     extra = faltam.assign(
         id_municipio_tse=faltam["codigo_tse"],
@@ -170,9 +160,7 @@ def montar_equivalencia(ibge: pd.DataFrame, tse: pd.DataFrame) -> pd.DataFrame:
     pares = pd.concat([pares, extra], ignore_index=True)
 
     out = pares[["id_municipio", "id_municipio_tse", "nome_tse", "metodo"]].merge(
-        ibge[["id_municipio", "nome_municipio", "sigla_uf"]].rename(
-            columns={"nome_municipio": "nome_ibge"}
-        ),
+        ibge[["id_municipio", "nome_municipio", "sigla_uf"]].rename(columns={"nome_municipio": "nome_ibge"}),
         on="id_municipio",
     )
     out = out[["id_municipio", "id_municipio_tse", "sigla_uf", "nome_ibge", "nome_tse", "metodo"]]
@@ -182,8 +170,10 @@ def montar_equivalencia(ibge: pd.DataFrame, tse: pd.DataFrame) -> pd.DataFrame:
 def checar(eq: pd.DataFrame, ibge: pd.DataFrame, tse: pd.DataFrame) -> None:
     print(f"IBGE: {len(ibge)} municípios; equivalência: {len(eq)} linhas")
     print(
-        "duplicados IBGE:", eq["id_municipio"].duplicated().sum(),
-        "| duplicados TSE:", eq["id_municipio_tse"].duplicated().sum(),
+        "duplicados IBGE:",
+        eq["id_municipio"].duplicated().sum(),
+        "| duplicados TSE:",
+        eq["id_municipio_tse"].duplicated().sum(),
     )
     print("IBGE sem par:", sorted(set(ibge["id_municipio"]) - set(eq["id_municipio"]))[:20])
     print(eq["metodo"].value_counts().to_string())
@@ -244,12 +234,23 @@ def main() -> None:
             "lon": ponto.x.values,
         }
     )
-    interim = ibge.merge(
-        eq[["id_municipio", "id_municipio_tse"]], on="id_municipio", how="left"
-    ).merge(medidas, on="id_municipio", how="left")
+    interim = ibge.merge(eq[["id_municipio", "id_municipio_tse"]], on="id_municipio", how="left").merge(
+        medidas, on="id_municipio", how="left"
+    )
     interim = interim[
-        ["id_municipio", "id_municipio_tse", "nome_municipio", "sigla_uf", "id_uf",
-         "nome_uf", "regiao", "fora_censo_2022", "area_km2", "lat", "lon"]
+        [
+            "id_municipio",
+            "id_municipio_tse",
+            "nome_municipio",
+            "sigla_uf",
+            "id_uf",
+            "nome_uf",
+            "regiao",
+            "fora_censo_2022",
+            "area_km2",
+            "lat",
+            "lon",
+        ]
     ]
     salvar_interim(interim, "ibge_municipios")
     print(interim.groupby("regiao").size().to_string())
@@ -257,9 +258,7 @@ def main() -> None:
     processed = RAIZ / "data" / "processed"
     processed.mkdir(parents=True, exist_ok=True)
     simples = malha.copy()
-    simples["geometry"] = simples.geometry.simplify(
-        TOLERANCIA_SIMPLIFICACAO, preserve_topology=True
-    )
+    simples["geometry"] = simples.geometry.simplify(TOLERANCIA_SIMPLIFICACAO, preserve_topology=True)
     destino = processed / "municipios_geo.parquet"
     simples.to_parquet(destino)
     print(f"geo: {len(simples)} linhas, {destino.stat().st_size / 1e6:.1f} MB")

@@ -24,7 +24,35 @@ from src.coleta.comum import RAIZ, RAW, baixar, ler_csv_zip, salvar_interim
 DIR = RAW / "tse_bweb"
 ANOS = (2022, 2026)
 CARIMBO = {2022: "311020221535", 2026: "261020260742"}
-UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
+UFS = [
+    "AC",
+    "AL",
+    "AM",
+    "AP",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MG",
+    "MS",
+    "MT",
+    "PA",
+    "PB",
+    "PE",
+    "PI",
+    "PR",
+    "RJ",
+    "RN",
+    "RO",
+    "RR",
+    "RS",
+    "SC",
+    "SE",
+    "SP",
+    "TO",
+]
 BASE = "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes{ano}/buweb/bweb_2t_{uf}_{carimbo}.zip"
 FUSO = "America/Sao_Paulo"
 NR_LULA = "13"
@@ -33,13 +61,32 @@ FORMATO_DATA = {2022: "%d/%m/%Y %H:%M:%S", 2026: "%Y-%m-%d %H:%M:%S"}
 COL_AGREGADAS = {2022: "DS_AGREGADAS", 2026: "DS_SECOES_AGREGADAS"}
 CHAVE = ["ano", "uf", "cd_municipio_tse", "zona", "secao"]
 COLUNAS = [
-    "ano", "uf", "cd_municipio_tse", "id_municipio", "zona", "secao", "dt_bu_recebido",
-    "aptos", "comparecimento", "votos_lula", "votos_bolsonaro", "validos", "agregadas",
+    "ano",
+    "uf",
+    "cd_municipio_tse",
+    "id_municipio",
+    "zona",
+    "secao",
+    "dt_bu_recebido",
+    "aptos",
+    "comparecimento",
+    "votos_lula",
+    "votos_bolsonaro",
+    "validos",
+    "agregadas",
 ]
 NUMERICAS = ["aptos", "comparecimento", "votos_lula", "votos_bolsonaro", "validos"]
 USECOLS_BASE = [
-    "SG_UF", "CD_MUNICIPIO", "NR_ZONA", "NR_SECAO", "CD_CARGO_PERGUNTA", "DT_BU_RECEBIDO",
-    "QT_APTOS", "QT_COMPARECIMENTO", "NR_VOTAVEL", "QT_VOTOS",
+    "SG_UF",
+    "CD_MUNICIPIO",
+    "NR_ZONA",
+    "NR_SECAO",
+    "CD_CARGO_PERGUNTA",
+    "DT_BU_RECEBIDO",
+    "QT_APTOS",
+    "QT_COMPARECIMENTO",
+    "NR_VOTAVEL",
+    "QT_VOTOS",
 ]
 
 
@@ -63,25 +110,27 @@ def normalizar(bruto: pd.DataFrame, ano: int) -> pd.DataFrame:
     if secoes.duplicated(chave).any():
         raise ValueError("seção com mais de um BU/atributo divergente")
     nominais = p[p["NR_VOTAVEL"].isin([NR_LULA, NR_BOLSONARO])]
-    votos = nominais.pivot_table(index=chave, columns="NR_VOTAVEL", values="QT_VOTOS",
-                                 aggfunc="sum", fill_value=0).reindex(
-        columns=[NR_LULA, NR_BOLSONARO], fill_value=0)
+    votos = nominais.pivot_table(
+        index=chave, columns="NR_VOTAVEL", values="QT_VOTOS", aggfunc="sum", fill_value=0
+    ).reindex(columns=[NR_LULA, NR_BOLSONARO], fill_value=0)
     votos.columns = ["votos_lula", "votos_bolsonaro"]
     s = secoes.join(votos, on=chave)
     s[["votos_lula", "votos_bolsonaro"]] = s[["votos_lula", "votos_bolsonaro"]].fillna(0)
-    out = pd.DataFrame({
-        "ano": ano,
-        "uf": s["SG_UF"].to_numpy(),
-        "cd_municipio_tse": s["CD_MUNICIPIO"].astype("int64").to_numpy(),
-        "zona": s["NR_ZONA"].astype("int64").to_numpy(),
-        "secao": s["NR_SECAO"].astype("int64").to_numpy(),
-        "dt_bu_recebido": parse_data(s["DT_BU_RECEBIDO"], ano).to_numpy(),
-        "aptos": pd.to_numeric(s["QT_APTOS"]).astype("int64").to_numpy(),
-        "comparecimento": pd.to_numeric(s["QT_COMPARECIMENTO"]).astype("int64").to_numpy(),
-        "votos_lula": s["votos_lula"].astype("int64").to_numpy(),
-        "votos_bolsonaro": s["votos_bolsonaro"].astype("int64").to_numpy(),
-        "agregadas": s[COL_AGREGADAS[ano]].where(s[COL_AGREGADAS[ano]] != "#NULO#").to_numpy(),
-    })
+    out = pd.DataFrame(
+        {
+            "ano": ano,
+            "uf": s["SG_UF"].to_numpy(),
+            "cd_municipio_tse": s["CD_MUNICIPIO"].astype("int64").to_numpy(),
+            "zona": s["NR_ZONA"].astype("int64").to_numpy(),
+            "secao": s["NR_SECAO"].astype("int64").to_numpy(),
+            "dt_bu_recebido": parse_data(s["DT_BU_RECEBIDO"], ano).to_numpy(),
+            "aptos": pd.to_numeric(s["QT_APTOS"]).astype("int64").to_numpy(),
+            "comparecimento": pd.to_numeric(s["QT_COMPARECIMENTO"]).astype("int64").to_numpy(),
+            "votos_lula": s["votos_lula"].astype("int64").to_numpy(),
+            "votos_bolsonaro": s["votos_bolsonaro"].astype("int64").to_numpy(),
+            "agregadas": s[COL_AGREGADAS[ano]].where(s[COL_AGREGADAS[ano]] != "#NULO#").to_numpy(),
+        }
+    )
     out["validos"] = out["votos_lula"] + out["votos_bolsonaro"]
     return out.reset_index(drop=True)
 
@@ -101,7 +150,8 @@ def validar_secoes(df: pd.DataFrame) -> pd.DataFrame:
     if faltam:
         raise ValueError(f"colunas ausentes: {sorted(faltam)}")
     if str(df["dt_bu_recebido"].dtype) != f"datetime64[ns, {FUSO}]" and "datetime64" not in str(
-            df["dt_bu_recebido"].dtype):
+        df["dt_bu_recebido"].dtype
+    ):
         raise ValueError("dt_bu_recebido deve ser datetime com fuso")
     if df["dt_bu_recebido"].isna().any():
         raise ValueError("dt_bu_recebido nulo")
@@ -138,11 +188,13 @@ def curva(secoes: pd.DataFrame, ano: int) -> pd.DataFrame:
     """
     s = secoes[secoes["ano"] == ano].sort_values("dt_bu_recebido")
     por_instante = s.groupby("dt_bu_recebido")[["votos_lula", "validos"]].sum().cumsum()
-    out = pd.DataFrame({
-        "dt_bu_recebido": por_instante.index,
-        "pct_recebido": 100 * por_instante["validos"].to_numpy() / s["validos"].sum(),
-        "share_lula": 100 * por_instante["votos_lula"].to_numpy() / por_instante["validos"].to_numpy(),
-    })
+    out = pd.DataFrame(
+        {
+            "dt_bu_recebido": por_instante.index,
+            "pct_recebido": 100 * por_instante["validos"].to_numpy() / s["validos"].sum(),
+            "share_lula": 100 * por_instante["votos_lula"].to_numpy() / por_instante["validos"].to_numpy(),
+        }
+    )
     return out.reset_index(drop=True)
 
 

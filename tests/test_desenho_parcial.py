@@ -1,4 +1,5 @@
 """Testes de src/desenho_parcial.py com dados sintéticos pequenos (10 UFs, ~10 municípios cada)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,8 +16,18 @@ from src import desenho_parcial as DP
 from src import espacial as S
 from src.especificacoes import CONTINUAS, MAPA_2026, Candidato, Termos
 
-REGIAO_UF = {"AC": "Norte", "AM": "Norte", "BA": "Nordeste", "CE": "Nordeste", "SP": "Sudeste",
-             "MG": "Sudeste", "PR": "Sul", "SC": "Sul", "GO": "Centro-Oeste", "MT": "Centro-Oeste"}
+REGIAO_UF = {
+    "AC": "Norte",
+    "AM": "Norte",
+    "BA": "Nordeste",
+    "CE": "Nordeste",
+    "SP": "Sudeste",
+    "MG": "Sudeste",
+    "PR": "Sul",
+    "SC": "Sul",
+    "GO": "Centro-Oeste",
+    "MT": "Centro-Oeste",
+}
 
 
 def _base(por_uf: dict[str, int], seed: int = 3) -> tuple[pd.DataFrame, SimpleNamespace]:
@@ -33,7 +44,7 @@ def _base(por_uf: dict[str, int], seed: int = 3) -> tuple[pd.DataFrame, SimpleNa
     df[MAPA_2026["regiao"]] = [REGIAO_UF[u] for u in uf]
     df[MAPA_2026["bloco_pref"]] = rng.choice(["esquerda", "direita", "centro"], N)
     df["lat"], df["lon"] = rng.uniform(-30, 0, N), rng.uniform(-60, -40, N)
-    A = sp.diags([np.ones(N - 1), np.ones(N - 1)], [-1, 1], format="csr")   # cadeia i-1, i+1
+    A = sp.diags([np.ones(N - 1), np.ones(N - 1)], [-1, 1], format="csr")  # cadeia i-1, i+1
     w = SimpleNamespace(n=N, sparse=sp.diags(1.0 / np.asarray(A.sum(axis=1)).ravel()) @ A)
     return df, w
 
@@ -99,16 +110,28 @@ def test_mae_ep_e_sigma_uf_a_mao() -> None:
     assert r.ep_pp == pytest.approx(e.std(ddof=1) / np.sqrt(3))
     esperado = np.sqrt(np.mean((logit(prev) - logit(obs)) ** 2))
     assert DP.sigma_uf(r) == pytest.approx(esperado)
-    assert esperado == pytest.approx(0.17348, abs=1e-4)   # diferenças em logit: 0,0800; 0,2048; -0,2048
+    assert esperado == pytest.approx(0.17348, abs=1e-4)  # diferenças em logit: 0,0800; 0,2048; -0,2048
 
 
 # --- cache ------------------------------------------------------------------------------------
 def _desenho() -> DP.DesenhoParcial:
-    t = Termos(vars=("lag", "nota_dep"), disp="regiao", regiao_fundir=(("Nordeste", "Norte"),),
-               bloco_grupos=(("esquerda",),))
-    return DP.DesenhoParcial(t, 150.0, 0.2, 1.3, {"r1": 1.0, "final": 1.1}, 0.3,
-                             {"disp": True, "slx": False}, {"A": 0.001, "B": float("nan")},
-                             {"const": 10.0}, 20, 300, 1.5)
+    t = Termos(
+        vars=("lag", "nota_dep"), disp="regiao", regiao_fundir=(("Nordeste", "Norte"),), bloco_grupos=(("esquerda",),)
+    )
+    return DP.DesenhoParcial(
+        t,
+        150.0,
+        0.2,
+        1.3,
+        {"r1": 1.0, "final": 1.1},
+        0.3,
+        {"disp": True, "slx": False},
+        {"A": 0.001, "B": float("nan")},
+        {"const": 10.0},
+        20,
+        300,
+        1.5,
+    )
 
 
 def test_cache_ida_e_volta(tmp_path: Path) -> None:
@@ -127,7 +150,7 @@ def test_cache_com_versao_antiga_e_ignorado(tmp_path: Path, monkeypatch: pytest.
     DP.gravar_cache(_desenho(), 2022, 5, tmp_path)
     monkeypatch.setattr(DP, "VERSAO", DP.VERSAO + 1)
     assert DP.ler_cache(2022, 5, tmp_path) is None
-    assert DP.ler_cache(2022, 90, tmp_path) is None   # ausente
+    assert DP.ler_cache(2022, 90, tmp_path) is None  # ausente
 
 
 def test_desenhos_por_corte_usa_cache(dados: DP.DadosCorte, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -147,7 +170,9 @@ def test_desenhos_por_corte_usa_cache(dados: DP.DadosCorte, tmp_path: Path, monk
 
 # --- R1 e decisões R4/R5 ---------------------------------------------------------------------
 def test_r1_devolve_termos_com_lag(dados: DP.DadosCorte) -> None:
-    t = DP._selecionar_media(dados.D, dados.mapa, ("nota_dep", "pct_dep_esq"), DP.Opcoes(n_jobs=1, rotulo="t", log=lambda m: None))
+    t = DP._selecionar_media(
+        dados.D, dados.mapa, ("nota_dep", "pct_dep_esq"), DP.Opcoes(n_jobs=1, rotulo="t", log=lambda m: None)
+    )
     assert isinstance(t, Termos)
     assert t.vars[0] == "lag"
     assert set(t.vars) <= {"lag", "nota_dep", "pct_dep_esq"}
@@ -157,16 +182,27 @@ def _loso_falso(mae_por_disp: dict[str, float], mae_slx: float, ufs: int = 10) -
     def f(cand: Candidato, D: Any, mapa: Any, n_jobs: int) -> DP.Loso:
         m = mae_slx if cand.termos.slx else mae_por_disp[cand.termos.disp]
         obs = np.linspace(0.4, 0.6, ufs)
-        err = np.linspace(0.5, 1.5, ufs) / 100          # MAE 1,0 p.p. antes da escala
+        err = np.linspace(0.5, 1.5, ufs) / 100  # MAE 1,0 p.p. antes da escala
         err = err / err.mean() * m / 100
         return DP.Loso(tuple(f"U{i}" for i in range(ufs)), obs + err, obs)
+
     return f
 
 
 def _preparar(monkeypatch: pytest.MonkeyPatch, *, disp: str, slx_ok: bool, loso: Any) -> None:
     base = Termos(vars=("lag", "nota_dep"))
     monkeypatch.setattr(DP, "_selecionar_media", lambda *a, **k: base)
-    monkeypatch.setattr(DP, "_wald_dispersao", lambda *a, **k: (disp, {"A": 0.0, "B": 0.0}, {"const": 1.0}, {"corte_A_km": 1.0, "corte_B_km": 1.0, "piso": False}))
+    monkeypatch.setattr(
+        DP,
+        "_wald_dispersao",
+        lambda *a, **k: (
+            disp,
+            {"A": 0.0, "B": 0.0},
+            {"const": 1.0},
+            {"corte_A_km": 1.0, "corte_B_km": 1.0, "piso": False},
+        ),
+    )
+
     def slx(b: Termos, d: DP.DadosCorte) -> Any:
         df2, mapa2 = S.adicionar_slx(d.df, d.mapa, ["lag"], d.w)
         return ("lag",), slx_ok, {"nenhuma": 1.0}, DP.DadosCorte(df2, mapa2, d.w, d.ok)
@@ -177,8 +213,7 @@ def _preparar(monkeypatch: pytest.MonkeyPatch, *, disp: str, slx_ok: bool, loso:
 
 
 def test_dispersao_rejeitada_se_loso_acima_do_limite(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
-    _preparar(monkeypatch, disp="regiao_logn", slx_ok=True,
-              loso=_loso_falso({"const": 1.0, "regiao_logn": 5.0}, 1.0))
+    _preparar(monkeypatch, disp="regiao_logn", slx_ok=True, loso=_loso_falso({"const": 1.0, "regiao_logn": 5.0}, 1.0))
     d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.termos.disp == "const"
     assert d.aceitos == {"disp": False, "slx": False}
@@ -187,8 +222,7 @@ def test_dispersao_rejeitada_se_loso_acima_do_limite(dados: DP.DadosCorte, monke
 
 
 def test_slx_rejeitado_se_loso_acima_do_limite(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
-    _preparar(monkeypatch, disp="regiao", slx_ok=True,
-              loso=_loso_falso({"const": 1.0, "regiao": 1.0}, 9.0))
+    _preparar(monkeypatch, disp="regiao", slx_ok=True, loso=_loso_falso({"const": 1.0, "regiao": 1.0}, 9.0))
     d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.aceitos == {"disp": True, "slx": False}
     assert d.termos.disp == "regiao"
@@ -196,8 +230,7 @@ def test_slx_rejeitado_se_loso_acima_do_limite(dados: DP.DadosCorte, monkeypatch
 
 
 def test_slx_rejeitado_se_moran_nao_cai(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
-    _preparar(monkeypatch, disp="const", slx_ok=False,
-              loso=_loso_falso({"const": 1.0}, 0.1))
+    _preparar(monkeypatch, disp="const", slx_ok=False, loso=_loso_falso({"const": 1.0}, 0.1))
     d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.aceitos["slx"] is False
     assert "slx" not in d.mae_pp
@@ -216,8 +249,9 @@ def test_aceitos_usam_loso_do_desenho_final_no_sigma(dados: DP.DadosCorte, monke
 
 # --- ponta a ponta com ajustes reais ------------------------------------------------------
 def test_ponta_a_ponta_pequeno(dados: DP.DadosCorte) -> None:
-    d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep", "pct_dep_esq"),
-                            opcoes=DP.Opcoes(n_jobs=1, log=lambda m: None))
+    d = DP.desenho_no_corte(
+        dados, 2026, candidatas=("nota_dep", "pct_dep_esq"), opcoes=DP.Opcoes(n_jobs=1, log=lambda m: None)
+    )
     assert isinstance(d.termos, Termos)
     assert d.termos.vars[0] == "lag"
     assert d.n_ufs_loso == 10
@@ -232,7 +266,7 @@ def test_ponta_a_ponta_pequeno(dados: DP.DadosCorte) -> None:
 def test_wald_usa_o_corte_proprio_de_cada_ajuste(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
     cortes = iter([111.0, 222.0])
     usados: list[float] = []
-    monkeypatch.setattr(DP, "P_WALD", 2.0)   # p < 2 sempre: passos A e B rodam
+    monkeypatch.setattr(DP, "P_WALD", 2.0)  # p < 2 sempre: passos A e B rodam
     monkeypatch.setattr(DP, "_corte_proprio", lambda res, D: (next(cortes), False))
     cov = S.cov_conley
 
@@ -255,9 +289,13 @@ def test_corte_proprio_usa_corte_de_referencia_e_avisa(monkeypatch: pytest.Monke
     assert DP._corte_proprio(np.random.default_rng(0).normal(size=100), dados.D) == (200.0, False)
 
 
-def test_corte_final_vem_do_desenho_final_e_r1_fica_como_diagnostico(dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_corte_final_vem_do_desenho_final_e_r1_fica_como_diagnostico(
+    dados: DP.DadosCorte, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _preparar(monkeypatch, disp="regiao", slx_ok=False, loso=_loso_falso({"const": 1.0, "regiao": 1.0}, 1.0))
-    monkeypatch.setattr(DP, "_corte_do_desenho", lambda cand, D, mapa: (222.0, False) if cand.termos.disp == "regiao" else (111.0, True))
+    monkeypatch.setattr(
+        DP, "_corte_do_desenho", lambda cand, D, mapa: (222.0, False) if cand.termos.disp == "regiao" else (111.0, True)
+    )
     d = DP.desenho_no_corte(dados, 2026, candidatas=("nota_dep",), opcoes=DP.Opcoes(n_jobs=1))
     assert d.corte_km == 222.0
     assert d.extra["corte_r1_km"] == 111.0
@@ -278,7 +316,9 @@ def test_loso_pula_dobra_singular_e_registra(dados: DP.DadosCorte, monkeypatch: 
     assert len(r.ufs) == 9
 
 
-def test_desenhos_por_corte_registra_falha_de_linalg(dados: DP.DadosCorte, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_desenhos_por_corte_registra_falha_de_linalg(
+    dados: DP.DadosCorte, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     def falha(d: Any, ano: int, **k: Any) -> DP.DesenhoParcial:
         raise np.linalg.LinAlgError("singular")
 

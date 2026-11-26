@@ -65,8 +65,7 @@ def test_agregar_exemplo():
 
 
 def test_folds_particionam():
-    for folds, N in [(m.folds_kfold(103, 5, seed=3), 103),
-                     (m.folds_por_grupo(np.repeat(list("abcd"), 7)), 28)]:
+    for folds, N in [(m.folds_kfold(103, 5, seed=3), 103), (m.folds_por_grupo(np.repeat(list("abcd"), 7)), 28)]:
         teste = np.concatenate([te for _, te in folds])
         assert sorted(teste) == list(range(N))
         for tr, te in folds:
@@ -78,8 +77,11 @@ def test_predicoes_cv_pior_que_dentro_da_amostra():
     d = pd.DataFrame({"x": X[:, 1], "y": y, "n": n})
 
     def ajustar(df):
-        return sm.GLM(np.column_stack([df.y, df.n - df.y]), sm.add_constant(df[["x"]], has_constant="add"),
-                      family=sm.families.Binomial()).fit()
+        return sm.GLM(
+            np.column_stack([df.y, df.n - df.y]),
+            sm.add_constant(df[["x"]], has_constant="add"),
+            family=sm.families.Binomial(),
+        ).fit()
 
     def prever(mod, df):
         return m.prever_pi(mod, sm.add_constant(df[["x"]], has_constant="add"))
@@ -119,7 +121,10 @@ def test_envelope_meio_normal():
     env = m.envelope_meio_normal(
         lambda r: m.residuos_quantilicos(np.round(r.model.endog * n), n, r.fittedvalues, rng=0),
         lambda r, rng: rng.binomial(n, r.fittedvalues),
-        ajustar, B=19, rng=0)
+        ajustar,
+        B=19,
+        rng=0,
+    )
     assert len(env["observado"]) == 60
     assert np.all(env["inferior"] <= env["mediana"]) and np.all(env["mediana"] <= env["superior"])
 
@@ -187,6 +192,7 @@ def test_dispersao_por_grupo_recupera_gamma():
 
 def test_score_analitico_igual_ao_numerico():
     from statsmodels.tools.numdiff import approx_fprime
+
     X, y, n, Z, _ = _simular_disp(N=300)
     mod = m.BetaBinomial(y, X, n, exog_disp=Z)
     p = np.array([-0.3, 0.8, np.log(300.0), -1.0]) + 0.05
@@ -225,6 +231,7 @@ def test_theta_vetor_em_residuos_e_simulacao():
 
 def test_residuos_quantilicos_rapido_theta_vetor():
     from src.pressupostos import residuos_quantilicos_rapido as rap
+
     X, y, n, Z, th = _simular_disp(N=200)
     pi = m._pi_de_eta(X @ np.array([-0.3, 0.8]), m._link(None))
     r = rap(y, n, pi, theta=th, rng=5)

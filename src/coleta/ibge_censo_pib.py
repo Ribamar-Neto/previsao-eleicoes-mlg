@@ -21,6 +21,7 @@ Regras de negócio:
 - 2021 é o último ano antes da eleição de 2022 (ajuste do backtest); o ano mais
   recente publicado alimenta 2026.
 """
+
 import json
 
 import pandas as pd
@@ -35,17 +36,14 @@ ANO_PIB_BACKTEST = 2021
 def _consulta(tabela, periodo, var, classif=None, traco_zero=False):
     """Retorna Series (id_municipio -> valor numérico) de uma variável/recorte."""
     sufixo = f"&classificacao={classif}" if classif else ""
-    url = (f"{API}/{tabela}/periodos/{periodo}/variaveis/{var}"
-           f"?localidades=N6[all]{sufixo}")
+    url = f"{API}/{tabela}/periodos/{periodo}/variaveis/{var}?localidades=N6[all]{sufixo}"
     nome = f"t{tabela}_p{periodo}_v{var}_{(classif or 'sem').replace('[', '_').replace(']', '').replace('|', '-').replace(',', '-')}.json"
     destino = CACHE / nome
     CACHE.mkdir(parents=True, exist_ok=True)
     baixar(url, destino)
     dados = json.loads(destino.read_text(encoding="utf-8"))
     serie = dados[0]["resultados"][0]["series"]
-    bruto = pd.Series(
-        {int(s["localidade"]["id"]): s["serie"][str(periodo)] for s in serie}
-    )
+    bruto = pd.Series({int(s["localidade"]["id"]): s["serie"][str(periodo)] for s in serie})
     if traco_zero:
         bruto = bruto.replace("-", "0")
     return pd.to_numeric(bruto, errors="coerce")
@@ -63,20 +61,24 @@ def _censo():
     dom = _consulta(4712, 2022, 381)
     raca = {c: _consulta(9605, 2022, 93, f"86[{c}]", traco_zero=True) for c in (2777, 2779, 2780, 95251)}
     urb = {c: _consulta(9923, 2022, 93, f"1[{c}]", traco_zero=True) for c in (1, 6795)}
-    rel = {c: _consulta(9537, 2022, 140, f"133[{c}]|2[6794]|58[95253]", traco_zero=True)
-           for c in (95278, 95277, 95263, 2836)}
+    rel = {
+        c: _consulta(9537, 2022, 140, f"133[{c}]|2[6794]|58[95253]", traco_zero=True)
+        for c in (95278, 95277, 95263, 2836)
+    }
     alfa = _consulta(9543, 2022, 2513, "2[6794]|86[95251]|287[100362]")
-    return pd.DataFrame({
-        "populacao_2022": pop,
-        "domicilios_2022": dom,
-        "pct_pretos_pardos_2022": 100 * (raca[2777] + raca[2779]) / raca[95251],
-        "pct_indigenas_2022": 100 * raca[2780] / raca[95251],
-        "taxa_alfabetizacao_15mais_2022": alfa,
-        "pct_evangelicos_2022": 100 * rel[95277] / rel[95278],
-        "pct_catolicos_2022": 100 * rel[95263] / rel[95278],
-        "pct_sem_religiao_2022": 100 * rel[2836] / rel[95278],
-        "pct_urbana_2022": 100 * urb[1] / urb[6795],
-    })
+    return pd.DataFrame(
+        {
+            "populacao_2022": pop,
+            "domicilios_2022": dom,
+            "pct_pretos_pardos_2022": 100 * (raca[2777] + raca[2779]) / raca[95251],
+            "pct_indigenas_2022": 100 * raca[2780] / raca[95251],
+            "taxa_alfabetizacao_15mais_2022": alfa,
+            "pct_evangelicos_2022": 100 * rel[95277] / rel[95278],
+            "pct_catolicos_2022": 100 * rel[95263] / rel[95278],
+            "pct_sem_religiao_2022": 100 * rel[2836] / rel[95278],
+            "pct_urbana_2022": 100 * urb[1] / urb[6795],
+        }
+    )
 
 
 def _pib(ano, pop_censo):

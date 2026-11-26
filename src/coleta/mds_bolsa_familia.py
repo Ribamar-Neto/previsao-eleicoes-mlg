@@ -81,7 +81,11 @@ def _familias_por_municipio(zip_path) -> pd.DataFrame:
     with zipfile.ZipFile(zip_path) as z:
         with z.open(z.namelist()[0]) as f:
             blocos = pd.read_csv(
-                f, sep=";", encoding="latin-1", dtype=str, chunksize=2_000_000,
+                f,
+                sep=";",
+                encoding="latin-1",
+                dtype=str,
+                chunksize=2_000_000,
                 usecols=["UF", "CÓDIGO MUNICÍPIO SIAFI", "NOME MUNICÍPIO", "NIS FAVORECIDO"],
             )
             for b in blocos:

@@ -9,9 +9,7 @@ from src import modelos as M
 
 
 def grade(n=12):
-    geo = gpd.GeoDataFrame(
-        geometry=[box(i, j, i + 1, j + 1) for j in range(n) for i in range(n)], crs=None
-    )
+    geo = gpd.GeoDataFrame(geometry=[box(i, j, i + 1, j + 1) for j in range(n) for i in range(n)], crs=None)
     return geo
 
 
@@ -52,8 +50,11 @@ def test_cluster_igual_statsmodels_binomial():
     endog, X, _, _, g = simular_com_grupos()
     fam = sm.families.Binomial()
     res = sm.GLM(endog, X, family=fam).fit()
-    ref = sm.GLM(endog, X, family=fam).fit(
-        cov_type="cluster", cov_kwds={"groups": g, "use_correction": False}).cov_params()
+    ref = (
+        sm.GLM(endog, X, family=fam)
+        .fit(cov_type="cluster", cov_kwds={"groups": g, "use_correction": False})
+        .cov_params()
+    )
     np.testing.assert_allclose(e.cov_cluster(res, g, correcao=False).values, ref, rtol=1e-6)
 
 
@@ -177,6 +178,7 @@ def test_moran_residuos_reprodutivel():
 
 def test_defasagem_espacial_media_dos_vizinhos():
     from libpysal.weights import Queen
+
     w = Queen.from_dataframe(grade(3), use_index=False)
     w.transform = "r"
     x = np.arange(9.0)
@@ -196,6 +198,7 @@ def test_defasagem_ilha_recebe_vizinho_mais_proximo():
 def test_adicionar_slx_sem_mutar():
     import pandas as pd
     from libpysal.weights import Queen
+
     w = Queen.from_dataframe(grade(3), use_index=False)
     w.transform = "r"
     df = pd.DataFrame({"a": np.arange(9.0)})
@@ -209,6 +212,7 @@ def test_adicionar_slx_sem_mutar():
 def test_adicionar_slx_pib_na_escala_do_modelo():
     import pandas as pd
     from libpysal.weights import Queen
+
     w = Queen.from_dataframe(grade(3), use_index=False)
     w.transform = "r"
     df = pd.DataFrame({"p": np.exp(np.arange(9.0))})
@@ -243,11 +247,11 @@ def _campo(N=1500, seed=5):
 
 def test_krigagem_nucleo_zero_alem_do_corte():
     lat = np.array([0.0, 0.0, 0.0])
-    lon = np.array([0.0, 0.5, 5.0])   # ~55 km e ~555 km do ponto 0
+    lon = np.array([0.0, 0.5, 5.0])  # ~55 km e ~555 km do ponto 0
     _rho, k = e.krigagem_residuos(np.array([1.0, 3.0]), lat, lon, [1, 2], [0], np.array([0, 1, 2]), 200.0)
-    np.testing.assert_allclose(k, [1.0])        # só o vizinho a 55 km pesa
+    np.testing.assert_allclose(k, [1.0])  # só o vizinho a 55 km pesa
     _, k0 = e.krigagem_residuos(np.array([1.0, 3.0]), lat, lon, [1, 2], [0], np.array([0, 1, 2]), 10.0)
-    assert k0[0] == 0.0                         # sem vizinho no corte
+    assert k0[0] == 0.0  # sem vizinho no corte
 
 
 def test_krigagem_rho_zero_em_ruido_branco():
@@ -280,7 +284,7 @@ def test_moran_sem_media_do_grupo_some_com_choque_de_grupo():
     geo = grade(12)
     w = e.pesos_queen(geo)
     idx = np.arange(144)
-    g = (idx // 12) // 4 * 3 + (idx % 12) // 4          # 9 blocos 4x4
+    g = (idx // 12) // 4 * 3 + (idx % 12) // 4  # 9 blocos 4x4
     rng = np.random.default_rng(0)
     r = rng.normal(size=9)[g] * 3 + rng.normal(size=144) * 0.3
     m = e.moran_decomposto(r, w, g)

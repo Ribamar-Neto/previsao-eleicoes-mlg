@@ -30,6 +30,7 @@ Regras:
 O cache em `results/cv/desenho_parcial_<ano>_<corte>.json` guarda `VERSAO`; mudar uma regra
 exige subir `VERSAO` para invalidar os arquivos antigos.
 """
+
 from __future__ import annotations
 
 import json
@@ -58,7 +59,7 @@ if TYPE_CHECKING:
 
 VERSAO = 1
 MIN_MUN_UF = 5
-N_JOBS = 14   # mesmo número de processos de selecao.py
+N_JOBS = 14  # mesmo número de processos de selecao.py
 P_FUSAO = 0.05
 P_WALD = 0.01
 # Corte 0 zeraria o núcleo de Bartlett e Conley a 1 km é igual ao HC0 (intervalos estreitos demais).
@@ -89,7 +90,7 @@ class DadosCorte:
 
     df: pd.DataFrame
     mapa: dict[str, str]
-    w: W              # pesos Queen dos municípios (só geometria): usa `.sparse` e `.n`
+    w: W  # pesos Queen dos municípios (só geometria): usa `.sparse` e `.n`
     ok: np.ndarray
 
     @property
@@ -97,8 +98,7 @@ class DadosCorte:
         return self.df.loc[self.ok].reset_index(drop=True)
 
 
-def dados_do_corte(df: pd.DataFrame, mapa: dict[str, str], w: W, y_c: np.ndarray,
-                   n_c: np.ndarray) -> DadosCorte:
+def dados_do_corte(df: pd.DataFrame, mapa: dict[str, str], w: W, y_c: np.ndarray, n_c: np.ndarray) -> DadosCorte:
     """Mesmas linhas e valores que `apuracao.ajustar_parcial` usa no treino (n apurado > 0)."""
     d = df.copy()
     d[mapa["y"]] = np.asarray(y_c, float)
@@ -122,11 +122,11 @@ class DesenhoParcial:
     termos: Termos
     corte_km: float
     sigma_uf: float
-    limite: float                      # L = MAE(R1) + EP(R1), p.p.
-    mae_pp: dict[str, float]           # por etapa testada: r1, disp, slx, final
+    limite: float  # L = MAE(R1) + EP(R1), p.p.
+    mae_pp: dict[str, float]  # por etapa testada: r1, disp, slx, final
     ep_r1_pp: float
-    aceitos: dict[str, bool]           # disp, slx
-    wald: dict[str, float]             # p dos passos A e B (nan se não testado)
+    aceitos: dict[str, bool]  # disp, slx
+    wald: dict[str, float]  # p dos passos A e B (nan se não testado)
     bic_dispersao: dict[str, float]
     n_ufs_loso: int
     n_municipios: int
@@ -136,26 +136,55 @@ class DesenhoParcial:
 
     def para_dict(self) -> dict[str, Any]:
         t = self.termos
-        return {"versao": self.versao,
-                "termos": {"vars": list(t.vars), "disp": t.disp, "slx": list(t.slx),
-                           "regiao_fundir": [list(g) for g in t.regiao_fundir],
-                           "bloco_grupos": [list(g) for g in t.bloco_grupos]},
-                "corte_km": self.corte_km, "sigma_uf": self.sigma_uf, "limite": self.limite,
-                "mae_pp": self.mae_pp, "ep_r1_pp": self.ep_r1_pp, "aceitos": self.aceitos,
-                "wald": self.wald, "bic_dispersao": self.bic_dispersao,
-                "n_ufs_loso": self.n_ufs_loso, "n_municipios": self.n_municipios,
-                "tempo_s": self.tempo_s, "extra": self.extra}
+        return {
+            "versao": self.versao,
+            "termos": {
+                "vars": list(t.vars),
+                "disp": t.disp,
+                "slx": list(t.slx),
+                "regiao_fundir": [list(g) for g in t.regiao_fundir],
+                "bloco_grupos": [list(g) for g in t.bloco_grupos],
+            },
+            "corte_km": self.corte_km,
+            "sigma_uf": self.sigma_uf,
+            "limite": self.limite,
+            "mae_pp": self.mae_pp,
+            "ep_r1_pp": self.ep_r1_pp,
+            "aceitos": self.aceitos,
+            "wald": self.wald,
+            "bic_dispersao": self.bic_dispersao,
+            "n_ufs_loso": self.n_ufs_loso,
+            "n_municipios": self.n_municipios,
+            "tempo_s": self.tempo_s,
+            "extra": self.extra,
+        }
 
     @classmethod
     def de_dict(cls, d: Mapping[str, Any]) -> DesenhoParcial:
         t = d["termos"]
-        termos = Termos(vars=tuple(t["vars"]), disp=t["disp"], slx=tuple(t["slx"]),
-                        regiao_fundir=tuple(tuple(g) for g in t["regiao_fundir"]),
-                        bloco_grupos=tuple(tuple(g) for g in t["bloco_grupos"]))
-        return cls(termos, float(d["corte_km"]), float(d["sigma_uf"]), float(d["limite"]),
-                   dict(d["mae_pp"]), float(d["ep_r1_pp"]), dict(d["aceitos"]), dict(d["wald"]),
-                   dict(d["bic_dispersao"]), int(d["n_ufs_loso"]), int(d["n_municipios"]),
-                   float(d["tempo_s"]), int(d["versao"]), dict(d.get("extra", {})))
+        termos = Termos(
+            vars=tuple(t["vars"]),
+            disp=t["disp"],
+            slx=tuple(t["slx"]),
+            regiao_fundir=tuple(tuple(g) for g in t["regiao_fundir"]),
+            bloco_grupos=tuple(tuple(g) for g in t["bloco_grupos"]),
+        )
+        return cls(
+            termos,
+            float(d["corte_km"]),
+            float(d["sigma_uf"]),
+            float(d["limite"]),
+            dict(d["mae_pp"]),
+            float(d["ep_r1_pp"]),
+            dict(d["aceitos"]),
+            dict(d["wald"]),
+            dict(d["bic_dispersao"]),
+            int(d["n_ufs_loso"]),
+            int(d["n_municipios"]),
+            float(d["tempo_s"]),
+            int(d["versao"]),
+            dict(d.get("extra", {})),
+        )
 
 
 def arquivo_cache(ano: int, corte: int, pasta: Path = PASTA_CACHE) -> Path:
@@ -190,7 +219,7 @@ class Loso:
     ufs: tuple[str, ...]
     prev: np.ndarray
     obs: np.ndarray
-    puladas: tuple[str, ...] = ()   # UFs cuja dobra deu ajuste singular: ficam fora do MAE e do σ_UF
+    puladas: tuple[str, ...] = ()  # UFs cuja dobra deu ajuste singular: ficam fora do MAE e do σ_UF
 
     @property
     def erros_pp(self) -> np.ndarray:
@@ -219,7 +248,7 @@ def ufs_elegiveis(uf: np.ndarray, minimo: int = MIN_MUN_UF) -> tuple[str, ...]:
     return tuple(sorted(cont[cont >= minimo].index))
 
 
-_CTX_LOSO: dict[str, Any] = {}   # herdado pelos filhos do fork
+_CTX_LOSO: dict[str, Any] = {}  # herdado pelos filhos do fork
 
 
 def _dobra(uf_ret: str) -> tuple[float, float]:
@@ -250,8 +279,12 @@ def _loso(cand: Candidato, D: pd.DataFrame, mapa: dict[str, str], n_jobs: int) -
     _CTX_LOSO.update(uf=uf, D=D, mapa=mapa, cand=cand)
     res = SEL._mapear(_dobra_segura, ufs, n_jobs)
     bons = [(u, r) for u, r in zip(ufs, res) if r is not None]
-    return Loso(tuple(u for u, _ in bons), np.array([r[0] for _, r in bons]),
-                np.array([r[1] for _, r in bons]), tuple(u for u, r in zip(ufs, res) if r is None))
+    return Loso(
+        tuple(u for u, _ in bons),
+        np.array([r[0] for _, r in bons]),
+        np.array([r[1] for _, r in bons]),
+        tuple(u for u, r in zip(ufs, res) if r is None),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -261,8 +294,7 @@ def _candidato(termos: Termos, nome: str = "parcial") -> Candidato:
     return Candidato(nome, "betabin", "logit", termos)
 
 
-def _selecionar_media(D: pd.DataFrame, mapa: dict[str, str], candidatas: Sequence[str],
-                      opc: Opcoes) -> Termos:
+def _selecionar_media(D: pd.DataFrame, mapa: dict[str, str], candidatas: Sequence[str], opc: Opcoes) -> Termos:
     """R1: fusões por LRT e conjunto de contínuas por BIC (lag sempre dentro)."""
     t0 = Termos(vars=("lag", *candidatas))
     grupos, grupos_bloco = SEL._fusoes(D, mapa, t0, P_FUSAO)
@@ -274,8 +306,8 @@ def _selecionar_media(D: pd.DataFrame, mapa: dict[str, str], candidatas: Sequenc
 def _residuos(cand: Candidato, aj: Ajuste, D: pd.DataFrame, mapa: dict[str, str]) -> np.ndarray:
     pi = np.asarray(cand.prever(aj, D, mapa), float)
     return PR.residuos_quantilicos_rapido(
-        D[mapa["y"]].to_numpy(float), D[mapa["n"]].to_numpy(float), pi,
-        theta=E.prever_theta(aj, D, mapa), rng=0)
+        D[mapa["y"]].to_numpy(float), D[mapa["n"]].to_numpy(float), pi, theta=E.prever_theta(aj, D, mapa), rng=0
+    )
 
 
 def _corte_proprio(res: np.ndarray, D: pd.DataFrame) -> tuple[float, bool]:
@@ -299,8 +331,9 @@ def _bic(aj: Ajuste, nobs: int) -> float:
     return float(aj.k * np.log(nobs) - 2 * aj.loglik)
 
 
-def _wald_dispersao(base: Termos, D: pd.DataFrame, mapa: dict[str, str]
-                    ) -> tuple[str, dict[str, float], dict[str, float], dict[str, Any]]:
+def _wald_dispersao(
+    base: Termos, D: pd.DataFrame, mapa: dict[str, str]
+) -> tuple[str, dict[str, float], dict[str, float], dict[str, Any]]:
     """R4: dispersão pelo Wald sequencial de Conley, cada passo no corte do próprio ajuste.
 
     Devolve (forma, p de A e B, BIC por forma, cortes usados e se o corte de referência valeu).
@@ -340,8 +373,7 @@ def _moran_em_d(res: np.ndarray, w: W, ok: np.ndarray) -> float:
     return float(S._moran_i(np.asarray(res)[mant], sp.diags(1.0 / soma) @ A))
 
 
-def _escolher_slx(base: Termos, dados: DadosCorte
-                  ) -> tuple[tuple[str, ...], bool, dict[str, float], DadosCorte]:
+def _escolher_slx(base: Termos, dados: DadosCorte) -> tuple[tuple[str, ...], bool, dict[str, float], DadosCorte]:
     """R5: opção de W·x por BIC e diagnóstico (I de Moran cai contra nenhuma).
 
     Devolve (chaves escolhidas, diagnóstico ok, BIC por opção, dados com as colunas w_*).
@@ -394,15 +426,23 @@ class _Trilha:
     info_wald: dict[str, Any] = field(default_factory=dict)
 
 
-def _regra_r1_r3(dados_df: pd.DataFrame, mapa: dict[str, str], cands: Sequence[str],
-                 opc: Opcoes) -> tuple[_Estado, _Trilha]:
+def _regra_r1_r3(
+    dados_df: pd.DataFrame, mapa: dict[str, str], cands: Sequence[str], opc: Opcoes
+) -> tuple[_Estado, _Trilha]:
     """R1 (termos da média), diagnóstico de corte do R2 e R3 (LOSO e limite L)."""
     base = _selecionar_media(dados_df, mapa, cands, opc)
     c1 = _candidato(base)
     corte_r1, piso_r1 = _corte_do_desenho(c1, dados_df, mapa)
     l1 = _loso(c1, dados_df, mapa, opc.n_jobs)
-    trilha = _Trilha(limite=l1.mae_pp + l1.ep_pp, n_ufs=len(l1.ufs), ep_r1=l1.ep_pp, corte_r1=corte_r1, piso_r1=piso_r1,
-                     mae={"r1": l1.mae_pp}, puladas={"r1": list(l1.puladas)})
+    trilha = _Trilha(
+        limite=l1.mae_pp + l1.ep_pp,
+        n_ufs=len(l1.ufs),
+        ep_r1=l1.ep_pp,
+        corte_r1=corte_r1,
+        piso_r1=piso_r1,
+        mae={"r1": l1.mae_pp},
+        puladas={"r1": list(l1.puladas)},
+    )
     return _Estado(base, l1, dados_df, mapa), trilha
 
 
@@ -435,35 +475,50 @@ def _regra_r5(atual: _Estado, dados: DadosCorte, trilha: _Trilha, opc: Opcoes) -
     return _Estado(cs.termos, ls, d2.D, d2.mapa) if trilha.aceitos["slx"] else atual
 
 
-def desenho_no_corte(dados: DadosCorte, ano: int, *, candidatas: Sequence[str] | None = None,
-                     opcoes: Opcoes | None = None) -> DesenhoParcial:
+def desenho_no_corte(
+    dados: DadosCorte, ano: int, *, candidatas: Sequence[str] | None = None, opcoes: Opcoes | None = None
+) -> DesenhoParcial:
     """Desenho do (ano, corte) a partir só dos municípios apurados (regras R1 a R7 do módulo)."""
     t0 = time.time()
     cands = tuple(candidatas) if candidatas is not None else candidatas_do_ano(ano)
     opcoes = opcoes or Opcoes()
     opc = replace(opcoes, rotulo=opcoes.rotulo or str(ano))
     D, mapa = dados.D, dados.mapa
-    atual, trilha = _regra_r1_r3(D, mapa, cands, opc)                         # R1, R3
-    atual = _regra_r4(atual, trilha, opc)                                      # R4
-    atual = _regra_r5(atual, dados, trilha, opc)                               # R5
+    atual, trilha = _regra_r1_r3(D, mapa, cands, opc)  # R1, R3
+    atual = _regra_r4(atual, trilha, opc)  # R4
+    atual = _regra_r5(atual, dados, trilha, opc)  # R5
     trilha.mae["final"] = atual.loso.mae_pp
-    corte, piso_fin = _corte_do_desenho(_candidato(atual.termos), atual.D, atual.mapa)   # R2
+    corte, piso_fin = _corte_do_desenho(_candidato(atual.termos), atual.D, atual.mapa)  # R2
     return DesenhoParcial(
-        termos=atual.termos, corte_km=corte, sigma_uf=sigma_uf(atual.loso),   # R7
-        limite=trilha.limite, mae_pp=trilha.mae, ep_r1_pp=trilha.ep_r1,
-        aceitos=trilha.aceitos, wald=trilha.wald, bic_dispersao=trilha.bic,
-        n_ufs_loso=trilha.n_ufs, n_municipios=len(D),
+        termos=atual.termos,
+        corte_km=corte,
+        sigma_uf=sigma_uf(atual.loso),  # R7
+        limite=trilha.limite,
+        mae_pp=trilha.mae,
+        ep_r1_pp=trilha.ep_r1,
+        aceitos=trilha.aceitos,
+        wald=trilha.wald,
+        bic_dispersao=trilha.bic,
+        n_ufs_loso=trilha.n_ufs,
+        n_municipios=len(D),
         tempo_s=time.time() - t0,
-        extra={"corte_r1_km": trilha.corte_r1,
-               "wald_cortes_km": {k: v for k, v in trilha.info_wald.items() if k != "piso"},
-               "ufs_puladas": trilha.puladas,
-               "piso_aplicado": {"r1": trilha.piso_r1, "final": piso_fin, "wald": bool(trilha.info_wald["piso"])}})
+        extra={
+            "corte_r1_km": trilha.corte_r1,
+            "wald_cortes_km": {k: v for k, v in trilha.info_wald.items() if k != "piso"},
+            "ufs_puladas": trilha.puladas,
+            "piso_aplicado": {"r1": trilha.piso_r1, "final": piso_fin, "wald": bool(trilha.info_wald["piso"])},
+        },
+    )
 
 
-def desenhos_por_corte(dados_por_corte: Mapping[tuple[int, int], DadosCorte], *,
-                       pasta: Path = PASTA_CACHE, refazer: bool = False,
-                       opcoes: Opcoes | None = None, falhas: dict[tuple[int, int], str] | None = None
-                       ) -> dict[tuple[int, int], DesenhoParcial]:
+def desenhos_por_corte(
+    dados_por_corte: Mapping[tuple[int, int], DadosCorte],
+    *,
+    pasta: Path = PASTA_CACHE,
+    refazer: bool = False,
+    opcoes: Opcoes | None = None,
+    falhas: dict[tuple[int, int], str] | None = None,
+) -> dict[tuple[int, int], DesenhoParcial]:
     """Desenho de cada (ano, corte); lê o cache quando a `VERSAO` bate e grava o que calcula.
 
     Um corte com matriz singular fora das dobras do LOSO (ex.: corte inicial sem município de uma

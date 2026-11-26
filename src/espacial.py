@@ -132,8 +132,7 @@ def autovetores_esf(geo, k=100):
         return y - y.mean()
 
     op = LinearOperator((N, N), matvec=mv, dtype=float)  # ty: ignore[missing-argument, unknown-argument, parameter-already-assigned]  # stub do scipy incompleto
-    lam, vec = eigsh(op, k=k, which="LA", ncv=min(N, max(2 * k + 1, 20)),
-                     v0=np.random.default_rng(0).normal(size=N))
+    lam, vec = eigsh(op, k=k, which="LA", ncv=min(N, max(2 * k + 1, 20)), v0=np.random.default_rng(0).normal(size=N))
     ordem = np.argsort(-lam)
     lam, vec = lam[ordem], vec[:, ordem]
     vec = vec - vec.mean(axis=0)
@@ -331,7 +330,7 @@ def krigagem_residuos(r_treino, lat, lon, treino, teste, grupos, corte_km, sd_te
     ntr = len(tr)
     k = np.clip(1.0 - d / corte_km, 0.0, None)
     g = np.asarray(grupos)[todos]
-    vale = (k > 0) & (j < ntr) & ((i >= ntr) | (g[i] != g[j]))   # vizinho do treino; treino só de outros grupos
+    vale = (k > 0) & (j < ntr) & ((i >= ntr) | (g[i] != g[j]))  # vizinho do treino; treino só de outros grupos
     K = sp.csr_matrix((k[vale], (i[vale], j[vale])), shape=(len(todos), ntr))
     den = np.asarray(K.sum(axis=1)).ravel()
     kb = np.divide(K @ r, den, out=np.zeros(len(todos)), where=den > 0)
@@ -358,7 +357,9 @@ def _precisao_leroux(A, lam):
 
 
 def _logdet_spd(M):
-    return float(np.sum(np.log(np.abs(splu(M.tocsc(), permc_spec="MMD_AT_PLUS_A", diag_pivot_thresh=0.0).U.diagonal()))))
+    return float(
+        np.sum(np.log(np.abs(splu(M.tocsc(), permc_spec="MMD_AT_PLUS_A", diag_pivot_thresh=0.0).U.diagonal())))
+    )
 
 
 def car_residuos(r_treino, w, treino, teste, sd_teste=None):
@@ -399,11 +400,16 @@ def car_residuos(r_treino, w, treino, teste, sd_teste=None):
     inicio = np.array([np.log(v0 / 2), 0.0, 0.5 * np.log(v0 / 2)])
     ot = minimize(nll, inicio, method="Nelder-Mead", options={"xatol": 1e-3, "fatol": 1e-4, "maxiter": 400})
     if not ot.success:
-        warnings.warn(f"car_residuos: otimizador não convergiu em {ot.nit} iterações ({ot.message}); "
-                      "usando o melhor ponto encontrado", stacklevel=2)
+        warnings.warn(
+            f"car_residuos: otimizador não convergiu em {ot.nit} iterações ({ot.message}); "
+            "usando o melhor ponto encontrado",
+            stacklevel=2,
+        )
     if falhas[0]:
-        warnings.warn(f"car_residuos: {falhas[0]} avaliações da verossimilhança falharam na fatoração "
-                      "e valeram 1e12", stacklevel=2)
+        warnings.warn(
+            f"car_residuos: {falhas[0]} avaliações da verossimilhança falharam na fatoração e valeram 1e12",
+            stacklevel=2,
+        )
     tau, lam, s2 = float(np.exp(ot.x[0])), float(0.99 / (1 + np.exp(-ot.x[1]))), float(np.exp(2 * ot.x[2]))
 
     N = A.shape[0]
@@ -421,7 +427,7 @@ def car_residuos(r_treino, w, treino, teste, sd_teste=None):
 # `02-MLG`, Partes 13 a 17: Wald da dispersão, krigagem/CAR/ponderação por dobra e Moran fora da amostra
 # --------------------------------------------------------------------------
 
-LIMIAR_CORRELACAO = 0.05   # o corte de Conley é a 1ª faixa em que a correlação dos resíduos cai abaixo disto
+LIMIAR_CORRELACAO = 0.05  # o corte de Conley é a 1ª faixa em que a correlação dos resíduos cai abaixo disto
 
 
 def corte_de(cg: pd.DataFrame) -> float:
@@ -430,8 +436,17 @@ def corte_de(cg: pd.DataFrame) -> float:
     return float(abaixo.iloc[0]["ini_km"]) if len(abaixo) else float(cg.iloc[-1]["fim_km"])
 
 
-def passo_wald(passo: str, nome: str, ajuste: "Ajuste", residuos: np.ndarray, sel: Callable[[str], bool],
-               lat: np.ndarray, lon: np.ndarray, uf: np.ndarray, faixas: list[float]) -> tuple[pd.DataFrame, float]:
+def passo_wald(
+    passo: str,
+    nome: str,
+    ajuste: "Ajuste",
+    residuos: np.ndarray,
+    sel: Callable[[str], bool],
+    lat: np.ndarray,
+    lon: np.ndarray,
+    uf: np.ndarray,
+    faixas: list[float],
+) -> tuple[pd.DataFrame, float]:
     """Wald dos termos de `ajuste` escolhidos por `sel`, sob Conley (x0,5, x1, x2) e conglomerado por UF.
 
     O corte vem do correlograma dos resíduos do próprio ajuste. O qui-quadrado só sai com Conley x1;
@@ -441,16 +456,31 @@ def passo_wald(passo: str, nome: str, ajuste: "Ajuste", residuos: np.ndarray, se
     nm = list(ajuste.nomes)
     ind = [i for i, s in enumerate(nm) if sel(s)]
     corte = corte_de(correlograma(residuos, lat, lon, faixas))
-    covs = {"conley_05": cov_conley(mod, lat, lon, corte * 0.5), "conley_1": cov_conley(mod, lat, lon, corte),
-            "conley_2": cov_conley(mod, lat, lon, corte * 2), "cluster_uf": cov_cluster(mod, uf, correcao=True)}
+    covs = {
+        "conley_05": cov_conley(mod, lat, lon, corte * 0.5),
+        "conley_1": cov_conley(mod, lat, lon, corte),
+        "conley_2": cov_conley(mod, lat, lon, corte * 2),
+        "cluster_uf": cov_cluster(mod, uf, correcao=True),
+    }
     fator = {"conley_05": 0.5, "conley_1": 1, "conley_2": 2}
     linhas = []
     for tag, cv in covs.items():
         for tipo, gd in ([("chi2", None)] if tag == "conley_1" else []) + [("F", len(np.unique(uf)) - 1)]:
             est, gl, p = wald_robusto(mod.params, cv, ind, gl_den=gd)
-            linhas.append({"passo": passo, "ajuste": nome, "termos": ";".join(nm[i] for i in ind), "covariancia": tag,
-                           "corte_km": corte * fator[tag] if tag != "cluster_uf" else np.nan,
-                           "teste": tipo, "estat": est, "gl": gl, "gl_den": gd if gd else np.nan, "p": p})
+            linhas.append(
+                {
+                    "passo": passo,
+                    "ajuste": nome,
+                    "termos": ";".join(nm[i] for i in ind),
+                    "covariancia": tag,
+                    "corte_km": corte * fator[tag] if tag != "cluster_uf" else np.nan,
+                    "teste": tipo,
+                    "estat": est,
+                    "gl": gl,
+                    "gl_den": gd if gd else np.nan,
+                    "p": p,
+                }
+            )
     return pd.DataFrame(linhas), corte
 
 
@@ -497,8 +527,9 @@ def _dobra_extensao(args: tuple[np.ndarray, np.ndarray]) -> tuple[list[float], n
     return par, expit(logit(pi_te) + u)
 
 
-def rodar_extensao(metodo: str, folds: list[tuple[np.ndarray, np.ndarray]], arq: Path, recalcular: bool,
-                   max_workers: int) -> tuple[np.ndarray, np.ndarray]:
+def rodar_extensao(
+    metodo: str, folds: list[tuple[np.ndarray, np.ndarray]], arq: Path, recalcular: bool, max_workers: int
+) -> tuple[np.ndarray, np.ndarray]:
     """π corrigido e parâmetros por município (uma linha por dobra) da krigagem ('krig') ou do CAR ('car').
 
     Lê o cache `arq` salvo ao fim da 1ª rodada, a menos que `recalcular`. Exige `definir_contexto_dobras`.
@@ -527,15 +558,21 @@ def parametros_dobra(nome_uf: str) -> dict[str, Any]:
     tr, te = np.flatnonzero(uf != nome_uf), np.flatnonzero(uf == nome_uf)
     a = cand.ajustar(df.iloc[tr], mapa)
     dte = df.iloc[te].copy()
-    dte[mapa["n"]] = c["nhat"][te]   # UF retida não apurada: peso n estimado
+    dte[mapa["n"]] = c["nhat"][te]  # UF retida não apurada: peso n estimado
     X = E.montar_X(dte, mapa, a.pad, cand.termos)
     nb_ = a.extra["n_beta"]
     assert X.shape[1] == nb_
     th = E.prever_theta(a, dte, mapa)
     cm = np.asarray(a.modelo.cov_params(), float)[:nb_, :nb_]
     cc = np.asarray(cov_conley(a.modelo, c["lat"][tr], c["lon"][tr], c["corte"]), float)[:nb_, :nb_]
-    return {"beta": np.asarray(a.modelo.params, float)[:nb_], "cov_modelo": cm, "cov_conley": cc,
-            "X": X.to_numpy(float), "theta": th, "te": te}
+    return {
+        "beta": np.asarray(a.modelo.params, float)[:nb_],
+        "cov_modelo": cm,
+        "cov_conley": cc,
+        "X": X.to_numpy(float),
+        "theta": th,
+        "te": te,
+    }
 
 
 def dobra_ponderada(args: tuple[np.ndarray, np.ndarray]) -> dict[str, Any]:
@@ -555,8 +592,15 @@ def dobra_ponderada(args: tuple[np.ndarray, np.ndarray]) -> dict[str, Any]:
         sd_te = sd_betabinomial(pi_te, n[te], th_te)
         rho, k = krigagem_residuos(z_tr, c["lat"], c["lon"], tr, te, c["uf"], c["corte"], sd_teste=sd_te)
         par, u = car_residuos(z_tr, c["w"], tr, te, sd_teste=sd_te)
-    return {"rho": rho, "lam": par["lam"], "pi": pi_te, "th": th_te, "krig": np.clip(pi_te + k, 1e-6, 1 - 1e-6),
-            "car": np.clip(pi_te + u, 1e-6, 1 - 1e-6), "avisos": sorted({str(w.message)[:90] for w in avisos})}
+    return {
+        "rho": rho,
+        "lam": par["lam"],
+        "pi": pi_te,
+        "th": th_te,
+        "krig": np.clip(pi_te + k, 1e-6, 1 - 1e-6),
+        "car": np.clip(pi_te + u, 1e-6, 1 - 1e-6),
+        "avisos": sorted({str(w.message)[:90] for w in avisos}),
+    }
 
 
 def moran_oos(lz: np.ndarray, pi: np.ndarray, w: "W") -> float:
@@ -569,7 +613,15 @@ def moran_z(y: np.ndarray, n: np.ndarray, pi: np.ndarray, theta: np.ndarray, w: 
     return moran_residuos(residuo_pearson(y, n, pi, theta)[0], w, permutacoes=999, semente=0)["I"]
 
 
-def linha_sens(modelo: str, metrica: str, atual: float, pond: float, ca: bool | None = None,
-               cp: bool | None = None) -> dict[str, Any]:
+def linha_sens(
+    modelo: str, metrica: str, atual: float, pond: float, ca: bool | None = None, cp: bool | None = None
+) -> dict[str, Any]:
     """Linha da tabela de sensibilidade: valor atual contra ponderado, com o critério de cada um (se houver)."""
-    return {"modelo": modelo, "metrica": metrica, "atual": atual, "ponderado": pond, "criterio_atual": ca, "criterio_ponderado": cp}
+    return {
+        "modelo": modelo,
+        "metrica": metrica,
+        "atual": atual,
+        "ponderado": pond,
+        "criterio_atual": ca,
+        "criterio_ponderado": cp,
+    }

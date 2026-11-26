@@ -9,6 +9,7 @@ Regras de negócio:
 - Candidato do bolsonarismo: 17 em 2018, 22 em 2022 e 2026; PT é sempre 13.
 - Zonas são somadas por município (a fonte é município x zona).
 """
+
 import pandas as pd
 
 from src.coleta.comum import RAIZ, RAW, baixar, ler_csv_zip, salvar_interim
@@ -38,8 +39,15 @@ def _ler(tipo, ano, usecols):
 
 
 def _candidatos(ano):
-    cols = ["NR_TURNO", "SG_UF", "CD_MUNICIPIO", "NM_MUNICIPIO", "CD_CARGO", "NR_CANDIDATO",
-            "QT_VOTOS_NOMINAIS_VALIDOS"]
+    cols = [
+        "NR_TURNO",
+        "SG_UF",
+        "CD_MUNICIPIO",
+        "NM_MUNICIPIO",
+        "CD_CARGO",
+        "NR_CANDIDATO",
+        "QT_VOTOS_NOMINAIS_VALIDOS",
+    ]
     df = _ler("votacao_candidato_munzona", ano, cols)
     df["votos"] = pd.to_numeric(df["QT_VOTOS_NOMINAIS_VALIDOS"]).astype("int64")
     df["nr"] = df["NR_CANDIDATO"]
@@ -48,11 +56,26 @@ def _candidatos(ano):
 
 
 def _detalhe(ano):
-    cols = ["NR_TURNO", "SG_UF", "CD_MUNICIPIO", "NM_MUNICIPIO", "CD_CARGO", "QT_APTOS",
-            "QT_COMPARECIMENTO", "QT_ABSTENCOES", "QT_VOTOS_BRANCOS", "QT_TOTAL_VOTOS_NULOS"]
+    cols = [
+        "NR_TURNO",
+        "SG_UF",
+        "CD_MUNICIPIO",
+        "NM_MUNICIPIO",
+        "CD_CARGO",
+        "QT_APTOS",
+        "QT_COMPARECIMENTO",
+        "QT_ABSTENCOES",
+        "QT_VOTOS_BRANCOS",
+        "QT_TOTAL_VOTOS_NULOS",
+    ]
     df = _ler("detalhe_votacao_munzona", ano, cols)
-    ren = {"QT_APTOS": "aptos", "QT_COMPARECIMENTO": "comparecimento", "QT_ABSTENCOES": "abstencoes",
-           "QT_VOTOS_BRANCOS": "brancos", "QT_TOTAL_VOTOS_NULOS": "nulos"}
+    ren = {
+        "QT_APTOS": "aptos",
+        "QT_COMPARECIMENTO": "comparecimento",
+        "QT_ABSTENCOES": "abstencoes",
+        "QT_VOTOS_BRANCOS": "brancos",
+        "QT_TOTAL_VOTOS_NULOS": "nulos",
+    }
     df = df.rename(columns=ren)
     for c in ren.values():
         df[c] = pd.to_numeric(df[c]).astype("int64")
@@ -62,12 +85,13 @@ def _detalhe(ano):
 def _municipal(ano):
     """Uma linha por município x turno, com as métricas do ano."""
     cand = _candidatos(ano)
-    por_grupo = (cand.dropna(subset=["grupo"])
-                 .pivot_table(index=CHAVE + ["NR_TURNO"], columns="grupo", values="votos",
-                              aggfunc="sum", fill_value=0))
+    por_grupo = cand.dropna(subset=["grupo"]).pivot_table(
+        index=CHAVE + ["NR_TURNO"], columns="grupo", values="votos", aggfunc="sum", fill_value=0
+    )
     validos = cand.groupby(CHAVE + ["NR_TURNO"])["votos"].sum().rename("validos")
-    det = _detalhe(ano).groupby(CHAVE + ["NR_TURNO"])[
-        ["aptos", "comparecimento", "abstencoes", "brancos", "nulos"]].sum()
+    det = (
+        _detalhe(ano).groupby(CHAVE + ["NR_TURNO"])[["aptos", "comparecimento", "abstencoes", "brancos", "nulos"]].sum()
+    )
     m = por_grupo.join(validos, how="outer").join(det, how="outer").reset_index()
     m["ano"] = ano
     return m
@@ -79,8 +103,12 @@ def _checagem(mun):
     por_uf = por_uf.reset_index()
     nac = por_uf.groupby(["ano", "NR_TURNO"])[["votos_pt", "votos_bolsonaro", "validos"]].sum().reset_index()
     nac["SG_UF"] = "BRASIL_COM_EXTERIOR"
-    dom = (por_uf[por_uf["SG_UF"] != "ZZ"].groupby(["ano", "NR_TURNO"])
-           [["votos_pt", "votos_bolsonaro", "validos"]].sum().reset_index())
+    dom = (
+        por_uf[por_uf["SG_UF"] != "ZZ"]
+        .groupby(["ano", "NR_TURNO"])[["votos_pt", "votos_bolsonaro", "validos"]]
+        .sum()
+        .reset_index()
+    )
     dom["SG_UF"] = "BRASIL_DOMESTICO"
     out = pd.concat([nac, dom, por_uf], ignore_index=True)
     out["pct_pt"] = 100 * out["votos_pt"] / out["validos"]
@@ -92,20 +120,23 @@ def _checagem(mun):
 def _largo(mun):
     dom = mun[mun["SG_UF"] != "ZZ"].copy()
     # Nome/UF variam entre anos para o mesmo código; vale o do ano mais recente.
-    ident = (dom.sort_values("ano").drop_duplicates("CD_MUNICIPIO", keep="last")
-             .set_index("CD_MUNICIPIO")[["SG_UF", "NM_MUNICIPIO"]])
+    ident = (
+        dom.sort_values("ano")
+        .drop_duplicates("CD_MUNICIPIO", keep="last")
+        .set_index("CD_MUNICIPIO")[["SG_UF", "NM_MUNICIPIO"]]
+    )
     dom["CD_MUNICIPIO"] = dom["CD_MUNICIPIO"].astype(int)
     ident.index = ident.index.astype(int)
-    metricas = ["votos_pt", "votos_bolsonaro", "validos", "aptos", "comparecimento",
-                "abstencoes", "brancos", "nulos"]
+    metricas = ["votos_pt", "votos_bolsonaro", "validos", "aptos", "comparecimento", "abstencoes", "brancos", "nulos"]
     partes = []
     for (ano, turno), g in dom.groupby(["ano", "NR_TURNO"]):
         g = g.groupby("CD_MUNICIPIO")[metricas].sum(min_count=1)
         g.columns = [f"{c}_{turno}t_{ano}" for c in metricas]
         partes.append(g)
     largo = pd.concat(partes, axis=1).join(ident).reset_index()
-    largo = largo.rename(columns={"CD_MUNICIPIO": "id_municipio_tse", "SG_UF": "sigla_uf",
-                                  "NM_MUNICIPIO": "nome_municipio"})
+    largo = largo.rename(
+        columns={"CD_MUNICIPIO": "id_municipio_tse", "SG_UF": "sigla_uf", "NM_MUNICIPIO": "nome_municipio"}
+    )
     largo.insert(1, "sigla_uf", largo.pop("sigla_uf"))
     largo.insert(2, "nome_municipio", largo.pop("nome_municipio"))
     for c in largo.columns[3:]:

@@ -19,12 +19,25 @@ URL_VOT = "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_partido_munzon
 URL_CAND = "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_{ano}.zip"
 FORA = {"ZZ", "BR", "VT"}
 BLOCOS = {"esquerda": "esq", "centro": "centro", "direita": "dir"}
-CLASSES = {"extrema-esquerda": "ext_esq", "esquerda": "esq", "centro-esquerda": "centro_esq",
-           "centro": "centro", "centro-direita": "centro_dir", "direita": "dir",
-           "extrema-direita": "ext_dir"}
+CLASSES = {
+    "extrema-esquerda": "ext_esq",
+    "esquerda": "esq",
+    "centro-esquerda": "centro_esq",
+    "centro": "centro",
+    "centro-direita": "centro_dir",
+    "direita": "dir",
+    "extrema-direita": "ext_dir",
+}
 # Cortes do artigo (limite superior de cada classe), usados para fusões sem classe própria.
-CORTES = [(1.5, "extrema-esquerda"), (3.0, "esquerda"), (4.49, "centro-esquerda"),
-          (5.5, "centro"), (7.0, "centro-direita"), (8.5, "direita"), (10.0, "extrema-direita")]
+CORTES = [
+    (1.5, "extrema-esquerda"),
+    (3.0, "esquerda"),
+    (4.49, "centro-esquerda"),
+    (5.5, "centro"),
+    (7.0, "centro-direita"),
+    (8.5, "direita"),
+    (10.0, "extrema-direita"),
+]
 # Sem nota no artigo: classe atribuída pelo projeto.
 CLASSE_MANUAL = {"UP": "esquerda", "MISSÃO": "direita"}
 
@@ -54,13 +67,19 @@ def votos_deputado(ano: int, blocos: dict[str, str]) -> pd.DataFrame:
     df = ler_csv_zip(
         zip_path,
         f"votacao_partido_munzona_{ano}_BRASIL.csv",
-        usecols=["SG_UF", "CD_MUNICIPIO", "DS_CARGO", "NR_TURNO", "SG_PARTIDO",
-                 "QT_VOTOS_LEGENDA_VALIDOS", "QT_VOTOS_NOMINAIS_VALIDOS"],
+        usecols=[
+            "SG_UF",
+            "CD_MUNICIPIO",
+            "DS_CARGO",
+            "NR_TURNO",
+            "SG_PARTIDO",
+            "QT_VOTOS_LEGENDA_VALIDOS",
+            "QT_VOTOS_NOMINAIS_VALIDOS",
+        ],
         filtro=lambda d: d[(d["DS_CARGO"] == "Deputado Federal") & (d["NR_TURNO"] == "1")],
     )
     df = df[~df["SG_UF"].isin(FORA)].copy()
-    df["votos"] = (pd.to_numeric(df["QT_VOTOS_LEGENDA_VALIDOS"])
-                   + pd.to_numeric(df["QT_VOTOS_NOMINAIS_VALIDOS"]))
+    df["votos"] = pd.to_numeric(df["QT_VOTOS_LEGENDA_VALIDOS"]) + pd.to_numeric(df["QT_VOTOS_NOMINAIS_VALIDOS"])
     df["bloco"] = df["SG_PARTIDO"].map(blocos)
     df["id_municipio_tse"] = df["CD_MUNICIPIO"].astype(int)
     notas, classes = carregar_notas_classes()
@@ -72,10 +91,11 @@ def votos_deputado(ano: int, blocos: dict[str, str]) -> pd.DataFrame:
     com_nota = df.dropna(subset=["nota"])
     soma_nota = (com_nota["votos"] * com_nota["nota"]).groupby([com_nota[c] for c in idx]).sum()
     votos_nota = com_nota.groupby(idx)["votos"].sum()
-    print(f"{ano}: votos nacionais {df['votos'].sum():,.0f}; sem nota {df.loc[df['nota'].isna(), 'votos'].sum() / df['votos'].sum():.4f}; "
-          f"nota media nacional {soma_nota.sum() / votos_nota.sum():.3f}")
-    tab = df.pivot_table(index=idx, columns="bloco",
-                         values="votos", aggfunc="sum", fill_value=0)
+    print(
+        f"{ano}: votos nacionais {df['votos'].sum():,.0f}; sem nota {df.loc[df['nota'].isna(), 'votos'].sum() / df['votos'].sum():.4f}; "
+        f"nota media nacional {soma_nota.sum() / votos_nota.sum():.3f}"
+    )
+    tab = df.pivot_table(index=idx, columns="bloco", values="votos", aggfunc="sum", fill_value=0)
     for b in BLOCOS:
         if b not in tab:
             tab[b] = 0
@@ -95,10 +115,10 @@ def prefeitos(ano: int, blocos: dict[str, str]) -> pd.DataFrame:
     df = ler_csv_zip(
         zip_path,
         f"consulta_cand_{ano}_BRASIL.csv",
-        usecols=["SG_UF", "SG_UE", "NM_TIPO_ELEICAO", "NR_TURNO", "DS_CARGO",
-                 "SG_PARTIDO", "DS_SIT_TOT_TURNO"],
-        filtro=lambda d: d[(d["DS_CARGO"].str.upper() == "PREFEITO")
-                           & (d["DS_SIT_TOT_TURNO"].str.startswith("ELEITO", na=False))],
+        usecols=["SG_UF", "SG_UE", "NM_TIPO_ELEICAO", "NR_TURNO", "DS_CARGO", "SG_PARTIDO", "DS_SIT_TOT_TURNO"],
+        filtro=lambda d: d[
+            (d["DS_CARGO"].str.upper() == "PREFEITO") & (d["DS_SIT_TOT_TURNO"].str.startswith("ELEITO", na=False))
+        ],
     )
     df = df[~df["SG_UF"].isin(FORA)].copy()
     df["id_municipio_tse"] = df["SG_UE"].astype(int)
@@ -109,8 +129,9 @@ def prefeitos(ano: int, blocos: dict[str, str]) -> pd.DataFrame:
     df[f"prefeito_suplementar_{ano}"] = df["suplementar"]
     df[f"partido_prefeito_{ano}"] = df["SG_PARTIDO"]
     df[f"bloco_prefeito_{ano}"] = df["SG_PARTIDO"].map(blocos)
-    out = df[["id_municipio_tse", f"partido_prefeito_{ano}", f"bloco_prefeito_{ano}",
-              f"prefeito_suplementar_{ano}"]].copy()
+    out = df[
+        ["id_municipio_tse", f"partido_prefeito_{ano}", f"bloco_prefeito_{ano}", f"prefeito_suplementar_{ano}"]
+    ].copy()
     out.attrs["nao_mapeados"] = sorted(df.loc[df[f"bloco_prefeito_{ano}"].isna(), "SG_PARTIDO"].unique())
     return out
 

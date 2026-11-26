@@ -56,16 +56,10 @@ def _derivar(df: pd.DataFrame) -> pd.DataFrame:
         novas[f"prop_pt_1t_{a}"] = df[f"votos_pt_1t_{a}"] / df[f"validos_1t_{a}"]
         novas[f"prop_bolsonaro_1t_{a}"] = df[f"votos_bolsonaro_1t_{a}"] / df[f"validos_1t_{a}"]
         for t in (1, 2):
-            novas[f"taxa_comparecimento_{t}t_{a}"] = (
-                df[f"comparecimento_{t}t_{a}"] / df[f"aptos_{t}t_{a}"]
-            )
+            novas[f"taxa_comparecimento_{t}t_{a}"] = df[f"comparecimento_{t}t_{a}"] / df[f"aptos_{t}t_{a}"]
     df = pd.concat([df, pd.DataFrame(novas)], axis=1)
-    df["delta_comparecimento_2t_2022"] = (
-        df["taxa_comparecimento_2t_2022"] - df["taxa_comparecimento_2t_2018"]
-    )
-    df["delta_comparecimento_2t_2026"] = (
-        df["taxa_comparecimento_2t_2026"] - df["taxa_comparecimento_2t_2022"]
-    )
+    df["delta_comparecimento_2t_2022"] = df["taxa_comparecimento_2t_2022"] - df["taxa_comparecimento_2t_2018"]
+    df["delta_comparecimento_2t_2026"] = df["taxa_comparecimento_2t_2026"] - df["taxa_comparecimento_2t_2022"]
     df["swing_logit_2022"] = df["logit_pt_2t_2022"] - df["logit_pt_2t_2018"]
     df["swing_logit_2026"] = df["logit_pt_2t_2026"] - df["logit_pt_2t_2022"]
     df["log_populacao_2022"] = np.log(df["populacao_2022"])

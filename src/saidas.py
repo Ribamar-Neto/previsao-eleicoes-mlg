@@ -29,8 +29,9 @@ def pastas(raiz_results: str | Path) -> tuple[Path, Path]:
     return tabelas, figuras
 
 
-def salvar_tabela(tabela: pd.DataFrame | pd.Series, caminho: str | Path, casas: int | None = None,
-                  **kwargs_csv: Any) -> pd.DataFrame | pd.Series:
+def salvar_tabela(
+    tabela: pd.DataFrame | pd.Series, caminho: str | Path, casas: int | None = None, **kwargs_csv: Any
+) -> pd.DataFrame | pd.Series:
     """Grava o CSV (arredondado a `casas`, se dado) e devolve a tabela gravada para exibição."""
     saida = tabela if casas is None else tabela.round(casas)
     saida.to_csv(caminho, **kwargs_csv)
@@ -85,11 +86,20 @@ def _estilizar(df: pd.DataFrame, legenda: str, formatos: Mapping[str, Any], indi
     return sty if indice else sty.hide(axis="index")
 
 
-def tabela(df: pd.DataFrame, titulo: str, *, numero: str | None = None, casas: int = 2,
-           casas_por_coluna: Mapping[str, int] | None = None, pct: Sequence[str] = (),
-           inteiros: Sequence[str] = (), pvalor: Sequence[str] = (),
-           rotulos: Mapping[str, str] | None = None, indice: bool = True,
-           nota: str | None = None) -> Styler:
+def tabela(
+    df: pd.DataFrame,
+    titulo: str,
+    *,
+    numero: str | None = None,
+    casas: int = 2,
+    casas_por_coluna: Mapping[str, int] | None = None,
+    pct: Sequence[str] = (),
+    inteiros: Sequence[str] = (),
+    pvalor: Sequence[str] = (),
+    rotulos: Mapping[str, str] | None = None,
+    indice: bool = True,
+    nota: str | None = None,
+) -> Styler:
     """Tabela formatada para exibição: legenda numerada, vírgula decimal, ponto de milhar.
 
     `pct` recebe frações (0 a 1); `pvalor` mostra "<0,001" abaixo de 0,001. Colunas não
@@ -114,8 +124,7 @@ def tabela(df: pd.DataFrame, titulo: str, *, numero: str | None = None, casas: i
     return _estilizar(saida, _legenda(titulo, numero, nota), formatos, indice)
 
 
-def indicadores(valores: Mapping[str, object], titulo: str, *, numero: str | None = None,
-                casas: int = 3) -> Styler:
+def indicadores(valores: Mapping[str, object], titulo: str, *, numero: str | None = None, casas: int = 3) -> Styler:
     """Tabela de duas colunas (Indicador, Valor) no lugar de dict e escalares impressos."""
     linhas = [(k, v) for k, v in valores.items()]
     df = pd.DataFrame(linhas, columns=["Indicador", "Valor"])

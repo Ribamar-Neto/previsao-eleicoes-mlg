@@ -1,4 +1,5 @@
 """Helpers das Partes 13 a 17 do `02-MLG` em src/espacial.py, caracterizados contra cópias do código antigo do notebook (então `05-modelo-final`)."""
+
 from types import SimpleNamespace
 
 import numpy as np
@@ -35,15 +36,32 @@ def _passo_wald_antigo(passo, o, sel, AJ14, R14, lat, lon, uf, UFS_):
     nm = list(a.nomes)
     ind = [i for i, s in enumerate(nm) if sel(s)]
     corte = _corte_de_antigo(S.correlograma(R14[o], lat, lon, FAIXAS))
-    covs = {"conley_05": S.cov_conley(mod, lat, lon, corte * 0.5), "conley_1": S.cov_conley(mod, lat, lon, corte),
-            "conley_2": S.cov_conley(mod, lat, lon, corte * 2), "cluster_uf": S.cov_cluster(mod, uf, correcao=True)}
+    covs = {
+        "conley_05": S.cov_conley(mod, lat, lon, corte * 0.5),
+        "conley_1": S.cov_conley(mod, lat, lon, corte),
+        "conley_2": S.cov_conley(mod, lat, lon, corte * 2),
+        "cluster_uf": S.cov_cluster(mod, uf, correcao=True),
+    }
     linhas = []
     for tag, cv in covs.items():
         for tipo, gd in ([("chi2", None)] if tag == "conley_1" else []) + [("F", len(UFS_) - 1)]:
             est, gl, p = S.wald_robusto(mod.params, cv, ind, gl_den=gd)
-            linhas.append(dict(passo=passo, ajuste=o, termos=";".join(nm[i] for i in ind), covariancia=tag,  # noqa: C408
-                               corte_km=corte * (0.5 if tag == "conley_05" else 2 if tag == "conley_2" else 1) if tag != "cluster_uf" else np.nan,
-                               teste=tipo, estat=est, gl=gl, gl_den=gd if gd else np.nan, p=p))
+            linhas.append(
+                dict(  # noqa: C408
+                    passo=passo,
+                    ajuste=o,
+                    termos=";".join(nm[i] for i in ind),
+                    covariancia=tag,
+                    corte_km=corte * (0.5 if tag == "conley_05" else 2 if tag == "conley_2" else 1)
+                    if tag != "cluster_uf"
+                    else np.nan,
+                    teste=tipo,
+                    estat=est,
+                    gl=gl,
+                    gl_den=gd if gd else np.nan,
+                    p=p,
+                )
+            )
     return pd.DataFrame(linhas), corte
 
 
@@ -94,6 +112,7 @@ def test_moran_z_e_moran_oos_iguais_ao_antigo():
 
 def test_moran_residuos_devolve_z_sim_e_esperado_do_mesmo_objeto():
     import esda
+
     w, rng = _pesos(60, 2, k=3)
     x = rng.normal(size=60)
     m = S.moran_residuos(x, w, 99, 0)
@@ -115,8 +134,13 @@ def test_substituir_linha_csv_idempotente_e_na_posicao(tmp_path):
 
 def test_linha_sens():
     assert S.linha_sens("krig", "rho_media", 0.5, 0.6) == {
-        "modelo": "krig", "metrica": "rho_media", "atual": 0.5, "ponderado": 0.6,
-        "criterio_atual": None, "criterio_ponderado": None}
+        "modelo": "krig",
+        "metrica": "rho_media",
+        "atual": 0.5,
+        "ponderado": 0.6,
+        "criterio_atual": None,
+        "criterio_ponderado": None,
+    }
 
 
 class _Cand:
@@ -146,7 +170,7 @@ def test_rodar_extensao_krig_e_car_iguais_ao_antigo_e_cache(tmp_path):
     pi, P = S.rodar_extensao("krig", folds, tmp_path / "k.parquet", False, max_workers=2)
     pi_a, rho_a, pic_a = (np.full(len(d), np.nan) for _ in range(3))
     Pc_a = np.full((len(d), 3), np.nan)
-    for tr, te in folds:   # cópia de _krig_fold e _car_fold do notebook
+    for tr, te in folds:  # cópia de _krig_fold e _car_fold do notebook
         a = cand.ajustar(d.iloc[tr], None)
         r_tr = lz[tr] - logit(np.asarray(cand.prever(a, d.iloc[tr], None), float))
         pi_te = np.asarray(cand.prever(a, d.iloc[te], None), float)
@@ -156,7 +180,7 @@ def test_rodar_extensao_krig_e_car_iguais_ao_antigo_e_cache(tmp_path):
         pic_a[te], Pc_a[te] = expit(logit(pi_te) + u), [par["tau"], par["lam"], par["sigma2"]]
     np.testing.assert_array_equal(pi, pi_a)
     np.testing.assert_array_equal(P[:, 0], rho_a)
-    pi2, P2 = S.rodar_extensao("krig", folds, tmp_path / "k.parquet", False, max_workers=2)   # lê o cache
+    pi2, P2 = S.rodar_extensao("krig", folds, tmp_path / "k.parquet", False, max_workers=2)  # lê o cache
     np.testing.assert_array_equal(pi2, pi)
     np.testing.assert_array_equal(P2, P)
     pic, Pc = S.rodar_extensao("car", folds, tmp_path / "c.parquet", False, max_workers=2)
@@ -168,6 +192,7 @@ def test_rodar_extensao_krig_e_car_iguais_ao_antigo_e_cache(tmp_path):
 
 def test_dobra_ponderada_igual_ao_antigo(monkeypatch):
     from src import especificacoes as E
+
     d, uf, folds, lat, lon, w = _folds_e_dados()
     cand, th = _Cand(), 0.01
     monkeypatch.setattr(E, "prever_theta", lambda a, dd, mapa=None: np.full(len(dd), th))
@@ -175,7 +200,7 @@ def test_dobra_ponderada_igual_ao_antigo(monkeypatch):
     S.definir_contexto_dobras(cand=cand, df=d, mapa=None, y=y, n=n, lat=lat, lon=lon, uf=uf, corte=300.0, w=w)
     tr, te = folds[0]
     r = S.dobra_ponderada((tr, te))
-    a = cand.ajustar(d.iloc[tr], None)   # cópia de _pond_fold do notebook
+    a = cand.ajustar(d.iloc[tr], None)  # cópia de _pond_fold do notebook
     z_tr, _ = S.residuo_pearson(y[tr], n[tr], cand.prever(a, d.iloc[tr], None), np.full(len(tr), th))
     pi_te = cand.prever(a, d.iloc[te], None)
     sd_te = S.sd_betabinomial(pi_te, n[te], np.full(len(te), th))

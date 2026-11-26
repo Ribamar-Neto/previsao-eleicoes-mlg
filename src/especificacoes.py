@@ -5,6 +5,7 @@ mesmas definições. As colunas entram por papéis genéricos (`MAPA_2026`), par
 que o backtest troque os anos sem mudar o código. A padronização (z-score) e os
 níveis das dummies são fixados no treino; o teste só é transformado.
 """
+
 from __future__ import annotations
 
 import time
@@ -25,40 +26,95 @@ from statsmodels.othermod.betareg import BetaModel
 from src import modelos as M
 
 L = sm.families.links
-LIGACOES = {"logit": L.Logit, "probit": L.Probit, "cloglog": L.CLogLog,
-            "loglog": L.LogLog, "cauchit": L.Cauchy}
+LIGACOES = {"logit": L.Logit, "probit": L.Probit, "cloglog": L.CLogLog, "loglog": L.LogLog, "cauchit": L.Cauchy}
 
 # Regra: nenhuma covariável do 2º turno de 2026 entra no modelo, porque ela é desconhecida
 # enquanto a apuração de uma UF não chegou. Só `y` e `n` vêm de 2t_2026. Comparecimento é o do
 # 1º turno de 2026 e `delta_comp` (fora do bb_selecao) é o delta do 2º turno de 2022.
 MAPA_2026 = {
-    "y": "votos_pt_2t_2026", "n": "n_2t_2026", "lag": "logit_pt_2t_2022",
-    "nota_dep": "nota_media_dep_2026", "pct_dep_esq": "pct_dep_esq_2026",
+    "y": "votos_pt_2t_2026",
+    "n": "n_2t_2026",
+    "lag": "logit_pt_2t_2022",
+    "nota_dep": "nota_media_dep_2026",
+    "pct_dep_esq": "pct_dep_esq_2026",
     "bloco_pref": "bloco_prefeito_2024",
     "comparecimento": "taxa_comparecimento_1t_2026",
     "delta_comp": "delta_comparecimento_2t_2022",
-    "log_pop": "log_populacao_2022", "log_dens": "log_densidade_2022",
-    "pct_mulheres": "pct_mulheres_2026", "pct_16_24": "pct_16_24_2026",
-    "pct_60_mais": "pct_60_mais_2026", "pct_superior": "pct_superior_completo_2026",
-    "pct_analfabeto": "pct_analfabeto_2026", "cobertura_pbf": "cobertura_pbf_2026",
+    "log_pop": "log_populacao_2022",
+    "log_dens": "log_densidade_2022",
+    "pct_mulheres": "pct_mulheres_2026",
+    "pct_16_24": "pct_16_24_2026",
+    "pct_60_mais": "pct_60_mais_2026",
+    "pct_superior": "pct_superior_completo_2026",
+    "pct_analfabeto": "pct_analfabeto_2026",
+    "cobertura_pbf": "cobertura_pbf_2026",
     "pib_pc": "pib_per_capita_2023",  # o log é aplicado em montar_X
-    "pct_vab_agro": "pct_vab_agro_2021", "pct_evangelicos": "pct_evangelicos_2022",
-    "pct_pretos_pardos": "pct_pretos_pardos_2022", "pct_urbana": "pct_urbana_2022",
-    "pct_fund_inc": "pct_ate_fund_incompleto_2026", "pct_sem_religiao": "pct_sem_religiao_2022",
+    "pct_vab_agro": "pct_vab_agro_2021",
+    "pct_evangelicos": "pct_evangelicos_2022",
+    "pct_pretos_pardos": "pct_pretos_pardos_2022",
+    "pct_urbana": "pct_urbana_2022",
+    "pct_fund_inc": "pct_ate_fund_incompleto_2026",
+    "pct_sem_religiao": "pct_sem_religiao_2022",
     "pct_indigenas": "pct_indigenas_2022",
-    "regiao": "regiao", "uf": "sigla_uf",
+    "regiao": "regiao",
+    "uf": "sigla_uf",
     "suplementar": "prefeito_suplementar_2024",
 }
 MAPA_2026_PRE = MAPA_2026  # apelido até o `02-MLG` e o `03-apuracao-parcial` deixarem de citá-lo
-CONTINUAS = ["lag", "nota_dep", "pct_dep_esq", "comparecimento", "delta_comp",
-             "log_pop", "log_dens", "pct_mulheres", "pct_16_24", "pct_60_mais",
-             "pct_superior", "pct_analfabeto", "cobertura_pbf", "pib_pc",
-             "pct_vab_agro", "pct_evangelicos", "pct_pretos_pardos", "pct_urbana",
-             "pct_fund_inc", "pct_sem_religiao", "pct_indigenas"]
+CONTINUAS = [
+    "lag",
+    "nota_dep",
+    "pct_dep_esq",
+    "comparecimento",
+    "delta_comp",
+    "log_pop",
+    "log_dens",
+    "pct_mulheres",
+    "pct_16_24",
+    "pct_60_mais",
+    "pct_superior",
+    "pct_analfabeto",
+    "cobertura_pbf",
+    "pib_pc",
+    "pct_vab_agro",
+    "pct_evangelicos",
+    "pct_pretos_pardos",
+    "pct_urbana",
+    "pct_fund_inc",
+    "pct_sem_religiao",
+    "pct_indigenas",
+]
 REGIOES = ["Centro-Oeste", "Nordeste", "Norte", "Sul"]
 REGIAO_REF = "Sudeste"
-UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT",
-       "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
+UFS = [
+    "AC",
+    "AL",
+    "AM",
+    "AP",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MG",
+    "MS",
+    "MT",
+    "PA",
+    "PB",
+    "PE",
+    "PI",
+    "PR",
+    "RJ",
+    "RN",
+    "RO",
+    "RR",
+    "RS",
+    "SC",
+    "SE",
+    "SP",
+    "TO",
+]
 UF_REF = "SP"
 # níveis brutos do bloco do prefeito fora da referência (referência: direita)
 BLOCOS = ["esquerda", "centro", "sem_prefeito"]
@@ -95,8 +151,8 @@ class Padronizador:
         ln = np.log(np.maximum(_coluna(df, self.mapa, "n"), 1.0))
         self.media_logn, self.desvio_logn = float(ln.mean()), float(ln.std(ddof=0)) or 1.0
         self._desenho_spline = dmatrix(
-            "bs(x, df=4, degree=3, include_intercept=False) - 1", {"x": lag},
-            return_type="dataframe").design_info
+            "bs(x, df=4, degree=3, include_intercept=False) - 1", {"x": lag}, return_type="dataframe"
+        ).design_info
         return self
 
     def z(self, df, chave):
@@ -105,8 +161,7 @@ class Padronizador:
     def spline_lag(self, df):
         """Base B-spline cúbica do lag; valores fora do suporte do treino são limitados."""
         x = np.clip(_coluna(df, self.mapa, "lag"), self.lag_min, self.lag_max)
-        b = build_design_matrices([self._desenho_spline], {"x": x},
-                                  return_type="dataframe")[0]
+        b = build_design_matrices([self._desenho_spline], {"x": x}, return_type="dataframe")[0]
         b.columns = [f"lag_bs{i + 1}" for i in range(b.shape[1])]
         return b
 
@@ -117,15 +172,16 @@ DISPERSOES = ("const", "regiao", "regiao_logn")
 @dataclass(frozen=True)
 class Termos:
     """Preditor linear. `lag`: 'livre' | 'offset' (coef. fixo 1) | 'spline'."""
+
     vars: tuple = tuple(CONTINUAS)
     lag: str = "livre"
     usa_bloco: bool = True
     regiao_x_lag: bool = False
-    usa_uf: bool = False          # UF no lugar da região
-    uf_aleatoria: bool = False    # UF com todos os níveis (para o GLMM)
+    usa_uf: bool = False  # UF no lugar da região
+    uf_aleatoria: bool = False  # UF com todos os níveis (para o GLMM)
     # dispersão do beta-binomial: 'const' (theta único) | 'regiao' | 'regiao_logn'
     disp: str = "const"
-    esf: int = 0                  # nº de autovetores espaciais (ev_001..) em X
+    esf: int = 0  # nº de autovetores espaciais (ev_001..) em X
     # SLX: chaves base cuja defasagem espacial W·x entra em X como `w_<chave>`
     slx: tuple = ()
     # níveis de região fundidos numa só dummy (ex.: (("Nordeste", "Norte"),)); um grupo com a
@@ -151,8 +207,7 @@ class Termos:
             if self.usa_uf or self.regiao_x_lag:
                 raise ValueError("regiao_fundir não combina com usa_uf nem regiao_x_lag")
         usados_b = [b for g in self.bloco_grupos for b in g]
-        if (any(b not in BLOCOS + ["direita"] for b in usados_b)
-                or len(set(usados_b)) != len(usados_b)):
+        if any(b not in BLOCOS + ["direita"] for b in usados_b) or len(set(usados_b)) != len(usados_b):
             raise ValueError(f"bloco_grupos só aceita níveis de {BLOCOS} sem repetição")
         # `vars` carrega também os w_<chave>; sem duplicar quando `replace` reaproveita
         extras = tuple(f"w_{k}" for k in self.slx if f"w_{k}" not in self.vars)
@@ -188,8 +243,7 @@ def montar_X(df, mapa, padronizador, termos=Termos()) -> pd.DataFrame:
                 pertence = pertence | ~b.isin(["esquerda", "centro", "sem_prefeito", "direita"])
             nome = "+".join(grupo)
             if "centro" in grupo and "sem_prefeito" in grupo:
-                nome = "+".join("outro" if g == "centro" else g for g in grupo
-                                if g != "sem_prefeito")
+                nome = "+".join("outro" if g == "centro" else g for g in grupo if g != "sem_prefeito")
             X["bloco_" + nome] = pertence.astype(float).to_numpy()
     if termos.usa_suplementar:
         X["prefeito_suplementar"] = (df[mapa["suplementar"]] == True).astype(float).to_numpy()
@@ -198,8 +252,7 @@ def montar_X(df, mapa, padronizador, termos=Termos()) -> pd.DataFrame:
         g, pref = df[mapa["uf"]].astype(str), "uf_"
     else:
         niveis, g, pref = REGIOES, df[mapa["regiao"]].astype(str), "reg_"
-    dummies = pd.DataFrame({pref + n: (g == n).astype(float).to_numpy() for n in niveis},
-                           index=idx)
+    dummies = pd.DataFrame({pref + n: (g == n).astype(float).to_numpy() for n in niveis}, index=idx)
     X = pd.concat([X, dummies], axis=1)
     for grupo in termos.regiao_fundir:
         cols_g = [f"reg_{r}" for r in grupo if r != REGIAO_REF]
@@ -256,8 +309,9 @@ class BetaBinomialOffset(M.BetaBinomial):
 
     def _start(self):
         y, n, E = self.endog, self.n, self.exog
-        g = sm.GLM(np.column_stack([y, n - y]), E[:, :-1], offset=E[:, -1],
-                   family=sm.families.Binomial(link=self.link)).fit()
+        g = sm.GLM(
+            np.column_stack([y, n - y]), E[:, :-1], offset=E[:, -1], family=sm.families.Binomial(link=self.link)
+        ).fit()
         pi = np.clip(g.fittedvalues, 1e-12, 1 - 1e-12)
         rho = np.sum((y - n * pi) ** 2 / (n * pi * (1 - pi)) - 1) / np.sum(n - 1)
         return np.append(np.asarray(g.params), np.log(1 / float(np.clip(rho, 1e-8, 0.5)) - 1))
@@ -293,6 +347,7 @@ class ModeloGLMM:
 
 def _ajustar_l1(X, y, n, graus=None):
     from sklearn.linear_model import LogisticRegression
+
     cols = [c for c in X.columns if c != "const"]
     A, p = X[cols].to_numpy(float), y / n
     A2 = np.vstack([A, A])
@@ -301,8 +356,9 @@ def _ajustar_l1(X, y, n, graus=None):
     def ajusta(idx, C):
         i2 = np.r_[idx, idx + len(A)]
         w = np.r_[p[idx], 1 - p[idx]]
-        return LogisticRegression(l1_ratio=1, solver="liblinear", C=C, tol=1e-6,
-                                  max_iter=500, random_state=0).fit(A2[i2], alvo[i2], sample_weight=w)
+        return LogisticRegression(l1_ratio=1, solver="liblinear", C=C, tol=1e-6, max_iter=500, random_state=0).fit(
+            A2[i2], alvo[i2], sample_weight=w
+        )
 
     grade, folds = np.logspace(-3, 2, 11), M.folds_kfold(len(A), 5, seed=0)
     perda = np.zeros((len(grade), len(folds)))
@@ -316,8 +372,9 @@ def _ajustar_l1(X, y, n, graus=None):
     i_1se = int(np.flatnonzero(media <= media[i_min] + ep)[0])  # menor C (mais penalização) dentro de 1 EP
     C = float(grade[i_1se])
     m = ajusta(np.arange(len(A)), C)
-    return ModeloL1(cols, m.coef_.ravel().copy(), float(m.intercept_[0]), C, float(grade[i_min])), \
-        pd.DataFrame({"C": grade, "perda_media": media})
+    return ModeloL1(cols, m.coef_.ravel().copy(), float(m.intercept_[0]), C, float(grade[i_min])), pd.DataFrame(
+        {"C": grade, "perda_media": media}
+    )
 
 
 def _ajustar_glmm(X, y, n, nomes_uf, iter_ext=25):
@@ -348,7 +405,7 @@ def _ajustar_glmm(X, y, n, nomes_uf, iter_ext=25):
         phi = float(np.sum((y - n * pi) ** 2 / (n * pi * (1 - pi))) / (len(y) - (A.shape[1] - ju.sum())))
         cov = np.linalg.inv(H)
         u, vu = beta[ju], np.diag(cov)[ju]
-        sigma2 = float(np.mean(u ** 2 + vu))
+        sigma2 = float(np.mean(u**2 + vu))
     return ModeloGLMM(list(X.columns), beta, sigma2, phi, cov)
 
 
@@ -358,18 +415,19 @@ def _ajustar_glmm(X, y, n, nomes_uf, iter_ext=25):
 @dataclass
 class Ajuste:
     """Modelo ajustado + padronizador + metadados para tabela e coeficientes."""
-    modelo: Any           # resultado do statsmodels ou ModeloL1/ModeloGLMM
+
+    modelo: Any  # resultado do statsmodels ou ModeloL1/ModeloGLMM
     pad: Padronizador
-    nomes: list           # nomes dos parâmetros de `modelo.params` (quando houver)
-    k: int                # parâmetros livres (para AIC/BIC)
-    loglik: float         # NaN se a resposta/verossimilhança não é binomial
+    nomes: list  # nomes dos parâmetros de `modelo.params` (quando houver)
+    k: int  # parâmetros livres (para AIC/BIC)
+    loglik: float  # NaN se a resposta/verossimilhança não é binomial
     extra: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class Candidato:
     nome: str
-    familia: str   # binomial|quasi|betabin|betareg|ols|wls|l1|glmm
+    familia: str  # binomial|quasi|betabin|betareg|ols|wls|l1|glmm
     ligacao: str
     termos: Termos = Termos()
 
@@ -388,8 +446,12 @@ class Candidato:
             if link is None:
                 raise ValueError(f"ligação desconhecida: {self.ligacao}")
             Xd = X.drop(columns=_COL_OFFSET) if off else X
-            mod = sm.GLM(np.column_stack([y, n - y]), Xd, family=sm.families.Binomial(link=link()),
-                         offset=X[_COL_OFFSET].to_numpy() if off else None)
+            mod = sm.GLM(
+                np.column_stack([y, n - y]),
+                Xd,
+                family=sm.families.Binomial(link=link()),
+                offset=X[_COL_OFFSET].to_numpy() if off else None,
+            )
             res = mod.fit()
             pi = np.asarray(res.fittedvalues)
             phi = 1.0
@@ -397,8 +459,7 @@ class Candidato:
                 phi = float(np.sum((y - n * pi) ** 2 / (n * pi * (1 - pi))) / (len(y) - Xd.shape[1]))
                 res = mod.fit(scale=phi)
             ll = float(stats.binom.logpmf(y, n, pi).sum())
-            return Ajuste(res, pad, list(Xd.columns), Xd.shape[1] + (f == "quasi"), ll,
-                          {"phi": phi})
+            return Ajuste(res, pad, list(Xd.columns), Xd.shape[1] + (f == "quasi"), ll, {"phi": phi})
         if f == "betabin" and self.termos.usa_dispersao:
             return self._ajustar_betabin_disp(df, mapa, pad, X, y, n, link, off)
         if f == "betabin":
@@ -409,8 +470,7 @@ class Candidato:
             pol = mod.fit(start_params=res.params, method="lbfgs", maxiter=3000)
             res = pol if pol.llf >= res.llf else res
             nomes = [c for c in X.columns if c != _COL_OFFSET] + ["log_theta"]
-            return Ajuste(res, pad, nomes, len(nomes), float(res.llf),
-                          {"theta": M.theta_de(res), "rho": M.icc(res)})
+            return Ajuste(res, pad, nomes, len(nomes), float(res.llf), {"theta": M.theta_de(res), "rho": M.icc(res)})
         if f == "betareg":
             if link is None:
                 raise ValueError(f"ligação desconhecida: {self.ligacao}")
@@ -424,13 +484,24 @@ class Candidato:
             return Ajuste(res, pad, list(X.columns), X.shape[1] + 1, np.nan)
         if f == "l1":
             m, perda = _ajustar_l1(X, y, n)
-            return Ajuste(m, pad, m.colunas, len(m.mantidas) + 1,
-                          float(stats.binom.logpmf(y, n, np.clip(m.predict(X), 1e-9, 1 - 1e-9)).sum()),
-                          {"C": m.C, "C_min": m.C_min, "mantidas": m.mantidas, "perda_cv": perda})
+            return Ajuste(
+                m,
+                pad,
+                m.colunas,
+                len(m.mantidas) + 1,
+                float(stats.binom.logpmf(y, n, np.clip(m.predict(X), 1e-9, 1 - 1e-9)).sum()),
+                {"C": m.C, "C_min": m.C_min, "mantidas": m.mantidas, "perda_cv": perda},
+            )
         if f == "glmm":
             m = _ajustar_glmm(X, y, n, {c for c in X.columns if c.startswith("uf_")})
-            return Ajuste(m, pad, m.colunas, X.shape[1] - len(UFS) + 1, np.nan,
-                          {"sigma_uf": float(np.sqrt(m.sigma2)), "phi": m.phi})
+            return Ajuste(
+                m,
+                pad,
+                m.colunas,
+                X.shape[1] - len(UFS) + 1,
+                np.nan,
+                {"sigma_uf": float(np.sqrt(m.sigma2)), "phi": m.phi},
+            )
         raise ValueError(f)
 
     def _ajustar_betabin_disp(self, df, mapa, pad, X, y, n, link, off):
@@ -446,9 +517,13 @@ class Candidato:
         nomes = list(X.columns) + nz
         th = M.theta_de(res)
         reg = df[mapa["regiao"]].astype(str).to_numpy()
-        extra = {"theta": float(np.median(th)), "rho": float(np.median(M.icc(res))),
-                 "theta_regiao": {r: float(np.median(th[reg == r])) for r in np.unique(reg)},
-                 "termos": self.termos, "n_beta": X.shape[1]}
+        extra = {
+            "theta": float(np.median(th)),
+            "rho": float(np.median(M.icc(res))),
+            "theta_regiao": {r: float(np.median(th[reg == r])) for r in np.unique(reg)},
+            "termos": self.termos,
+            "n_beta": X.shape[1],
+        }
         return Ajuste(res, pad, nomes, len(nomes), float(res.llf), extra)
 
     def prever(self, ajuste: Ajuste, df, mapa=MAPA_2026):
@@ -458,8 +533,7 @@ class Candidato:
             return np.asarray(m.predict(X))
         if self.termos.lag == "offset":
             if f in ("binomial", "quasi"):
-                return np.asarray(m.predict(X.drop(columns=_COL_OFFSET),
-                                            offset=X[_COL_OFFSET].to_numpy()))
+                return np.asarray(m.predict(X.drop(columns=_COL_OFFSET), offset=X[_COL_OFFSET].to_numpy()))
             return np.asarray(m.model.predict(m.params, X.to_numpy(float)))
         if f == "betabin":
             return np.asarray(m.model.predict(m.params, X.to_numpy(float)))
@@ -473,7 +547,7 @@ def prever_theta(ajuste: Ajuste, df, mapa=MAPA_2026) -> np.ndarray:
     ex = ajuste.extra
     if "termos" in ex:
         Z = montar_Z(df, mapa, ajuste.pad, ex["termos"]).to_numpy(float)
-        return np.exp(Z @ np.asarray(ajuste.modelo.params)[ex["n_beta"]:])
+        return np.exp(Z @ np.asarray(ajuste.modelo.params)[ex["n_beta"] :])
     if "theta" not in ex:
         raise ValueError("ajuste sem theta (só o beta-binomial tem precisão)")
     return np.full(len(df), float(ex["theta"]))
@@ -493,8 +567,10 @@ def _montar_candidatos() -> dict:
     c["ols_elogit"] = Candidato("ols_elogit", "ols", "identidade")
     c["wls_elogit"] = Candidato("wls_elogit", "wls", "identidade")
     variantes = {
-        "offset": _t(lag="offset"), "spline": _t(lag="spline"),
-        "reglag": _t(regiao_x_lag=True), "uf": _t(usa_uf=True),
+        "offset": _t(lag="offset"),
+        "spline": _t(lag="spline"),
+        "reglag": _t(regiao_x_lag=True),
+        "uf": _t(usa_uf=True),
     }
     for sufixo, termos in variantes.items():
         c[f"bb_{sufixo}"] = Candidato(f"bb_{sufixo}", "betabin", "logit", termos)
@@ -507,9 +583,11 @@ def _montar_candidatos() -> dict:
 CANDIDATOS = _montar_candidatos()
 
 
-def registrar_selecao(variaveis: Iterable[str],
-                      regiao_fundir: tuple[tuple[str, ...], ...] = (),
-                      bloco_grupos: tuple[tuple[str, ...], ...] = BLOCOS_PADRAO) -> Candidato:
+def registrar_selecao(
+    variaveis: Iterable[str],
+    regiao_fundir: tuple[tuple[str, ...], ...] = (),
+    bloco_grupos: tuple[tuple[str, ...], ...] = BLOCOS_PADRAO,
+) -> Candidato:
     """Adiciona 'bb_selecao' (beta-binomial só com as contínuas selecionadas).
 
     `regiao_fundir` leva ao candidato os níveis de região que a Parte 8 do `02-MLG`
@@ -517,8 +595,9 @@ def registrar_selecao(variaveis: Iterable[str],
     prefeito que a mesma Parte decidiu manter separados (o resto vira a referência).
     """
     vs = tuple(v for v in CONTINUAS if v in set(variaveis) | {"lag"})
-    cand = Candidato("bb_selecao", "betabin", "logit",
-                     Termos(vars=vs, regiao_fundir=regiao_fundir, bloco_grupos=bloco_grupos))
+    cand = Candidato(
+        "bb_selecao", "betabin", "logit", Termos(vars=vs, regiao_fundir=regiao_fundir, bloco_grupos=bloco_grupos)
+    )
     CANDIDATOS["bb_selecao"] = cand
     return cand
 
@@ -542,12 +621,12 @@ def registrar_extensao(nome, **mudancas_em_termos) -> Candidato:
 def tabela_coeficientes(ajuste: Ajuste) -> pd.DataFrame:
     m = ajuste.modelo
     if not hasattr(m, "bse"):
-        return pd.DataFrame({"coef": m.coef if hasattr(m, "coef") else m.beta},
-                            index=ajuste.nomes)
+        return pd.DataFrame({"coef": m.coef if hasattr(m, "coef") else m.beta}, index=ajuste.nomes)
     est, ep = np.asarray(m.params, float), np.asarray(m.bse, float)
     z = est / ep
-    return pd.DataFrame({"coef": est, "ep": ep, "z": z, "p": 2 * stats.norm.sf(np.abs(z))},
-                        index=ajuste.nomes[: len(est)])
+    return pd.DataFrame(
+        {"coef": est, "ep": ep, "z": z, "p": 2 * stats.norm.sf(np.abs(z))}, index=ajuste.nomes[: len(est)]
+    )
 
 
 def resumo_ajuste(cand: Candidato, ajuste: Ajuste, df, mapa=MAPA_2026) -> dict:
@@ -562,13 +641,19 @@ def resumo_ajuste(cand: Candidato, ajuste: Ajuste, df, mapa=MAPA_2026) -> dict:
     ok = np.isfinite(ll) and not quasi
     ph = ajuste.extra.get("phi", np.nan)
     return {
-        "modelo": cand.nome, "familia": cand.familia, "ligacao": cand.ligacao, "k": k,
+        "modelo": cand.nome,
+        "familia": cand.familia,
+        "ligacao": cand.ligacao,
+        "k": k,
         "loglik": ll if ok else np.nan,
         "aic": -2 * ll + 2 * k if ok else np.nan,
         "bic": -2 * ll + k * np.log(N) if ok else np.nan,
         "qaic": -2 * ll / ph + 2 * k if (cand.familia == "quasi" and np.isfinite(ll)) else np.nan,
-        "deviance": met["deviance"], "deviance_gl": met["deviance"] / (N - k),
-        "phi_pearson": phi, "mae_pond_pp": met["mae_pond_pp"], "rmse_pond_pp": met["rmse_pond_pp"],
+        "deviance": met["deviance"],
+        "deviance_gl": met["deviance"] / (N - k),
+        "phi_pearson": phi,
+        "mae_pond_pp": met["mae_pond_pp"],
+        "rmse_pond_pp": met["rmse_pond_pp"],
     }
 
 
@@ -624,8 +709,9 @@ def parametros_ajuste(nome) -> int:
     return int({**CANDIDATOS, **EXTENSOES}[nome].ajustar(df, mapa).k)
 
 
-def ajustar_candidato(nome: str, df: pd.DataFrame, mapa: dict[str, str],
-                      pasta_tabelas: Path | None = None) -> tuple[Ajuste, dict]:
+def ajustar_candidato(
+    nome: str, df: pd.DataFrame, mapa: dict[str, str], pasta_tabelas: Path | None = None
+) -> tuple[Ajuste, dict]:
     """Ajusta `CANDIDATOS[nome]` em todos os dados e devolve (ajuste, linha-resumo).
 
     Com `pasta_tabelas`, grava `coef_<nome>.csv` (coeficientes do ajuste).
@@ -638,8 +724,9 @@ def ajustar_candidato(nome: str, df: pd.DataFrame, mapa: dict[str, str],
     return a, linha
 
 
-def montar_diagnostico(cand: Candidato, ajuste: Ajuste | None, df: pd.DataFrame,
-                       mapa: dict[str, str], seg_ajuste: float | None = None) -> dict:
+def montar_diagnostico(
+    cand: Candidato, ajuste: Ajuste | None, df: pd.DataFrame, mapa: dict[str, str], seg_ajuste: float | None = None
+) -> dict:
     """Tudo que os testes de pressupostos pedem de um modelo ajustado em todos os dados.
 
     Com `ajuste` dado, o modelo não é reajustado (o chamador já o tem) e `seg_ajuste`
@@ -648,14 +735,23 @@ def montar_diagnostico(cand: Candidato, ajuste: Ajuste | None, df: pd.DataFrame,
     t0 = time.time()
     a = ajuste if ajuste is not None else cand.ajustar(df, mapa)
     seg = seg_ajuste if seg_ajuste is not None else time.time() - t0
-    return {"cand": cand, "aj": a, "res": a.modelo, "df": df, "mapa": mapa,
-            "pi": np.asarray(cand.prever(a, df, mapa), float), "theta": prever_theta(a, df, mapa),
-            "seg_ajuste": seg}
+    return {
+        "cand": cand,
+        "aj": a,
+        "res": a.modelo,
+        "df": df,
+        "mapa": mapa,
+        "pi": np.asarray(cand.prever(a, df, mapa), float),
+        "theta": prever_theta(a, df, mapa),
+        "seg_ajuste": seg,
+    }
 
 
 def descrever_diagnostico(nome: str, m: dict, y: np.ndarray, n: np.ndarray) -> str:
     """Uma linha: nº de parâmetros, tempo do ajuste, phi de Pearson e theta mediano."""
     pi, k = m["pi"], len(m["res"].params)
     phi = np.sum((y - n * pi) ** 2 / (n * pi * (1 - pi))) / (len(y) - k)
-    return (f"{nome}: {k} parâmetros | {m['seg_ajuste']:.1f} s por ajuste | phi de Pearson = "
-            f"{phi:.1f} | theta mediano = {np.median(m['theta']):.0f}")
+    return (
+        f"{nome}: {k} parâmetros | {m['seg_ajuste']:.1f} s por ajuste | phi de Pearson = "
+        f"{phi:.1f} | theta mediano = {np.median(m['theta']):.0f}"
+    )

@@ -1,4 +1,5 @@
 """Testes da seleção aninhada no LOSO e dos testes de fusão de níveis (dados sintéticos)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -22,8 +23,16 @@ from src.selecao import (
 CAND = ("nota_dep", "pct_dep_esq", "log_pop")
 TERMOS = Termos(vars=("lag", *CAND))
 UFS_TESTE = ["AC", "AM", "BA", "CE", "SP", "PR", "GO", "MT"]
-REGIAO_UF = {"AC": "Norte", "AM": "Norte", "BA": "Nordeste", "CE": "Nordeste",
-             "SP": "Sudeste", "PR": "Sul", "GO": "Centro-Oeste", "MT": "Centro-Oeste"}
+REGIAO_UF = {
+    "AC": "Norte",
+    "AM": "Norte",
+    "BA": "Nordeste",
+    "CE": "Nordeste",
+    "SP": "Sudeste",
+    "PR": "Sul",
+    "GO": "Centro-Oeste",
+    "MT": "Centro-Oeste",
+}
 
 
 def _dados(n_mun: int = 700, seed: int = 11, efeito_co: float = 0.5) -> pd.DataFrame:
@@ -35,8 +44,11 @@ def _dados(n_mun: int = 700, seed: int = 11, efeito_co: float = 0.5) -> pd.DataF
     df[MAPA_2026["pib_pc"]] = np.exp(df[MAPA_2026["pib_pc"]])
     uf = rng.choice(UFS_TESTE, n_mun)
     reg = np.array([REGIAO_UF[u] for u in uf])
-    efeito = np.where(reg == "Sul", -0.5, np.where(reg == "Centro-Oeste", efeito_co,
-                      np.where(np.isin(reg, ["Norte", "Nordeste"]), 0.3, 0.0)))
+    efeito = np.where(
+        reg == "Sul",
+        -0.5,
+        np.where(reg == "Centro-Oeste", efeito_co, np.where(np.isin(reg, ["Norte", "Nordeste"]), 0.3, 0.0)),
+    )
     z = {k: df[MAPA_2026[k]].to_numpy() for k in CONTINUAS}
     p = expit(0.2 + 0.5 * z["lag"] + 0.6 * z["nota_dep"] - 0.6 * z["pct_dep_esq"] + efeito)
     n = rng.integers(300, 3000, n_mun).astype(float)
@@ -84,8 +96,7 @@ def test_analisar_fator_p_alto_nao_funde_se_limite_exige(df: pd.DataFrame) -> No
 
 
 def test_fold_aninhado_usa_so_treino_e_replica_convencao_do_loso(df: pd.DataFrame) -> None:
-    r = selecao_aninhada_loso(df, MAPA_2026, "BA", candidatas=CAND, n_jobs=2, termos=TERMOS,
-                              log=lambda _: None)
+    r = selecao_aninhada_loso(df, MAPA_2026, "BA", candidatas=CAND, n_jobs=2, termos=TERMOS, log=lambda _: None)
     assert r["uf"] == "BA"
     assert {"nota_dep", "pct_dep_esq"} <= set(r["variaveis"].split(","))
     assert r["fusao_regiao"] == "Nordeste+Norte"
@@ -94,9 +105,9 @@ def test_fold_aninhado_usa_so_treino_e_replica_convencao_do_loso(df: pd.DataFram
     # previsão idêntica à de prever_fold com a mesma especificação
     vs = ("lag", *r["variaveis"].split(","))
     E.definir_dados_cv(df, MAPA_2026)
-    E.EXTENSOES["_t"] = E.Candidato("_t", "betabin", "logit",
-                                    Termos(vars=vs, regiao_fundir=(("Nordeste", "Norte"),),
-                                           bloco_grupos=()))
+    E.EXTENSOES["_t"] = E.Candidato(
+        "_t", "betabin", "logit", Termos(vars=vs, regiao_fundir=(("Nordeste", "Norte"),), bloco_grupos=())
+    )
     try:
         uf = df[MAPA_2026["uf"]].to_numpy()
         pi = E.prever_fold("_t", np.flatnonzero(uf != "BA"), np.flatnonzero(uf == "BA"))
@@ -107,9 +118,9 @@ def test_fold_aninhado_usa_so_treino_e_replica_convencao_do_loso(df: pd.DataFram
     assert r["erro_abs_pp"] == pytest.approx(abs(r["prev_pct"] - r["obs_pct"]))
 
 
-def test_driver_grava_status_e_e_retomavel(df: pd.DataFrame, tmp_path: Path,
-                                           monkeypatch: pytest.MonkeyPatch) -> None:
+def test_driver_grava_status_e_e_retomavel(df: pd.DataFrame, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import src.selecao as S
+
     monkeypatch.setattr(S, "CANDIDATAS_PADRAO", CAND)
     orig = S.selecao_aninhada_loso
 
@@ -151,8 +162,9 @@ def test_analisar_fator_nivel_sem_efeito_funde_na_referencia() -> None:
 
 def test_analisar_fator_sem_fundir_na_referencia_mantem_nivel() -> None:
     X, y, n = _fator()
-    _, _, cols = analisar_fator(X, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05,
-                                 verbose=False, fundir_na_referencia=False)
+    _, _, cols = analisar_fator(
+        X, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05, verbose=False, fundir_na_referencia=False
+    )
     assert "f_D" in cols and "f_B+C" in cols
 
 
@@ -171,6 +183,7 @@ def test_analisar_fator_imprime_candidatos_na_referencia(capsys: pytest.CaptureF
 
 def test_fusoes_bloco_parte_dos_niveis_brutos(df: pd.DataFrame) -> None:
     from src.selecao import _fusoes
+
     grupos_reg, grupos_blo = _fusoes(df, MAPA_2026, TERMOS, 0.05)
     assert grupos_reg == (("Nordeste", "Norte"),)
     assert grupos_blo == ()  # bloco sem efeito: tudo vai à referência
@@ -179,6 +192,7 @@ def test_fusoes_bloco_parte_dos_niveis_brutos(df: pd.DataFrame) -> None:
 def test_fusoes_regiao_sem_efeito_vai_para_a_referencia() -> None:
     """Centro-Oeste sem efeito (igual a Sudeste): o grupo de fusão inclui a referência."""
     from src.selecao import _fusoes
+
     grupos_reg, _ = _fusoes(_dados(efeito_co=0.0), MAPA_2026, TERMOS, 0.05)
     assert ("Nordeste", "Norte") in grupos_reg
     assert ("Centro-Oeste", "Sudeste") in grupos_reg
@@ -186,6 +200,7 @@ def test_fusoes_regiao_sem_efeito_vai_para_a_referencia() -> None:
 
 def test_analisar_fator_passos_p_igual_ao_lrt_feito_a_mao() -> None:
     from scipy import stats
+
     x, y, n = _fator()
     x = x.drop(columns="f_D")
     passos: list[pd.DataFrame] = []
@@ -208,8 +223,7 @@ def test_analisar_fator_passos_p_igual_ao_lrt_feito_a_mao() -> None:
 def test_analisar_fator_rotulo_da_referencia_acumula_niveis_fundidos() -> None:
     x, y, n = _fator()
     passos: list[pd.DataFrame] = []
-    analisar_fator(x, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05, verbose=False,
-                   ref="A", passos=passos)
+    analisar_fator(x, y, n, ["f_B", "f_C", "f_D"], "F", "f_", 0.05, verbose=False, ref="A", passos=passos)
     fundidos_na_ref = [p[p.fundido & p.nivel_b.str.startswith("A")] for p in passos]
     primeiro = next(i for i, f in enumerate(fundidos_na_ref) if not f.empty)
     nivel = fundidos_na_ref[primeiro].nivel_a.iloc[0]

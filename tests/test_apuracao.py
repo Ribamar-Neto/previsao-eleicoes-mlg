@@ -12,8 +12,11 @@ T = pd.Timestamp("2022-10-30 17:00:00", tz="America/Sao_Paulo")
 def _secoes() -> pd.DataFrame:
     # válidos 10, 10, 20, 20, 40 (total 100); as duas últimas seções chegam no mesmo instante
     linhas = [
-        (1, "AA", 0, 10, 6, 12), (1, "AA", 1, 10, 5, 12), (2, "AA", 2, 20, 8, 25),
-        (3, "BB", 3, 20, 4, 30), (3, "BB", 3, 40, 10, 50),
+        (1, "AA", 0, 10, 6, 12),
+        (1, "AA", 1, 10, 5, 12),
+        (2, "AA", 2, 20, 8, 25),
+        (3, "BB", 3, 20, 4, 30),
+        (3, "BB", 3, 40, 10, 50),
     ]
     df = pd.DataFrame(linhas, columns=["cd_municipio_tse", "uf", "min", "validos", "votos_lula", "aptos"])
     df["dt_bu_recebido"] = [T + pd.Timedelta(minutes=int(m)) for m in df["min"]]
@@ -23,11 +26,16 @@ def _secoes() -> pd.DataFrame:
 
 
 def _dfm() -> pd.DataFrame:
-    return pd.DataFrame({
-        "id_municipio_tse": [1, 2], "sigla_uf": ["AA", "AA"], "regiao": ["Norte", "Norte"],
-        "validos_1t_2022": [80.0, 160.0], "aptos_1t_2022": [100.0, 200.0],
-        "prop_pt_2t_2018": [0.5, 0.4],
-    })
+    return pd.DataFrame(
+        {
+            "id_municipio_tse": [1, 2],
+            "sigla_uf": ["AA", "AA"],
+            "regiao": ["Norte", "Norte"],
+            "validos_1t_2022": [80.0, 160.0],
+            "aptos_1t_2022": [100.0, 200.0],
+            "prop_pt_2t_2018": [0.5, 0.4],
+        }
+    )
 
 
 @pytest.mark.parametrize("pct,minuto", [(5, 0), (10, 0), (11, 1), (20, 1), (21, 2), (40, 2), (41, 3), (100, 3)])
@@ -70,10 +78,16 @@ def test_swing_uniforme() -> None:
 
 
 def test_estimativa_swing_aplica_ao_nao_apurado() -> None:
-    base = pd.DataFrame({
-        "uf": ["AA", "AA"], "regiao": ["Norte", "Norte"], "y_c": [60.0, 0.0], "n_c": [100.0, 0.0],
-        "n_u": [0.0, 100.0], "prev": [0.5, 0.4],
-    })
+    base = pd.DataFrame(
+        {
+            "uf": ["AA", "AA"],
+            "regiao": ["Norte", "Norte"],
+            "y_c": [60.0, 0.0],
+            "n_c": [100.0, 0.0],
+            "n_u": [0.0, 100.0],
+            "prev": [0.5, 0.4],
+        }
+    )
     est = A.estimativa_swing(base)
     # swing = +0,10; município 2 vira 0,50 -> (60 + 50) / 200
     assert est["Brasil"] == pytest.approx(0.55)
@@ -102,8 +116,9 @@ def test_erros_e_regra() -> None:
 
 
 def test_representatividade_separa_maiores() -> None:
-    base = pd.DataFrame({"y_c": [60.0, 10.0], "n_c": [100.0, 20.0], "y_final": [300.0, 40.0],
-                         "n_final": [1000.0, 100.0]})
+    base = pd.DataFrame(
+        {"y_c": [60.0, 10.0], "n_c": [100.0, 20.0], "y_final": [300.0, 40.0], "n_final": [1000.0, 100.0]}
+    )
     r = A.representatividade(base, None, n_maiores=1).set_index("grupo")
     # maior: apurado 0,60; restante 240/900 = 0,2667
     assert r.loc["maiores", "lacuna_apurado_pp"] == pytest.approx((0.6 - 240 / 900) * 100)
@@ -124,9 +139,9 @@ def test_montar_base_taxa_literal_reduz_n_u() -> None:
     rec = A.recebidas_ate(s, 10)
     b_val = A.montar_base(s, dfm, 2022, rec)
     b_lit = A.montar_base(s, dfm, 2022, rec, "dois_candidatos")
-    assert b_val.loc[2, "n_u"] == 20.0   # 25 aptos x 0,8
-    assert b_lit.loc[2, "n_u"] == 12.0   # 25 x 0,5 = 12,5 arredondado
-    s.loc[3:4, "uf"] = "AA"   # município fora do parquet usa a taxa da UF na mesma definição
+    assert b_val.loc[2, "n_u"] == 20.0  # 25 aptos x 0,8
+    assert b_lit.loc[2, "n_u"] == 12.0  # 25 x 0,5 = 12,5 arredondado
+    s.loc[3:4, "uf"] = "AA"  # município fora do parquet usa a taxa da UF na mesma definição
     assert A.montar_base(s, dfm, 2022, rec, "dois_candidatos").loc[3, "taxa"] == pytest.approx(150 / 300)
 
 
@@ -135,8 +150,16 @@ def _base_nu() -> pd.DataFrame:
     linhas = []
     for j, (uf, f) in enumerate([("AA", 1.0), ("BB", 1.2), ("CC", 0.8)]):
         for i in range(6):
-            linhas.append({"cd": 10 * j + i, "uf": uf, "n_c": 100.0 * f * (1 + 0.1 * i), "aptos_rec": 200.0,
-                           "taxa": 0.5, "n_u": 50.0})
+            linhas.append(
+                {
+                    "cd": 10 * j + i,
+                    "uf": uf,
+                    "n_c": 100.0 * f * (1 + 0.1 * i),
+                    "aptos_rec": 200.0,
+                    "taxa": 0.5,
+                    "n_u": 50.0,
+                }
+            )
     return pd.DataFrame(linhas).set_index("cd")
 
 
@@ -156,7 +179,7 @@ def test_fatores_nu_sem_dispersao_vira_um() -> None:
 
 def test_fatores_nu_uf_pequena_usa_pool_nacional_e_invalidos_recebem_fator() -> None:
     base = _base_nu()
-    base.loc[[0, 1, 2, 3], "n_c"] = 0.0   # AA fica com 2 válidos (< 5) e 4 inválidos
+    base.loc[[0, 1, 2, 3], "n_c"] = 0.0  # AA fica com 2 válidos (< 5) e 4 inválidos
     k = A.fatores_nu(base, 100, 2)
     assert np.isfinite(k).all() and (k > 0).all()
 

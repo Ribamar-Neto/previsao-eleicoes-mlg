@@ -62,8 +62,15 @@ def test_template_usa_virgula_decimal() -> None:
 def test_painel_diagnostico_quatro_paineis_e_rotulos_cook() -> None:
     rng = np.random.default_rng(0)
     n = 60
-    fig = G.painel_diagnostico(rng.uniform(0, .1, n), rng.uniform(0, 1, n), rng.normal(size=n), rng.uniform(size=n),
-                               p=3, rotulos=[f"m{i}" for i in range(n)], titulo="Diagnóstico")
+    fig = G.painel_diagnostico(
+        rng.uniform(0, 0.1, n),
+        rng.uniform(0, 1, n),
+        rng.normal(size=n),
+        rng.uniform(size=n),
+        p=3,
+        rotulos=[f"m{i}" for i in range(n)],
+        titulo="Diagnóstico",
+    )
     assert fig.layout.title.text == "Diagnóstico"
     assert len(fig.data) == 6  # 4 painéis + rótulos Cook + LOWESS
     assert len([t for t in fig.data if t.mode == "markers+text"][0].text) == 5
@@ -71,8 +78,9 @@ def test_painel_diagnostico_quatro_paineis_e_rotulos_cook() -> None:
 
 
 def test_forest_or_eixo_log_ordenado() -> None:
-    tab = pd.DataFrame({"termo": ["a", "b", "c"], "or": [2.0, 0.5, 1.1], "ic_inf": [1.5, 0.4, 0.9],
-                        "ic_sup": [2.6, 0.6, 1.3]})
+    tab = pd.DataFrame(
+        {"termo": ["a", "b", "c"], "or": [2.0, 0.5, 1.1], "ic_inf": [1.5, 0.4, 0.9], "ic_sup": [2.6, 0.6, 1.3]}
+    )
     fig = G.forest_or(tab, "OR")
     assert fig.layout.xaxis.type == "log" and fig.layout.title.text == "OR"
     assert list(fig.data[0].y) == ["b", "c", "a"]
@@ -89,7 +97,7 @@ def test_moran_dispersao_reta_com_inclinacao_i() -> None:
 
 
 def test_mae_por_modelo_destaca_escolhido_e_limite() -> None:
-    tab = pd.DataFrame({"modelo": ["a", "b", "c"], "mae": [1.0, 1.1, 1.5], "se": [.1, .1, .2]})
+    tab = pd.DataFrame({"modelo": ["a", "b", "c"], "mae": [1.0, 1.1, 1.5], "se": [0.1, 0.1, 0.2]})
     fig = G.mae_por_modelo(tab, limite=1.1, escolhido="b", titulo="MAE")
     assert fig.layout.title.text == "MAE" and len(fig.data) == 1
     assert fig.data[0].marker.color[1] == G.COR_CURVA  # "b" é o segundo da ordem decrescente (c, b, a)
@@ -97,9 +105,20 @@ def test_mae_por_modelo_destaca_escolhido_e_limite() -> None:
 
 
 def _ic_sintetico() -> pd.DataFrame:
-    linhas = [{"ano": 2026, "corte": c, "pct_efetivo": c, "regiao": r, "estimativa_pct": 50 + c / 50,
-               "q025_pct": 48, "q975_pct": 52, "real_pct": 51.0}
-              for r in G.UNIDADES_APURACAO for c in (5, 25, 50)]
+    linhas = [
+        {
+            "ano": 2026,
+            "corte": c,
+            "pct_efetivo": c,
+            "regiao": r,
+            "estimativa_pct": 50 + c / 50,
+            "q025_pct": 48,
+            "q975_pct": 52,
+            "real_pct": 51.0,
+        }
+        for r in G.UNIDADES_APURACAO
+        for c in (5, 25, 50)
+    ]
     return pd.DataFrame(linhas)
 
 

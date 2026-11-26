@@ -5,6 +5,7 @@ Uma só cópia para as Partes 11 e 13 a 17 do `02-MLG`. Regras de negócio:
 - o "real" de cada UF e região é o total recalculado sobre as linhas modeladas;
 - as previsões em `results/cv/<esquema>_<modelo>.parquet` são o cache da validação.
 """
+
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
@@ -57,8 +58,17 @@ def _do_cache(nome: str, esquema: str, pasta: Path, recalcular: bool) -> np.ndar
     return None
 
 
-def rodar(nomes: Sequence[str], esquema: str, folds: Folds, *, n_linhas: int, pasta: Path,
-          recalcular: bool, prever: Prever, max_workers: int) -> Previsoes:
+def rodar(
+    nomes: Sequence[str],
+    esquema: str,
+    folds: Folds,
+    *,
+    n_linhas: int,
+    pasta: Path,
+    recalcular: bool,
+    prever: Prever,
+    max_workers: int,
+) -> Previsoes:
     """Previsão fora da amostra de cada modelo; o que falta no cache vai para um pool de forks.
 
     Os workers herdam o estado de `E.definir_dados_cv` e `E.registrar_extensao`: chame-os antes.
@@ -86,16 +96,24 @@ def erros(pi: np.ndarray, d: Dados, folds: Folds) -> dict[str, float]:
     a_rg = BT.erros_grupo(pi, d.nh, d.y, d.n, d.reg).drop("Brasil")["erro_pp"].abs()
     m = M.metricas(d.y, d.n, pi)
     por = [M.metricas(d.y[te], d.n[te], pi[te])["mae_pond_pp"] for _, te in folds]
-    m.update(mae_uf_pp=a_uf.mean(), se_uf_pp=a_uf.std(ddof=1) / np.sqrt(len(a_uf)),
-             mae_reg_pp=a_rg.mean(), max_reg_pp=a_rg.max(),
-             se_mae_pond_pp=np.std(por, ddof=1) / np.sqrt(len(por)))
+    m.update(
+        mae_uf_pp=a_uf.mean(),
+        se_uf_pp=a_uf.std(ddof=1) / np.sqrt(len(a_uf)),
+        mae_reg_pp=a_rg.mean(),
+        max_reg_pp=a_rg.max(),
+        se_mae_pond_pp=np.std(por, ddof=1) / np.sqrt(len(por)),
+    )
     return m
 
 
 def tabela(PI: Previsoes, d: Dados, folds: Folds, k: Mapping[str, int]) -> pd.DataFrame:
     """Uma linha por modelo; `k` (nº de parâmetros) vem de `comparacao_modelos.csv` do `02-MLG`."""
-    return pd.DataFrame([{"modelo": nome, "familia": E.CANDIDATOS[nome].familia, "k": k[nome], **erros(pi, d, folds)}
-                         for nome, pi in PI.items()])
+    return pd.DataFrame(
+        [
+            {"modelo": nome, "familia": E.CANDIDATOS[nome].familia, "k": k[nome], **erros(pi, d, folds)}
+            for nome, pi in PI.items()
+        ]
+    )
 
 
 def tabela_uf(PI: Previsoes, d: Dados) -> pd.DataFrame:
@@ -105,10 +123,18 @@ def tabela_uf(PI: Previsoes, d: Dados) -> pd.DataFrame:
     for nome, pi in PI.items():
         pu = M.agregar(pi, d.nh, d.uf).drop("Brasil")
         mu = pd.Series({u: M.metricas(d.y[d.uf == u], d.n[d.uf == u], pi[d.uf == u])["mae_pond_pp"] for u in ufs})
-        partes.append(pd.DataFrame({"modelo": nome, "uf": ufs, "obs_pct": d.obs_uf[ufs].values * 100,
-                                    "prev_pct": pu[ufs].values * 100,
-                                    "erro_uf_pp": (pu[ufs] - d.obs_uf[ufs]).values * 100,
-                                    "mae_pond_municipal_pp": mu[ufs].values}))
+        partes.append(
+            pd.DataFrame(
+                {
+                    "modelo": nome,
+                    "uf": ufs,
+                    "obs_pct": d.obs_uf[ufs].values * 100,
+                    "prev_pct": pu[ufs].values * 100,
+                    "erro_uf_pp": (pu[ufs] - d.obs_uf[ufs]).values * 100,
+                    "mae_pond_municipal_pp": mu[ufs].values,
+                }
+            )
+        )
     return pd.concat(partes)
 
 

@@ -20,6 +20,7 @@ Regras:
   (entrada para quem está fora, saída para quem está dentro), como nas Tabelas 4.8 e 4.9
   do livro; `escolhida` marca o termo que se moveu.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -71,8 +72,7 @@ def _mapear(func: Callable[[Any], Any], itens: Sequence[Any], n_jobs: int) -> li
     itens = list(itens)
     if n_jobs <= 1 or len(itens) <= 1:
         return [func(i) for i in itens]
-    with ProcessPoolExecutor(max_workers=min(n_jobs, len(itens)),
-                             mp_context=get_context("fork")) as ex:
+    with ProcessPoolExecutor(max_workers=min(n_jobs, len(itens)), mp_context=get_context("fork")) as ex:
         return list(ex.map(func, itens))
 
 
@@ -94,11 +94,16 @@ def _valor(ll: float, k: int, n: int, criterio: Criterio) -> float:
     return -2.0 * ll + (k * np.log(n) if criterio == "bic" else 2.0 * k)
 
 
-def _preparar(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-              candidatas: Sequence[str], fixas: Sequence[str], familia: str) -> None:
+def _preparar(
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    termos: Termos,
+    candidatas: Sequence[str],
+    fixas: Sequence[str],
+    familia: str,
+) -> None:
     _CTX.clear()
-    _CTX.update(df=df, mapa=mapa, termos=termos, familia=familia,
-                base=_base(termos, candidatas, fixas))
+    _CTX.update(df=df, mapa=mapa, termos=termos, familia=familia, base=_base(termos, candidatas, fixas))
 
 
 def _ordenar(vs: Sequence[str], candidatas: Sequence[str]) -> tuple[str, ...]:
@@ -109,11 +114,17 @@ def _ordenar(vs: Sequence[str], candidatas: Sequence[str]) -> tuple[str, ...]:
 # --------------------------------------------------------------------------
 # 1. Passo a passo por AIC/BIC
 # --------------------------------------------------------------------------
-def passo_a_passo(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-                  metodo: Metodo, criterio: Criterio = "bic",
-                  candidatas: Sequence[str] = CANDIDATAS_PADRAO,
-                  fixas: Sequence[str] = ("lag",), familia: str = "betabin",
-                  n_jobs: int = 14) -> tuple[tuple[str, ...], pd.DataFrame]:
+def passo_a_passo(
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    termos: Termos,
+    metodo: Metodo,
+    criterio: Criterio = "bic",
+    candidatas: Sequence[str] = CANDIDATAS_PADRAO,
+    fixas: Sequence[str] = ("lag",),
+    familia: str = "betabin",
+    n_jobs: int = 14,
+) -> tuple[tuple[str, ...], pd.DataFrame]:
     """Busca gulosa completa: aceita o melhor movimento só se reduz o critério.
 
     backward parte de todas as candidatas e avalia cada remoção; forward parte só das
@@ -126,14 +137,12 @@ def passo_a_passo(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
     atual = candidatas if metodo == "backward" else ()
     ll, k = _ajustar_vars(atual)
     val = _valor(ll, k, n, criterio)
-    linhas = [{"passo": 0, "acao": "inicio", "variavel": "", "valor_criterio": val,
-               "n_vars": len(atual)}]
+    linhas = [{"passo": 0, "acao": "inicio", "variavel": "", "valor_criterio": val, "n_vars": len(atual)}]
     passo = 0
     while True:
         movimentos: list[tuple[str, str, tuple[str, ...]]] = []
         if metodo in ("forward", "both"):
-            movimentos += [("entra", v, _ordenar(atual + (v,), candidatas))
-                           for v in candidatas if v not in atual]
+            movimentos += [("entra", v, _ordenar(atual + (v,), candidatas)) for v in candidatas if v not in atual]
         if metodo in ("backward", "both"):
             movimentos += [("sai", v, tuple(x for x in atual if x != v)) for v in atual]
         if not movimentos:
@@ -146,16 +155,16 @@ def passo_a_passo(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
         passo += 1
         acao, var, atual = movimentos[i]
         val = vals[i]
-        linhas.append({"passo": passo, "acao": acao, "variavel": var,
-                       "valor_criterio": val, "n_vars": len(atual)})
+        linhas.append({"passo": passo, "acao": acao, "variavel": var, "valor_criterio": val, "n_vars": len(atual)})
     return atual, pd.DataFrame(linhas)
 
 
 # --------------------------------------------------------------------------
 # 2. Stepwise de Hosmer-Lemeshow (Paula, sec. 4.6.9)
 # --------------------------------------------------------------------------
-def _interacoes(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-                principais: Sequence[str]) -> tuple[pd.DataFrame, dict[str, str], dict[str, str]]:
+def _interacoes(
+    df: pd.DataFrame, mapa: dict[str, str], termos: Termos, principais: Sequence[str]
+) -> tuple[pd.DataFrame, dict[str, str], dict[str, str]]:
     """Copia de df com colunas-produto z_a*z_b e novos papéis w_<a>__x__<b> no mapa."""
     pad = Padronizador(mapa).fit(df)
     novo = df.copy()
@@ -170,10 +179,19 @@ def _interacoes(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
     return novo, mapa2, nomes
 
 
-def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: float,
-               k_atual: int, n_jobs: int, p_entrada: float, p_saida: float, n: int, etapa: int,
-               linhas: list[dict[str, Any]],
-               niveis: list[dict[str, Any]]) -> tuple[str, ...]:
+def _lrt_etapa(
+    candidatas: tuple[str, ...],
+    dentro: tuple[str, ...],
+    ll_atual: float,
+    k_atual: int,
+    n_jobs: int,
+    p_entrada: float,
+    p_saida: float,
+    n: int,
+    etapa: int,
+    linhas: list[dict[str, Any]],
+    niveis: list[dict[str, Any]],
+) -> tuple[str, ...]:
     """Itera entrada/saída de HL sobre `candidatas`; devolve o conjunto final."""
     it = 0
     while it < 4 * max(len(candidatas), 1) + 4:
@@ -187,15 +205,33 @@ def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: f
             pis = [float(stats.chi2.sf(d, g)) for d, g in zip(delt, gl, strict=True)]
             i = int(np.argmin(pis))
             ok = pis[i] < p_entrada
-            niveis += [{"etapa": etapa, "iteracao": it, "fase": "entrada", "variavel": v,
-                        "delta_deviance": d, "gl": g, "pi": p, "escolhida": ok and j == i}
-                       for j, (v, d, g, p) in enumerate(zip(fora, delt, gl, pis, strict=True))]
+            niveis += [
+                {
+                    "etapa": etapa,
+                    "iteracao": it,
+                    "fase": "entrada",
+                    "variavel": v,
+                    "delta_deviance": d,
+                    "gl": g,
+                    "pi": p,
+                    "escolhida": ok and j == i,
+                }
+                for j, (v, d, g, p) in enumerate(zip(fora, delt, gl, pis, strict=True))
+            ]
             if ok:
                 dentro = _ordenar(dentro + (fora[i],), candidatas)
                 ll_atual, k_atual = res[i]
-                linhas.append({"etapa": etapa, "iteracao": it, "acao": "entra",
-                               "variavel": fora[i], "delta_deviance": delt[i],
-                               "gl": gl[i], "pi": pis[i]})
+                linhas.append(
+                    {
+                        "etapa": etapa,
+                        "iteracao": it,
+                        "acao": "entra",
+                        "variavel": fora[i],
+                        "delta_deviance": delt[i],
+                        "gl": gl[i],
+                        "pi": pis[i],
+                    }
+                )
                 mudou = True
         if dentro:
             res = _mapear(_ajustar_vars, [tuple(x for x in dentro if x != v) for v in dentro], n_jobs)
@@ -204,32 +240,49 @@ def _lrt_etapa(candidatas: tuple[str, ...], dentro: tuple[str, ...], ll_atual: f
             pis = [float(stats.chi2.sf(d, g)) for d, g in zip(delt, gl, strict=True)]
             i = int(np.argmax(pis))
             ok = pis[i] > p_saida
-            niveis += [{"etapa": etapa, "iteracao": it, "fase": "saida", "variavel": v,
-                        "delta_deviance": d, "gl": g, "pi": p, "escolhida": ok and j == i}
-                       for j, (v, d, g, p) in enumerate(zip(dentro, delt, gl, pis, strict=True))]
+            niveis += [
+                {
+                    "etapa": etapa,
+                    "iteracao": it,
+                    "fase": "saida",
+                    "variavel": v,
+                    "delta_deviance": d,
+                    "gl": g,
+                    "pi": p,
+                    "escolhida": ok and j == i,
+                }
+                for j, (v, d, g, p) in enumerate(zip(dentro, delt, gl, pis, strict=True))
+            ]
             if ok:
                 saiu = dentro[i]
                 dentro = tuple(x for x in dentro if x != saiu)
                 ll_atual, k_atual = res[i]
-                linhas.append({"etapa": etapa, "iteracao": it, "acao": "sai",
-                               "variavel": saiu, "delta_deviance": delt[i],
-                               "gl": gl[i], "pi": pis[i]})
+                linhas.append(
+                    {
+                        "etapa": etapa,
+                        "iteracao": it,
+                        "acao": "sai",
+                        "variavel": saiu,
+                        "delta_deviance": delt[i],
+                        "gl": gl[i],
+                        "pi": pis[i],
+                    }
+                )
                 mudou = True
         if not mudou:
             break
     return dentro
 
 
-_COLS_NIVEIS = ["etapa", "iteracao", "fase", "variavel", "delta_deviance", "gl", "pi",
-                "escolhida"]
+_COLS_NIVEIS = ["etapa", "iteracao", "fase", "variavel", "delta_deviance", "gl", "pi", "escolhida"]
 
 
 @dataclass(frozen=True)
 class ResultadoHL:
     variaveis: tuple[str, ...]
-    passos: pd.DataFrame   # trilha dos movimentos (entra/sai), com `rotulo`
-    niveis: pd.DataFrame   # pi de toda candidata em cada iteração (Paula, Tabelas 4.8/4.9)
-    wald: pd.DataFrame     # passo 4: rodada, variavel, coef, ep, z, p, acao
+    passos: pd.DataFrame  # trilha dos movimentos (entra/sai), com `rotulo`
+    niveis: pd.DataFrame  # pi de toda candidata em cada iteração (Paula, Tabelas 4.8/4.9)
+    wald: pd.DataFrame  # passo 4: rodada, variavel, coef, ep, z, p, acao
 
 
 class WaldSemErroPadrao(ValueError):
@@ -258,9 +311,18 @@ def _passo_wald(dentro: tuple[str, ...], alfa: float) -> tuple[tuple[str, ...], 
             raise WaldSemErroPadrao(sem_p)
         pior = max(dentro, key=lambda v: p[v])
         sai = p[pior] > alfa
-        linhas += [{"rodada": rodada, "variavel": v, "coef": float(params[v]),
-                    "ep": float(ep[v]), "z": float(z[v]), "p": float(p[v]),
-                    "acao": "removida" if sai and v == pior else "mantida"} for v in dentro]
+        linhas += [
+            {
+                "rodada": rodada,
+                "variavel": v,
+                "coef": float(params[v]),
+                "ep": float(ep[v]),
+                "z": float(z[v]),
+                "p": float(p[v]),
+                "acao": "removida" if sai and v == pior else "mantida",
+            }
+            for v in dentro
+        ]
         if not sai:
             break
         dentro = tuple(v for v in dentro if v != pior)
@@ -276,20 +338,28 @@ def niveis_largos(niveis: pd.DataFrame, etapa: int) -> pd.DataFrame:
     """
     nv = niveis[niveis["etapa"] == etapa]
     col = "rotulo" if "rotulo" in nv.columns else "variavel"
-    larga = nv.pivot_table(index=["iteracao", "fase"], columns=col, values="pi",
-                           aggfunc="first")
+    larga = nv.pivot_table(index=["iteracao", "fase"], columns=col, values="pi", aggfunc="first")
     larga = larga[list(dict.fromkeys(nv[col]))]
-    larga = larga.sort_index(level=["iteracao", "fase"], key=lambda ix: ix.map(
-        lambda x: {"entrada": 0, "saida": 1}.get(x, x)))
+    larga = larga.sort_index(
+        level=["iteracao", "fase"], key=lambda ix: ix.map(lambda x: {"entrada": 0, "saida": 1}.get(x, x))
+    )
     return larga.reset_index(level="fase").rename_axis("iteracao")
 
 
 def stepwise_hosmer_lemeshow(
-        df: pd.DataFrame, mapa: dict[str, str], termos: Termos, *,
-        candidatas: Sequence[str] = CANDIDATAS_PADRAO, fixas: Sequence[str] = ("lag",),
-        p_entrada: float = 0.20, p_saida: float = 0.25, familia: str = "betabin",
-        interacoes: bool = False, n_jobs: int = 14,
-        alfa_wald: float | None = 0.05) -> ResultadoHL:
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    termos: Termos,
+    *,
+    candidatas: Sequence[str] = CANDIDATAS_PADRAO,
+    fixas: Sequence[str] = ("lag",),
+    p_entrada: float = 0.20,
+    p_saida: float = 0.25,
+    familia: str = "betabin",
+    interacoes: bool = False,
+    n_jobs: int = 14,
+    alfa_wald: float | None = 0.05,
+) -> ResultadoHL:
     """Stepwise de Hosmer-Lemeshow com teste da razão de verossimilhanças.
 
     Delta = 2(l_com - l_sem), gl = parâmetros extras, pi = P(chi2_gl > Delta). Entra
@@ -320,8 +390,7 @@ def stepwise_hosmer_lemeshow(
         ll1, k1 = _ajustar_vars(())
         dentro2 = _lrt_etapa(cand2, (), ll1, k1, n_jobs, p_entrada, p_saida, n, 2, linhas, niveis)
         dentro = dentro + dentro2
-    tabela = pd.DataFrame(linhas, columns=["etapa", "iteracao", "acao", "variavel",
-                                           "delta_deviance", "gl", "pi"])
+    tabela = pd.DataFrame(linhas, columns=["etapa", "iteracao", "acao", "variavel", "delta_deviance", "gl", "pi"])
     tabela["rotulo"] = tabela["variavel"].map(lambda v: rotulos.get(v, v))
     tab_niveis = pd.DataFrame(niveis, columns=_COLS_NIVEIS)
     tab_niveis["rotulo"] = tab_niveis["variavel"].map(lambda v: rotulos.get(v, v))
@@ -331,8 +400,9 @@ def stepwise_hosmer_lemeshow(
 # --------------------------------------------------------------------------
 # 3. Todos os subconjuntos (triagem quase-binomial + refit beta-binomial)
 # --------------------------------------------------------------------------
-def _irls_logit(X: np.ndarray, y: np.ndarray, n: np.ndarray, off: np.ndarray,
-                b0: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+def _irls_logit(
+    X: np.ndarray, y: np.ndarray, n: np.ndarray, off: np.ndarray, b0: np.ndarray | None = None
+) -> tuple[np.ndarray, np.ndarray]:
     """IRLS binomial logit; devolve (beta, pi). Sem offset: off = 0."""
     b = np.zeros(X.shape[1]) if b0 is None else b0.copy()
     if b0 is None:
@@ -375,10 +445,15 @@ def _triar_faixa_1t(faixa: tuple[int, int]) -> np.ndarray:
     return out
 
 
-def todos_os_subconjuntos(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-                          candidatas: Sequence[str] = CANDIDATAS_PADRAO,
-                          fixas: Sequence[str] = ("lag",), top: int = 200,
-                          n_jobs: int = 14) -> pd.DataFrame:
+def todos_os_subconjuntos(
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    termos: Termos,
+    candidatas: Sequence[str] = CANDIDATAS_PADRAO,
+    fixas: Sequence[str] = ("lag",),
+    top: int = 200,
+    n_jobs: int = 14,
+) -> pd.DataFrame:
     """Triagem de 2^m subconjuntos por QBIC e refit beta-binomial dos `top` melhores.
 
     QBIC = -2 l_binomial / phi_cheio + k ln N, com phi_cheio o phi de Pearson do modelo
@@ -400,8 +475,9 @@ def todos_os_subconjuntos(df: pd.DataFrame, mapa: dict[str, str], termos: Termos
     phi = float(np.sum((y - n * pi) ** 2 / (n * pi * (1 - pi))) / (len(y) - X.shape[1]))
     const = gammaln(n + 1) - gammaln(y + 1) - gammaln(n - y + 1)
     _CTX.clear()
-    _CTX.update(X=X, y=y, n=n, off=off, base_idx=base_idx, cand_idx=cand_idx,
-                const=const, phi=phi, ln_n=float(np.log(len(df))))
+    _CTX.update(
+        X=X, y=y, n=n, off=off, base_idx=base_idx, cand_idx=cand_idx, const=const, phi=phi, ln_n=float(np.log(len(df)))
+    )
     total = 1 << m
     passo = max(1, total // (max(n_jobs, 1) * 16))
     faixas = [(a, min(a + passo, total)) for a in range(0, total, passo)]
@@ -414,11 +490,15 @@ def todos_os_subconjuntos(df: pd.DataFrame, mapa: dict[str, str], termos: Termos
     _preparar(df, mapa, termos, candidatas, fixas, "betabin")
     res = _mapear(_ajustar_vars, subs, n_jobs)
     ln_n = np.log(len(df))
-    out = pd.DataFrame({
-        "variaveis": subs, "n_vars": [len(s) for s in subs], "qbic": qbic[melhores],
-        "bic_bb": [-2 * ll + k * ln_n for ll, k in res],
-        "aic_bb": [-2 * ll + 2 * k for ll, k in res],
-    })
+    out = pd.DataFrame(
+        {
+            "variaveis": subs,
+            "n_vars": [len(s) for s in subs],
+            "qbic": qbic[melhores],
+            "bic_bb": [-2 * ll + k * ln_n for ll, k in res],
+            "aic_bb": [-2 * ll + 2 * k for ll, k in res],
+        }
+    )
     out["rank_qbic"] = out["qbic"].rank(method="min").astype(int)
     out["rank_bic_bb"] = out["bic_bb"].rank(method="min").astype(int)
     out.attrs["tempo_triagem_s"] = tempo
@@ -429,10 +509,16 @@ def todos_os_subconjuntos(df: pd.DataFrame, mapa: dict[str, str], termos: Termos
 # --------------------------------------------------------------------------
 # 4. Comparação de métodos
 # --------------------------------------------------------------------------
-def comparar_metodos(resultados: dict[str, tuple[Any, ...]], df: pd.DataFrame,
-                     mapa: dict[str, str], termos: Termos, referencia: str = "todos",
-                     fixas: Sequence[str] = ("lag",), familia: str = "betabin",
-                     n_jobs: int = 14) -> pd.DataFrame:
+def comparar_metodos(
+    resultados: dict[str, tuple[Any, ...]],
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    termos: Termos,
+    referencia: str = "todos",
+    fixas: Sequence[str] = ("lag",),
+    familia: str = "betabin",
+    n_jobs: int = 14,
+) -> pd.DataFrame:
     """Tabela método x variáveis com BIC/AIC beta-binomial e diferenças vs `referencia`.
 
     `resultados[nome][0]` é a tupla de variáveis escolhidas (como devolvem as funções
@@ -448,11 +534,17 @@ def comparar_metodos(resultados: dict[str, tuple[Any, ...]], df: pd.DataFrame,
     linhas = []
     for nome, conj, (ll, k) in zip(nomes, conjuntos, res, strict=True):
         s = set(conj)
-        linhas.append({
-            "metodo": nome, "n_vars": len(conj), "variaveis": conj,
-            "BIC_bb": -2 * ll + k * ln_n, "AIC_bb": -2 * ll + 2 * k,
-            "a_mais_vs_ref": tuple(sorted(s - ref)), "a_menos_vs_ref": tuple(sorted(ref - s)),
-        })
+        linhas.append(
+            {
+                "metodo": nome,
+                "n_vars": len(conj),
+                "variaveis": conj,
+                "BIC_bb": -2 * ll + k * ln_n,
+                "AIC_bb": -2 * ll + 2 * k,
+                "a_mais_vs_ref": tuple(sorted(s - ref)),
+                "a_menos_vs_ref": tuple(sorted(ref - s)),
+            }
+        )
     return pd.DataFrame(linhas)
 
 
@@ -472,13 +564,22 @@ def tabela_niveis(res: Any, X: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     b = pd.Series(np.asarray(res.params)[:-1], index=X.columns)[cols]
     ep = pd.Series(np.asarray(res.bse)[:-1], index=X.columns)[cols]
     z = b / ep
-    return pd.DataFrame({"beta": b, "EP": ep, "z": z, "p": 2 * stats.norm.sf(z.abs()),
-                         "OR": np.exp(b), "OR_inf95": np.exp(b - 1.96 * ep),
-                         "OR_sup95": np.exp(b + 1.96 * ep)})
+    return pd.DataFrame(
+        {
+            "beta": b,
+            "EP": ep,
+            "z": z,
+            "p": 2 * stats.norm.sf(z.abs()),
+            "OR": np.exp(b),
+            "OR_inf95": np.exp(b - 1.96 * ep),
+            "OR_sup95": np.exp(b + 1.96 * ep),
+        }
+    )
 
 
-def lrt(res_ref: Any, X_ref: pd.DataFrame, X_red: pd.DataFrame, y: np.ndarray,
-        n: np.ndarray) -> tuple[float, int, float]:
+def lrt(
+    res_ref: Any, X_ref: pd.DataFrame, X_red: pd.DataFrame, y: np.ndarray, n: np.ndarray
+) -> tuple[float, int, float]:
     """(Delta, gl, p) do LRT do modelo de referência contra o reduzido `X_red`."""
     d = max(2 * (res_ref.llf - ajuste_bb(X_red, y, n).llf), 0.0)
     gl = X_ref.shape[1] - X_red.shape[1]
@@ -487,7 +588,7 @@ def lrt(res_ref: Any, X_ref: pd.DataFrame, X_red: pd.DataFrame, y: np.ndarray,
 
 def fundir(X: pd.DataFrame, cols: list[str], prefixo: str) -> pd.DataFrame:
     """Troca as colunas `cols` por uma só (a soma), nomeada `prefixo` + níveis unidos por '+'."""
-    novo = prefixo + "+".join(c[len(prefixo):] for c in cols)
+    novo = prefixo + "+".join(c[len(prefixo) :] for c in cols)
     Xn = X.drop(columns=cols)
     Xn[novo] = X[cols].sum(axis=1)
     return Xn
@@ -497,12 +598,12 @@ def _niveis_do_fator(df: pd.DataFrame, coluna: str) -> pd.Series:
     """Níveis como texto; ausente vira "NA" (ou "False", se a coluna só tem booleanos)."""
     v = df[coluna]
     so_bool = v.dropna().map(lambda x: isinstance(x, (bool, np.bool_))).all()
-    return v.map(lambda x: str(bool(x)) if so_bool and pd.notna(x) else x).fillna(
-        "False" if so_bool else "NA").astype(str)
+    return (
+        v.map(lambda x: str(bool(x)) if so_bool and pd.notna(x) else x).fillna("False" if so_bool else "NA").astype(str)
+    )
 
 
-def tabela_descritiva(df: pd.DataFrame, coluna: str, ref: str, y_col: str,
-                      n_col: str) -> pd.DataFrame:
+def tabela_descritiva(df: pd.DataFrame, coluna: str, ref: str, y_col: str, n_col: str) -> pd.DataFrame:
     """Uma linha por nível: totais, % de votos, logit empírico, mediana/IQR municipal e psi.
 
     psi = razão de chances do nível contra `ref` sobre os totais de votos, com IC95% de
@@ -520,8 +621,7 @@ def tabela_descritiva(df: pd.DataFrame, coluna: str, ref: str, y_col: str,
     t["mediana_pct"] = por["pct"].median()
     t["iqr_pct"] = por["pct"].quantile(0.75) - por["pct"].quantile(0.25)
     ln_psi = t["logit_emp"] - t.loc[ref, "logit_emp"]
-    ep = np.sqrt(1 / soma_y + 1 / (soma_n - soma_y)
-                 + 1 / soma_y[ref] + 1 / (soma_n[ref] - soma_y[ref]))
+    ep = np.sqrt(1 / soma_y + 1 / (soma_n - soma_y) + 1 / soma_y[ref] + 1 / (soma_n[ref] - soma_y[ref]))
     t["psi"] = np.exp(ln_psi)
     t["psi_inf95"] = np.exp(ln_psi - 1.96 * ep)
     t["psi_sup95"] = np.exp(ln_psi + 1.96 * ep)
@@ -529,8 +629,7 @@ def tabela_descritiva(df: pd.DataFrame, coluna: str, ref: str, y_col: str,
     return t
 
 
-def teste_univariado(df: pd.DataFrame, mapa: dict[str, str], chave: str,
-                     ref: str) -> dict[str, float]:
+def teste_univariado(df: pd.DataFrame, mapa: dict[str, str], chave: str, ref: str) -> dict[str, float]:
     """LRT do fator sozinho (const + dummies dos níveis) contra só a constante (Paula 4.6.5, passo 1)."""
     g = _niveis_do_fator(df, mapa[chave])
     y, n = df[mapa["y"]].to_numpy(float), df[mapa["n"]].to_numpy(float)
@@ -543,8 +642,7 @@ def teste_univariado(df: pd.DataFrame, mapa: dict[str, str], chave: str,
     return {"delta": d, "gl": float(gl), "p": p, "loglik": float(res.llf)}
 
 
-def mantel_haenszel(df: pd.DataFrame, binaria: str, estrato: str, y_col: str,
-                    n_col: str) -> dict[str, float]:
+def mantel_haenszel(df: pd.DataFrame, binaria: str, estrato: str, y_col: str, n_col: str) -> dict[str, float]:
     """OR bruto (Woolf), OR de Mantel-Haenszel por `estrato` (IC de Robins-Breslow-Greenland)
     e teste de homogeneidade dos estratos (Breslow-Day), sobre totais de votos.
 
@@ -558,27 +656,40 @@ def mantel_haenszel(df: pd.DataFrame, binaria: str, estrato: str, y_col: str,
     tabelas = []
     for e in sorted(set(est)):
         m = est == e
-        tabelas.append(np.array([[y[m & flag].sum(), (n - y)[m & flag].sum()],
-                                 [y[m & ~flag].sum(), (n - y)[m & ~flag].sum()]]))
+        tabelas.append(
+            np.array([[y[m & flag].sum(), (n - y)[m & flag].sum()], [y[m & ~flag].sum(), (n - y)[m & ~flag].sum()]])
+        )
     bruta = np.sum(tabelas, axis=0)
     or_b = (bruta[0, 0] * bruta[1, 1]) / (bruta[0, 1] * bruta[1, 0])
     ep_b = np.sqrt((1 / bruta).sum())
     informativas = [t for t in tabelas if (t.sum(axis=0) > 0).all() and (t.sum(axis=1) > 0).all()]
     st = StratifiedTable(informativas)
     inf, sup = st.oddsratio_pooled_confint()
-    return {"or_bruto": float(or_b), "or_bruto_inf95": float(or_b * np.exp(-1.96 * ep_b)),
-            "or_bruto_sup95": float(or_b * np.exp(1.96 * ep_b)),
-            "or_mh": float(st.oddsratio_pooled), "or_mh_inf95": float(inf),
-            "or_mh_sup95": float(sup),
-            "p_homogeneidade": float(st.test_equal_odds().pvalue),
-            "estratos_usados": len(informativas)}
+    return {
+        "or_bruto": float(or_b),
+        "or_bruto_inf95": float(or_b * np.exp(-1.96 * ep_b)),
+        "or_bruto_sup95": float(or_b * np.exp(1.96 * ep_b)),
+        "or_mh": float(st.oddsratio_pooled),
+        "or_mh_inf95": float(inf),
+        "or_mh_sup95": float(sup),
+        "p_homogeneidade": float(st.test_equal_odds().pvalue),
+        "estratos_usados": len(informativas),
+    }
 
 
-def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str],
-                   rotulo: str, prefixo: str, p_fusao: float = 0.05,
-                   verbose: bool = True, fundir_na_referencia: bool = True,
-                   ref: str = "ref",
-                   passos: list[pd.DataFrame] | None = None) -> tuple[pd.DataFrame, Any, list[str]]:
+def analisar_fator(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    n: np.ndarray,
+    cols: list[str],
+    rotulo: str,
+    prefixo: str,
+    p_fusao: float = 0.05,
+    verbose: bool = True,
+    fundir_na_referencia: bool = True,
+    ref: str = "ref",
+    passos: list[pd.DataFrame] | None = None,
+) -> tuple[pd.DataFrame, Any, list[str]]:
     """Tabela por nível, LRT de retirar o fator e fusão sequencial (regra: p > p_fusao).
 
     Candidatos a cada passo: todo par de níveis e, com `fundir_na_referencia`, todo nível
@@ -598,7 +709,8 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
         if verbose:
             print(f"LRT (todos os níveis = 0, gl={gl}): Δ = {d:.1f}, p = {p:.2e}")
         candidatos: list[tuple[tuple[str, ...], pd.DataFrame]] = [
-            (par, fundir(X, list(par), prefixo)) for par in itertools.combinations(cols, 2)]
+            (par, fundir(X, list(par), prefixo)) for par in itertools.combinations(cols, 2)
+        ]
         if fundir_na_referencia:
             candidatos += [((c,), X.drop(columns=c)) for c in cols]
         if not candidatos:
@@ -606,9 +718,15 @@ def analisar_fator(X: pd.DataFrame, y: np.ndarray, n: np.ndarray, cols: list[str
         linhas = []
         for alvo, X_red in candidatos:
             d2, gl2, p2 = lrt(res, X, X_red, y, n)
-            linhas.append({"nivel_a": alvo[0][len(prefixo):],
-                           "nivel_b": alvo[1][len(prefixo):] if len(alvo) > 1 else ref_atual,
-                           "delta": d2, "gl": gl2, "p": p2})
+            linhas.append(
+                {
+                    "nivel_a": alvo[0][len(prefixo) :],
+                    "nivel_b": alvo[1][len(prefixo) :] if len(alvo) > 1 else ref_atual,
+                    "delta": d2,
+                    "gl": gl2,
+                    "p": p2,
+                }
+            )
         T = pd.DataFrame(linhas)
         if verbose:
             print("LRT de igualdade entre níveis (H0: β_a = β_b):")
@@ -645,16 +763,21 @@ def _agora() -> str:
     return time.strftime("%H:%M:%S")
 
 
-def _melhor_bic(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-                candidatas: Sequence[str], n_jobs: int, uf: str,
-                log: Callable[[str], None]) -> tuple[Metodo, tuple[str, ...], float]:
+def _melhor_bic(
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    termos: Termos,
+    candidatas: Sequence[str],
+    n_jobs: int,
+    uf: str,
+    log: Callable[[str], None],
+) -> tuple[Metodo, tuple[str, ...], float]:
     """Roda backward, forward e both por BIC; devolve (método, conjunto, BIC) de menor BIC."""
     achados: list[tuple[float, Metodo, tuple[str, ...]]] = []
     for metodo in METODOS_BIC:
         t0 = time.time()
         log(f"STEP {uf}:{metodo} [{_agora()}]")
-        vs, trilha = passo_a_passo(df, mapa, termos, metodo, "bic", candidatas=candidatas,
-                                   n_jobs=n_jobs)
+        vs, trilha = passo_a_passo(df, mapa, termos, metodo, "bic", candidatas=candidatas, n_jobs=n_jobs)
         bic = float(trilha["valor_criterio"].iloc[-1])
         achados.append((bic, metodo, vs))
         log(f"{uf} {metodo}: {len(vs)} contínuas, BIC={bic:.2f} ({time.time() - t0:.0f}s)")
@@ -662,8 +785,9 @@ def _melhor_bic(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
     return metodo, vs, bic
 
 
-def _fusoes(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
-            p_fusao: float) -> tuple[tuple[tuple[str, ...], ...], tuple[tuple[str, ...], ...]]:
+def _fusoes(
+    df: pd.DataFrame, mapa: dict[str, str], termos: Termos, p_fusao: float
+) -> tuple[tuple[tuple[str, ...], ...], tuple[tuple[str, ...], ...]]:
     """(grupos de regiões, grupos de níveis do bloco) pela regra de fusão por LRT.
 
     Região e bloco partem dos níveis brutos; níveis sem efeito vão para a referência (bloco
@@ -673,23 +797,27 @@ def _fusoes(df: pd.DataFrame, mapa: dict[str, str], termos: Termos,
     pad = Padronizador(mapa).fit(df)
     X = montar_X(df, mapa, pad, replace(termos, bloco_grupos=tuple((b,) for b in BLOCOS)))
     cols_reg = [c for c in X.columns if c.startswith("reg_")]
-    X_reg, _, cols_reg = analisar_fator(X, y, n, cols_reg, "Região", "reg_", p_fusao,
-                                        verbose=False, ref="Sudeste")
+    X_reg, _, cols_reg = analisar_fator(X, y, n, cols_reg, "Região", "reg_", p_fusao, verbose=False, ref="Sudeste")
     grupos = tuple(tuple(c[4:].split("+")) for c in cols_reg if "+" in c)
     presentes = {r for c in cols_reg for r in c[4:].split("+")}
     na_ref = tuple(r for r in REGIOES if r not in presentes)
     if na_ref:
         grupos += ((*na_ref, REGIAO_REF),)
     cols_b = [f"bloco_{b}" for b in BLOCOS]
-    _, _, cols_blo = analisar_fator(X_reg, y, n, cols_b, "Bloco", "bloco_", p_fusao,
-                                    verbose=False, ref="direita")
+    _, _, cols_blo = analisar_fator(X_reg, y, n, cols_b, "Bloco", "bloco_", p_fusao, verbose=False, ref="direita")
     return grupos, tuple(tuple(c[6:].split("+")) for c in cols_blo)
 
 
-def selecao_aninhada_loso(df: pd.DataFrame, mapa: dict[str, str], uf_retida: str,
-                          candidatas: Sequence[str] = CANDIDATAS_PADRAO, n_jobs: int = 14,
-                          p_fusao: float = 0.05, termos: Termos = TERMOS_PADRAO,
-                          log: Callable[[str], None] = print) -> dict[str, Any]:
+def selecao_aninhada_loso(
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    uf_retida: str,
+    candidatas: Sequence[str] = CANDIDATAS_PADRAO,
+    n_jobs: int = 14,
+    p_fusao: float = 0.05,
+    termos: Termos = TERMOS_PADRAO,
+    log: Callable[[str], None] = print,
+) -> dict[str, Any]:
     """Um fold do LOSO com fusões e seleção refeitas só nas UFs de treino (ordem do nb02).
 
     (1) LRT de fusão de regiões e de blocos (p > `p_fusao`) no beta-binomial cheio;
@@ -713,9 +841,7 @@ def selecao_aninhada_loso(df: pd.DataFrame, mapa: dict[str, str], uf_retida: str
     variaveis = ("lag", *vs)
     log(f"STEP {uf_retida}:previsao [{_agora()}]")
     E.definir_dados_cv(df, mapa)
-    E.EXTENSOES[_NOME_ANINHADO] = Candidato(
-        _NOME_ANINHADO, "betabin", "logit",
-        replace(termos_fus, vars=variaveis))
+    E.EXTENSOES[_NOME_ANINHADO] = Candidato(_NOME_ANINHADO, "betabin", "logit", replace(termos_fus, vars=variaveis))
     try:
         pi = E.prever_fold(_NOME_ANINHADO, treino, teste)
     finally:
@@ -723,11 +849,20 @@ def selecao_aninhada_loso(df: pd.DataFrame, mapa: dict[str, str], uf_retida: str
     nh = E._DADOS_CV["n_hat"][teste]
     prev = float(M.agregar(pi, nh, uf[teste]).drop("Brasil").iloc[0])
     obs = float(df[mapa["y"]].to_numpy(float)[teste].sum() / df[mapa["n"]].to_numpy(float)[teste].sum())
-    return {"uf": uf_retida, "metodo": metodo, "variaveis": ",".join(vs), "n_vars": len(vs),
-            "bic_treino": bic, "fusao_regiao": ";".join("+".join(g) for g in grupos),
-            "fusao_bloco": ";".join("+".join(g) for g in grupos_bloco), "prev_pct": prev * 100, "obs_pct": obs * 100,
-            "erro_pp": (prev - obs) * 100, "erro_abs_pp": abs(prev - obs) * 100,
-            "tempo_s": time.time() - t0}
+    return {
+        "uf": uf_retida,
+        "metodo": metodo,
+        "variaveis": ",".join(vs),
+        "n_vars": len(vs),
+        "bic_treino": bic,
+        "fusao_regiao": ";".join("+".join(g) for g in grupos),
+        "fusao_bloco": ";".join("+".join(g) for g in grupos_bloco),
+        "prev_pct": prev * 100,
+        "obs_pct": obs * 100,
+        "erro_pp": (prev - obs) * 100,
+        "erro_abs_pp": abs(prev - obs) * 100,
+        "tempo_s": time.time() - t0,
+    }
 
 
 def mae_uf_pp(tabela: pd.DataFrame) -> float:
@@ -747,10 +882,17 @@ def _fold_com_marcador(uf: str, n_jobs: int, df: pd.DataFrame, mapa: dict[str, s
     return selecao_aninhada_loso(df, mapa, uf, n_jobs=n_jobs, log=lambda m: print(m, flush=True))
 
 
-def rodar_folds(ufs: Sequence[str], lote: str, status: Path, arq: Path = ARQ_ANINHADA,
-                n_jobs: int = 14, folds_paralelos: int = 1, refazer: bool = False,
-                df: pd.DataFrame | None = None,
-                mapa: dict[str, str] = E.MAPA_2026) -> pd.DataFrame:
+def rodar_folds(
+    ufs: Sequence[str],
+    lote: str,
+    status: Path,
+    arq: Path = ARQ_ANINHADA,
+    n_jobs: int = 14,
+    folds_paralelos: int = 1,
+    refazer: bool = False,
+    df: pd.DataFrame | None = None,
+    mapa: dict[str, str] = E.MAPA_2026,
+) -> pd.DataFrame:
     """Roda os folds de `ufs` e grava cada resultado em `arq` (retomável: pula as UFs prontas).
 
     Escreve em `status` uma linha `<lote> <UF> OK|FAIL <detalhe> <HH:MM:SS>` por fold e
@@ -773,8 +915,7 @@ def rodar_folds(ufs: Sequence[str], lote: str, status: Path, arq: Path = ARQ_ANI
     if not feito.empty and refazer:
         feito = feito[~feito["uf"].isin(pend)]
     resultados = feito
-    with ProcessPoolExecutor(max_workers=max(folds_paralelos, 1),
-                             mp_context=get_context("fork")) as ex:
+    with ProcessPoolExecutor(max_workers=max(folds_paralelos, 1), mp_context=get_context("fork")) as ex:
         fut = {ex.submit(_fold_com_marcador, u, n_jobs, dados, mapa): u for u in pend}
         for f in as_completed(fut):
             u = fut[f]
@@ -802,8 +943,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     a = ap.parse_args(argv)
     dados = pd.read_parquet(ARQ_DADOS).reset_index(drop=True)
     ufs = a.ufs or sorted(dados[E.MAPA_2026["uf"]].astype(str).unique())
-    r = rodar_folds(ufs, a.lote, a.status, n_jobs=a.n_jobs, folds_paralelos=a.folds_paralelos,
-                    refazer=a.refazer, df=dados)
+    r = rodar_folds(
+        ufs, a.lote, a.status, n_jobs=a.n_jobs, folds_paralelos=a.folds_paralelos, refazer=a.refazer, df=dados
+    )
     print(f"MAE_UF aninhado ({len(r)} UFs): {mae_uf_pp(r):.4f} p.p.", flush=True)
 
 

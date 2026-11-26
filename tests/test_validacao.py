@@ -1,4 +1,5 @@
 """Caracterização: os helpers de src/validacao.py reproduzem o código que estava nos antigos notebooks 03 e 05 (hoje Partes 11 e 13 a 17 do `02-MLG`)."""
+
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_context
 from pathlib import Path
@@ -44,11 +45,17 @@ def referencia(y, n, nh, uf, reg, K):
         a_uf = (M.agregar(pi, nh, uf).drop("Brasil") - obs_uf).abs() * 100
         a_rg = (M.agregar(pi, nh, reg).drop("Brasil") - obs_reg).abs() * 100
         m = M.metricas(y, n, pi)
-        if esq == "5-fold": por = [M.metricas(y[te], n[te], pi[te])["mae_pond_pp"] for _, te in folds]
-        else: por = [M.metricas(y[te], n[te], pi[te])["mae_pond_pp"] for _, te in folds]
-        m.update(mae_uf_pp=a_uf.mean(), se_uf_pp=a_uf.std(ddof=1) / np.sqrt(len(a_uf)),
-                 mae_reg_pp=a_rg.mean(), max_reg_pp=a_rg.max(),
-                 se_mae_pond_pp=np.std(por, ddof=1) / np.sqrt(len(por)))
+        if esq == "5-fold":
+            por = [M.metricas(y[te], n[te], pi[te])["mae_pond_pp"] for _, te in folds]
+        else:
+            por = [M.metricas(y[te], n[te], pi[te])["mae_pond_pp"] for _, te in folds]
+        m.update(
+            mae_uf_pp=a_uf.mean(),
+            se_uf_pp=a_uf.std(ddof=1) / np.sqrt(len(a_uf)),
+            mae_reg_pp=a_rg.mean(),
+            max_reg_pp=a_rg.max(),
+            se_mae_pond_pp=np.std(por, ddof=1) / np.sqrt(len(por)),
+        )
         return m, a_uf, a_rg
 
     def tabela(PI, esq, folds):
@@ -59,13 +66,24 @@ def referencia(y, n, nh, uf, reg, K):
             if esq == "LOSO":
                 pu = M.agregar(pi, nh, uf).drop("Brasil")
                 mu = pd.Series({u: M.metricas(y[uf == u], n[uf == u], pi[uf == u])["mae_pond_pp"] for u in UFS_})
-                UFE.append(pd.DataFrame({"modelo": k, "uf": UFS_, "obs_pct": obs_uf[UFS_].values * 100, "prev_pct": pu[UFS_].values * 100,
-                                         "erro_uf_pp": (pu[UFS_] - obs_uf[UFS_]).values * 100, "mae_pond_municipal_pp": mu[UFS_].values}))
+                UFE.append(
+                    pd.DataFrame(
+                        {
+                            "modelo": k,
+                            "uf": UFS_,
+                            "obs_pct": obs_uf[UFS_].values * 100,
+                            "prev_pct": pu[UFS_].values * 100,
+                            "erro_uf_pp": (pu[UFS_] - obs_uf[UFS_]).values * 100,
+                            "mae_pond_municipal_pp": mu[UFS_].values,
+                        }
+                    )
+                )
         t = pd.DataFrame(L)
         return t, (pd.concat(UFE) if UFE else None)
 
     def calib(pi, q=20):
-        d = pd.DataFrame({"pi": pi, "y": y, "n": n}); d["b"] = pd.qcut(d.pi, q, duplicates="drop")
+        d = pd.DataFrame({"pi": pi, "y": y, "n": n})
+        d["b"] = pd.qcut(d.pi, q, duplicates="drop")
         g = d.assign(v=d.pi * d.n).groupby("b", observed=True)[["v", "y", "n"]].sum()
         return g.v / g.n, g.y / g.n
 
@@ -74,6 +92,7 @@ def referencia(y, n, nh, uf, reg, K):
 
 def referencia_rodar(tam: int, CV: Path, RECALCULAR: bool):
     """Cópia literal de `_cv` e `rodar` da Parte 11 do `02-MLG`, com o prever trocado pelo falso."""
+
     def _cv(nome, esquema, folds):
         arq = CV / f"{esquema}_{nome}.parquet"
         if arq.exists() and not RECALCULAR:
@@ -88,10 +107,13 @@ def referencia_rodar(tam: int, CV: Path, RECALCULAR: bool):
                 fut = {(k, i): ex.submit(prever_falso, k, tr, te) for k in pend for i, (tr, te) in enumerate(folds)}
                 for k in pend:
                     pi = np.full(tam, np.nan)
-                    for i, (tr, te) in enumerate(folds): pi[te] = fut[(k, i)].result()
-                    pd.DataFrame({"pi": pi}).to_parquet(CV / f"{esquema}_{k}.parquet"); saida[k] = pi
+                    for i, (tr, te) in enumerate(folds):
+                        pi[te] = fut[(k, i)].result()
+                    pd.DataFrame({"pi": pi}).to_parquet(CV / f"{esquema}_{k}.parquet")
+                    saida[k] = pi
         for k in nomes:
-            if k not in saida: saida[k] = _cv(k, esquema, folds)
+            if k not in saida:
+                saida[k] = _cv(k, esquema, folds)
         return saida
 
     return rodar
@@ -145,21 +167,36 @@ def test_obs_uf_e_obs_reg_uma_vez(d: V.Dados) -> None:
 @pytest.mark.parametrize("esq", ["kfold", "loso"])
 def test_rodar_igual_ao_notebook_recalculando(tmp_path: Path, d: V.Dados, esq: str) -> None:
     folds = M.folds_kfold(len(d.y), k=5, seed=0) if esq == "kfold" else M.folds_por_grupo(d.uf)
-    (tmp_path / "ref").mkdir(); (tmp_path / "novo").mkdir()
+    (tmp_path / "ref").mkdir()
+    (tmp_path / "novo").mkdir()
     esperado = referencia_rodar(len(d.y), tmp_path / "ref", True)(NOMES, esq, folds)
-    obtido = V.rodar(NOMES, esq, folds, n_linhas=len(d.y), pasta=tmp_path / "novo", recalcular=True,
-                     prever=prever_falso, max_workers=2)
+    obtido = V.rodar(
+        NOMES,
+        esq,
+        folds,
+        n_linhas=len(d.y),
+        pasta=tmp_path / "novo",
+        recalcular=True,
+        prever=prever_falso,
+        max_workers=2,
+    )
     assert list(obtido) == list(esperado)
     for k in NOMES:
         np.testing.assert_array_equal(obtido[k], esperado[k])
-        pd.testing.assert_frame_equal(pd.read_parquet(tmp_path / "novo" / f"{esq}_{k}.parquet"),
-                                      pd.read_parquet(tmp_path / "ref" / f"{esq}_{k}.parquet"))
+        pd.testing.assert_frame_equal(
+            pd.read_parquet(tmp_path / "novo" / f"{esq}_{k}.parquet"),
+            pd.read_parquet(tmp_path / "ref" / f"{esq}_{k}.parquet"),
+        )
 
 
 def test_rodar_sem_recalcular_usa_so_o_cache(tmp_path: Path, d: V.Dados) -> None:
     folds = M.folds_por_grupo(d.uf)
-    V.rodar(NOMES, "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=True, prever=prever_falso, max_workers=2)
-    lido = V.rodar(NOMES, "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=False, prever=prever_proibido, max_workers=2)
+    V.rodar(
+        NOMES, "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=True, prever=prever_falso, max_workers=2
+    )
+    lido = V.rodar(
+        NOMES, "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=False, prever=prever_proibido, max_workers=2
+    )
     ref = referencia_rodar(len(d.y), tmp_path, False)(NOMES, "loso", folds)
     for k in NOMES:
         np.testing.assert_array_equal(lido[k], ref[k])
@@ -167,9 +204,20 @@ def test_rodar_sem_recalcular_usa_so_o_cache(tmp_path: Path, d: V.Dados) -> None
 
 def test_rodar_sem_recalcular_calcula_so_o_que_falta(tmp_path: Path, d: V.Dados) -> None:
     folds = M.folds_por_grupo(d.uf)
-    V.rodar(["bin_logit"], "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=True, prever=prever_falso, max_workers=2)
+    V.rodar(
+        ["bin_logit"],
+        "loso",
+        folds,
+        n_linhas=len(d.y),
+        pasta=tmp_path,
+        recalcular=True,
+        prever=prever_falso,
+        max_workers=2,
+    )
     antes = (tmp_path / "loso_bin_logit.parquet").stat().st_mtime_ns
-    saida = V.rodar(NOMES, "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=False, prever=prever_falso, max_workers=2)
+    saida = V.rodar(
+        NOMES, "loso", folds, n_linhas=len(d.y), pasta=tmp_path, recalcular=False, prever=prever_falso, max_workers=2
+    )
     ref = referencia_rodar(len(d.y), tmp_path, False)(NOMES, "loso", folds)
     assert (tmp_path / "loso_bin_logit.parquet").stat().st_mtime_ns == antes
     assert (tmp_path / "loso_bin_probit.parquet").exists()
@@ -179,7 +227,9 @@ def test_rodar_sem_recalcular_calcula_so_o_que_falta(tmp_path: Path, d: V.Dados)
 
 def test_linha_de_csv_troca_so_o_esquema_e_tira_familia_e_k(tmp_path: Path) -> None:
     arq = tmp_path / "cv.csv"
-    pd.DataFrame({"modelo": ["a", "b"], "familia": ["f", "g"], "k": [1, 2], "mae_uf_pp": [0.1 + 0.2, 1 / 3]}).to_csv(arq, index=False)
+    pd.DataFrame({"modelo": ["a", "b"], "familia": ["f", "g"], "k": [1, 2], "mae_uf_pp": [0.1 + 0.2, 1 / 3]}).to_csv(
+        arq, index=False
+    )
     linha = V.linha_de_csv(arq, "LOSO", "b")
     assert linha == {"esquema": "LOSO", "modelo": "b", "mae_uf_pp": 1 / 3}
     assert list(linha) == ["esquema", "modelo", "mae_uf_pp"]

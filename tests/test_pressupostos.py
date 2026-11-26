@@ -1,4 +1,5 @@
 """Casos pequenos sintéticos para src/pressupostos.py."""
+
 from typing import Any
 
 import numpy as np
@@ -32,8 +33,15 @@ def test_vif_colunas_ortogonais_vale_um() -> None:
 def test_vif_detecta_colinearidade_e_grupo() -> None:
     rng = np.random.default_rng(1)
     a = rng.normal(size=500)
-    X = pd.DataFrame({"const": 1.0, "a": a, "b": a + 0.05 * rng.normal(size=500),
-                      "d1": rng.normal(size=500), "d2": rng.normal(size=500)})
+    X = pd.DataFrame(
+        {
+            "const": 1.0,
+            "a": a,
+            "b": a + 0.05 * rng.normal(size=500),
+            "d1": rng.normal(size=500),
+            "d2": rng.normal(size=500),
+        }
+    )
     tab = P.gvif(X, {"fator": ["d1", "d2"]}).set_index("fator")
     assert tab.loc["a", "vif"] > 100 and tab.loc["fator", "gl"] == 2
     assert tab.loc["fator", "gvif_ajustado"] < 1.2
@@ -69,7 +77,8 @@ def test_dfbeta_um_passo_proximo_do_leave_one_out() -> None:
     res = sm.Logit(y, X).fit(disp=0)
     d, cook = P.cook_um_passo(res.model.score_obs(res.params), res.model.hessian(res.params))
     for i in (0, 7, 33):
-        m = np.ones(N, bool); m[i] = False
+        m = np.ones(N, bool)
+        m[i] = False
         real = sm.Logit(y[m], X[m]).fit(disp=0).params - res.params
         np.testing.assert_allclose(d[i], real, atol=0.03)
     assert cook.shape == (N,) and (cook >= 0).all()
@@ -103,8 +112,6 @@ def test_alavanca_generalizada_theta_grande_iguala_glm_binomial() -> None:
 
     res, _, _ = _bb()
     m = res.model
-    glm = sm.GLM(np.column_stack([m.endog, m.n - m.endog]), m.exog,
-                 family=sm.families.Binomial()).fit()
+    glm = sm.GLM(np.column_stack([m.endog, m.n - m.endog]), m.exog, family=sm.families.Binomial()).fit()
     falso = SimpleNamespace(model=m, params=np.append(glm.params, 40.0))
-    np.testing.assert_allclose(P.alavanca_generalizada(falso),
-                               glm.get_influence().hat_matrix_diag, atol=1e-6)
+    np.testing.assert_allclose(P.alavanca_generalizada(falso), glm.get_influence().hat_matrix_diag, atol=1e-6)

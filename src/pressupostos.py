@@ -4,6 +4,7 @@ Funções puras sobre o resultado do statsmodels (`BetaBinomial`): teste de liga
 linearidade por spline natural, VIF/GVIF, influência de um passo e reajuste sem
 observações. Os testes de Wald usam a covariância dada (Conley ou do modelo).
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
@@ -109,12 +110,19 @@ def teste_ligacao(res: Any, lat: np.ndarray, lon: np.ndarray, corte_km: float) -
     _, p_con = wald_extras(novo, p0, 1, np.asarray(S.cov_conley(novo, lat, lon, corte_km), float))
     _, p_mod = wald_extras(novo, p0, 1, _cov_modelo(novo))
     dp95, dmax = _dpi_max(novo.model.predict(novo.params), mod.predict(res.params))
-    return {"coef": float(novo.params[p0]), "p_conley": p_con, "p_modelo": p_mod,
-            "dpi_p95_pp": dp95, "dpi_max_pp": dmax, "dloglik": float(novo.llf - res.llf)}
+    return {
+        "coef": float(novo.params[p0]),
+        "p_conley": p_con,
+        "p_modelo": p_mod,
+        "dpi_p95_pp": dp95,
+        "dpi_max_pp": dmax,
+        "dloglik": float(novo.llf - res.llf),
+    }
 
 
-def teste_spline(res: Any, coluna: int, lat: np.ndarray, lon: np.ndarray, corte_km: float,
-                 gl: int = 4) -> dict[str, float]:
+def teste_spline(
+    res: Any, coluna: int, lat: np.ndarray, lon: np.ndarray, corte_km: float, gl: int = 4
+) -> dict[str, float]:
     """Linearidade de uma covariável: Wald Conley dos gl-1 termos não lineares da spline natural."""
     mod = res.model
     p0 = mod.exog.shape[1]
@@ -123,8 +131,14 @@ def teste_spline(res: Any, coluna: int, lat: np.ndarray, lon: np.ndarray, corte_
     chi2_c, p_con = wald_extras(novo, p0, ext.shape[1], np.asarray(S.cov_conley(novo, lat, lon, corte_km), float))
     _, p_mod = wald_extras(novo, p0, ext.shape[1], _cov_modelo(novo))
     dp95, dmax = _dpi_max(novo.model.predict(novo.params), mod.predict(res.params))
-    return {"chi2_conley": chi2_c, "p_conley": p_con, "p_modelo": p_mod,
-            "dpi_p95_pp": dp95, "dpi_max_pp": dmax, "dloglik": float(novo.llf - res.llf)}
+    return {
+        "chi2_conley": chi2_c,
+        "p_conley": p_con,
+        "p_modelo": p_mod,
+        "dpi_p95_pp": dp95,
+        "dpi_max_pp": dmax,
+        "dloglik": float(novo.llf - res.llf),
+    }
 
 
 def residuo_parcial(res: Any, coluna: int) -> np.ndarray:
@@ -154,8 +168,7 @@ def vif(X: pd.DataFrame) -> pd.Series:
     cols = list(X.columns)
     Z = (X - X.mean()) / X.std()
     Z.insert(0, "const", 1.0)
-    return pd.Series([variance_inflation_factor(Z.values, i + 1) for i in range(len(cols))],
-                     index=cols, name="VIF")
+    return pd.Series([variance_inflation_factor(Z.values, i + 1) for i in range(len(cols))], index=cols, name="VIF")
 
 
 def gvif(X: pd.DataFrame, grupos: dict[str, Sequence[str]] | None = None) -> pd.DataFrame:
@@ -177,8 +190,7 @@ def gvif(X: pd.DataFrame, grupos: dict[str, Sequence[str]] | None = None) -> pd.
         i = [pos[c] for c in membros]
         r = [j for j in range(len(cols)) if j not in i]
         g = np.linalg.det(R[np.ix_(i, i)]) * np.linalg.det(R[np.ix_(r, r)]) / det_all
-        linhas.append({"fator": nome, "gl": len(i), "vif": float(g),
-                       "gvif_ajustado": float(g ** (1 / (2 * len(i))))})
+        linhas.append({"fator": nome, "gl": len(i), "vif": float(g), "gvif_ajustado": float(g ** (1 / (2 * len(i))))})
     return pd.DataFrame(linhas)
 
 
@@ -236,10 +248,15 @@ def reajuste_sem(res: Any, indices: np.ndarray) -> Any:
     return reajustar(res, res.model.exog, manter)
 
 
-def residuos_quantilicos_rapido(y: npt.ArrayLike, n: npt.ArrayLike, pi: npt.ArrayLike,
-                                theta: npt.ArrayLike | None = None,
-                                rng: int | np.random.Generator | None = None, base: int = 400,
-                                c: int = 32) -> np.ndarray:
+def residuos_quantilicos_rapido(
+    y: npt.ArrayLike,
+    n: npt.ArrayLike,
+    pi: npt.ArrayLike,
+    theta: npt.ArrayLike | None = None,
+    rng: int | np.random.Generator | None = None,
+    base: int = 400,
+    c: int = 32,
+) -> np.ndarray:
     """Resíduo quantílico aleatorizado (Dunn & Smyth) com a FDA beta-binomial por quadratura.
 
     A `scipy.stats.betabinom.cdf` soma a pmf termo a termo (~9 s para 5.570 municípios).
@@ -268,13 +285,20 @@ def residuos_quantilicos_rapido(y: npt.ArrayLike, n: npt.ArrayLike, pi: npt.Arra
                 p = stats.beta.ppf(((np.arange(jb) + 0.5) / jb)[:, None], pv[i] * th, (1 - pv[i]) * th)
                 out[i] = stats.binom.cdf(k[i][None, :], n[i][None, :], p).mean(axis=0)
             return out
+
     lo, hi = fda(y - 1), fda(y)
     u = np.clip(lo + rng.uniform(size=y.shape) * (hi - lo), 1e-10, 1 - 1e-10)
     return stats.norm.ppf(u)
 
 
-def envelope_do_modelo(cand: Candidato, df: pd.DataFrame, mapa: dict[str, str],
-                       theta_fn: Callable[[Ajuste], float | np.ndarray | None], B: int, seed: int) -> dict:
+def envelope_do_modelo(
+    cand: Candidato,
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    theta_fn: Callable[[Ajuste], float | np.ndarray | None],
+    B: int,
+    seed: int,
+) -> dict:
     """Envelope meio-normal por bootstrap paramétrico de um candidato (`Candidato`).
 
     `theta_fn(ajuste)` dá a precisão do beta-binomial (escalar ou um theta por município)

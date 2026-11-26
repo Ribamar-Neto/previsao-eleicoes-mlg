@@ -13,7 +13,7 @@ def df():
     N = 500
     d = pd.DataFrame({MAPA[k]: rng.normal(size=N) for k in E.CONTINUAS})
     d[MAPA["pib_pc"]] = np.exp(rng.normal(10, 0.5, N))
-    d[MAPA["bloco_pref"]] = rng.choice(["direita", "esquerda", "centro", "sem_prefeito"], N, p=[.6, .3, .06, .04])
+    d[MAPA["bloco_pref"]] = rng.choice(["direita", "esquerda", "centro", "sem_prefeito"], N, p=[0.6, 0.3, 0.06, 0.04])
     d[MAPA["regiao"]] = rng.choice(["Sudeste", "Sul", "Norte", "Nordeste", "Centro-Oeste"], N)
     d[MAPA["uf"]] = rng.choice(E.UFS, N)
     n = rng.integers(1000, 100000, N)
@@ -72,15 +72,43 @@ def test_uf_aleatoria_tem_todos_os_niveis(df):
 
 
 def test_chaves_do_registro():
-    for k in ["bin_logit", "bin_probit", "bin_cloglog", "bin_loglog", "bin_cauchit", "quasi_logit",
-              "bb_logit", "betareg", "ols_elogit", "wls_elogit", "bb_offset", "bb_spline",
-              "bb_reglag", "bb_uf", "glmm_uf", "l1_logit"]:
+    for k in [
+        "bin_logit",
+        "bin_probit",
+        "bin_cloglog",
+        "bin_loglog",
+        "bin_cauchit",
+        "quasi_logit",
+        "bb_logit",
+        "betareg",
+        "ols_elogit",
+        "wls_elogit",
+        "bb_offset",
+        "bb_spline",
+        "bb_reglag",
+        "bb_uf",
+        "glmm_uf",
+        "l1_logit",
+    ]:
         assert k in E.CANDIDATOS
     assert E.CANDIDATOS["bb_uf"].usa_uf and not E.CANDIDATOS["bb_logit"].usa_uf
 
 
-@pytest.mark.parametrize("nome", ["bin_logit", "quasi_logit", "bb_logit", "bb_offset", "quasi_offset",
-                                  "bb_spline", "betareg", "wls_elogit", "l1_logit", "glmm_uf"])
+@pytest.mark.parametrize(
+    "nome",
+    [
+        "bin_logit",
+        "quasi_logit",
+        "bb_logit",
+        "bb_offset",
+        "quasi_offset",
+        "bb_spline",
+        "betareg",
+        "wls_elogit",
+        "l1_logit",
+        "glmm_uf",
+    ],
+)
 def test_ajustar_prever(df, nome):
     cand = E.CANDIDATOS[nome]
     tr, te = df.iloc[:400], df.iloc[400:]
@@ -139,8 +167,7 @@ def test_montar_X_esf_antes_do_offset(df):
     assert np.array_equal(X["ev_002"].to_numpy(), d["ev_002"].to_numpy())  # cru
     with pytest.raises(KeyError):
         E.montar_X(d, MAPA, pad, E.Termos(esf=3))
-    assert list(E.montar_X(d, MAPA, pad, E.Termos()).columns) == list(
-        E.montar_X(df, MAPA, pad, E.Termos()).columns)
+    assert list(E.montar_X(d, MAPA, pad, E.Termos()).columns) == list(E.montar_X(df, MAPA, pad, E.Termos()).columns)
 
 
 def test_montar_Z(df):
@@ -234,15 +261,20 @@ def test_mapa_padrao_sem_covariavel_do_2t_2026():
 
 
 def test_n_loso_formula():
-    d = pd.DataFrame({"eleitorado_2026": [1000.0, 200.0], "n_2t_2022": [700.0, 90.0],
-                      "aptos_2t_2022": [1000.0, 100.0]})
+    d = pd.DataFrame({"eleitorado_2026": [1000.0, 200.0], "n_2t_2022": [700.0, 90.0], "aptos_2t_2022": [1000.0, 100.0]})
     np.testing.assert_allclose(E.n_loso(d), [700.0, 180.0])
 
 
 def test_prever_fold_usa_n_estimado_no_teste(monkeypatch):
     n_col = E.MAPA_2026["n"]
-    d = pd.DataFrame({n_col: [10.0, 20.0, 30.0], "eleitorado_2026": [100.0, 200.0, 300.0],
-                      "n_2t_2022": [5.0, 5.0, 5.0], "aptos_2t_2022": [10.0, 10.0, 10.0]})
+    d = pd.DataFrame(
+        {
+            n_col: [10.0, 20.0, 30.0],
+            "eleitorado_2026": [100.0, 200.0, 300.0],
+            "n_2t_2022": [5.0, 5.0, 5.0],
+            "aptos_2t_2022": [10.0, 10.0, 10.0],
+        }
+    )
     vistos: dict = {}
 
     class Falso:
@@ -274,10 +306,12 @@ def _montar_X_antigo(df, pad):
     """Codificação anterior do bloco (3 linhas), para o teste de regressão."""
     X = E.montar_X(df, MAPA, pad, E.Termos(usa_bloco=False))
     b = df[MAPA["bloco_pref"]].astype(str)
-    X.insert(X.columns.get_loc("reg_Centro-Oeste"), "bloco_esquerda",
-             (b == "esquerda").astype(float).to_numpy())
-    X.insert(X.columns.get_loc("reg_Centro-Oeste"), "bloco_outro",
-             (~b.isin(["esquerda", "direita"])).astype(float).to_numpy())
+    X.insert(X.columns.get_loc("reg_Centro-Oeste"), "bloco_esquerda", (b == "esquerda").astype(float).to_numpy())
+    X.insert(
+        X.columns.get_loc("reg_Centro-Oeste"),
+        "bloco_outro",
+        (~b.isin(["esquerda", "direita"])).astype(float).to_numpy(),
+    )
     return X
 
 
@@ -299,8 +333,7 @@ def test_bloco_grupos_fundidos_antigo_bloco_fundir(df):
 
 def test_bloco_grupos_niveis_brutos(df):
     pad = E.Padronizador(MAPA).fit(df)
-    X = E.montar_X(df, MAPA, pad, E.Termos(
-        bloco_grupos=(("esquerda",), ("centro",), ("sem_prefeito",))))
+    X = E.montar_X(df, MAPA, pad, E.Termos(bloco_grupos=(("esquerda",), ("centro",), ("sem_prefeito",))))
     b = df[MAPA["bloco_pref"]]
     assert (X["bloco_centro"] == (b == "centro")).all()
     assert (X["bloco_sem_prefeito"] == (b == "sem_prefeito")).all()
@@ -323,8 +356,7 @@ def test_bloco_valor_inesperado_vai_ao_grupo_de_sem_prefeito(df):
     assert X["bloco_outro"].iloc[0] == 1.0
 
 
-@pytest.mark.parametrize("grupos", [(("xx",),), (("esquerda",), ("esquerda", "centro")),
-                                    (("esquerda", "esquerda"),)])
+@pytest.mark.parametrize("grupos", [(("xx",),), (("esquerda",), ("esquerda", "centro")), (("esquerda", "esquerda"),)])
 def test_bloco_grupos_invalido(grupos):
     with pytest.raises(ValueError):
         E.Termos(bloco_grupos=grupos)

@@ -1,4 +1,5 @@
 """Regressão de convergência do BFGS do beta-binomial nos dados reais."""
+
 import json
 from pathlib import Path
 
