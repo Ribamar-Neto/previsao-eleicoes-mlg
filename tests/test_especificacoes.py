@@ -391,3 +391,15 @@ def test_registrar_selecao_leva_o_bloco_fundido_e_as_extensoes_herdam(df: pd.Dat
         E.CANDIDATOS.pop("bb_selecao", None)
         if ant is not None:
             E.CANDIDATOS["bb_selecao"] = ant
+
+
+def test_covariaveis_do_1t_do_proprio_ciclo() -> None:
+    """lag1t e outros_1t são candidatas e leem só colunas do 1º turno (nada do 2º turno de 2026)."""
+    from src import backtest as B
+
+    assert {"lag1t", "outros_1t"} <= set(E.CONTINUAS)
+    for mapa in (E.MAPA_2026, B.MAPA_FIT_2022, B.MAPA_PREV_2026, *B.mapas_entre_turnos()):
+        for k in ("lag1t", "outros_1t"):
+            assert "_1t_" in mapa[k] and "2t_2026" not in mapa[k]
+    assert E.MAPA_2026["lag1t"] == "logit_1t_2026"
+    assert B.MAPA_FIT_2022["lag1t"] == "logit_1t_2022" and B.MAPA_FIT_2022["outros_1t"] == "outros_1t_2022"

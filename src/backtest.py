@@ -29,6 +29,8 @@ MAPA_FIT_2022 = {
     "y": "votos_pt_2t_2022",
     "n": "n_2t_2022",
     "lag": "logit_pt_2t_2018",
+    "lag1t": "logit_1t_2022",  # 1º turno de 2022, anterior ao 2º turno ajustado
+    "outros_1t": "outros_1t_2022",
     "nota_dep": "nota_media_dep_2018",
     "pct_dep_esq": "pct_dep_esq_2018",
     "bloco_pref": "bloco_prefeito_2020",
@@ -49,6 +51,8 @@ MAPA_PREV_2026 = {
     "y": "votos_pt_2t_2026",
     "n": "n_2t_2026",
     "lag": "logit_pt_2t_2022",
+    "lag1t": "logit_1t_2026",
+    "outros_1t": "outros_1t_2026",
     "nota_dep": "nota_media_dep_2022",
     "pct_dep_esq": "pct_dep_esq_2022",
     "bloco_pref": "bloco_prefeito_2024",
@@ -75,6 +79,8 @@ def mapas_entre_turnos(ano_fit=2022, ano_prev=2026):
         return {
             **base,
             "lag": f"logit_1t_{ano}",
+            "lag1t": f"logit_1t_{ano}",
+            "outros_1t": f"outros_1t_{ano}",
             "delta_comp": f"outros_1t_{ano}",
             "nota_dep": f"nota_media_dep_{ano}",
             "pct_dep_esq": f"pct_dep_esq_{ano}",
@@ -85,16 +91,24 @@ def mapas_entre_turnos(ano_fit=2022, ano_prev=2026):
 
 
 def preparar(df: pd.DataFrame) -> pd.DataFrame:
-    """Acrescenta as colunas derivadas do 1º turno (logit PT x Bolsonaro e parcela de outros)."""
+    """Acrescenta as colunas derivadas do 1º turno (logit PT x Bolsonaro e parcela de outros).
+
+    Denominador zero (município sem votos nos dois finalistas, ou sem válidos) não tem
+    informação: o logit vira 0 (50%) e a parcela de outros 0, em vez de NaN que tiraria a linha.
+    """
     d = df.copy()
     for a in (2022, 2026):
+        if not {f"votos_pt_1t_{a}", f"votos_bolsonaro_1t_{a}", f"validos_1t_{a}"} <= set(d.columns):
+            continue  # base sem o 1º turno desse ano: o mapa que pedir a coluna falha ao ler
         pt, bo, va = (
             d[f"votos_pt_1t_{a}"].astype(float),
             d[f"votos_bolsonaro_1t_{a}"].astype(float),
             d[f"validos_1t_{a}"].astype(float),
         )
-        d[f"logit_1t_{a}"] = logit(np.clip(pt / (pt + bo), 1e-6, 1 - 1e-6))
-        d[f"outros_1t_{a}"] = 1 - (pt + bo) / va
+        fin = pt + bo
+        razao = (pt / fin.where(fin > 0)).fillna(0.5)
+        d[f"logit_1t_{a}"] = logit(np.clip(razao, 1e-6, 1 - 1e-6))
+        d[f"outros_1t_{a}"] = (1 - fin / va.where(va > 0)).fillna(0.0)
     return d
 
 

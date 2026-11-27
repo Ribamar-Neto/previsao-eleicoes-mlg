@@ -10,6 +10,7 @@ import geopandas as gpd
 import pandas as pd
 
 from src import espacial as S
+from src.backtest import preparar
 
 
 @dataclass(frozen=True, eq=False)
@@ -24,7 +25,8 @@ class Base:
 
 def carregar_base(raiz: Path) -> Base:
     """Lê `data/processed`; a geometria é reordenada para a ordem de `df` (os pesos dependem dela)."""
-    df = pd.read_parquet(raiz / "data/processed/municipios.parquet").reset_index(drop=True)
+    # `lag1t` e `outros_1t` (1º turno do próprio ciclo) são derivados aqui, não gravados no parquet
+    df = preparar(pd.read_parquet(raiz / "data/processed/municipios.parquet")).reset_index(drop=True)
     ids = df["id_municipio"].astype(str)
     geo = pd.read_parquet(raiz / "data/processed/municipios_geo.parquet")
     geo["id_municipio"] = geo["id_municipio"].astype(str)

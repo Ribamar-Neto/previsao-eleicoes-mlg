@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 import statsmodels.api as sm
 from scipy import stats
+from statsmodels.genmod.families.links import Link
 
 from src import modelos as m
 
@@ -201,6 +202,30 @@ def test_score_analitico_igual_ao_numerico():
     assert np.allclose(ana, num, rtol=1e-5, atol=1e-6 * np.abs(num).max())
 
 
+@pytest.mark.parametrize("link", [L.Logit, L.Probit])
+def test_hessiana_analitica_igual_a_jacobiana_do_score(link: type[Link]) -> None:
+    # n até 1e6, como nos municípios grandes: as diferenças segundas da log-verossimilhança
+    # somada erram ~1e-3 do maior elemento e, com autovalores de 0,04 a 3e6 (corte 2026/5),
+    # tornam a informação indefinida, zeram cov_params e corrompem o pão de Conley.
+    from statsmodels.tools.numdiff import approx_fprime
+
+    rng = np.random.default_rng(3)
+    N = 800
+    X = np.column_stack([np.ones(N), rng.normal(size=(N, 2))])
+    g = rng.integers(0, 3, N)
+    Z = np.column_stack([np.ones(N), g == 1, g == 2]).astype(float)
+    n = np.exp(rng.uniform(np.log(50), np.log(1e6), N)).astype(int)
+    pi = m._pi_de_eta(X @ np.array([0.1, 0.4, -0.3]), m._link(link))
+    th = np.exp(Z @ np.array([np.log(80.0), 0.5, -0.4]))
+    y = rng.binomial(n, rng.beta(pi * th, (1 - pi) * th))
+    mod = m.BetaBinomial(y, X, n, link=link, exog_disp=Z)
+    p = np.array([0.1, 0.4, -0.3, np.log(80.0), 0.5, -0.4]) + 0.03
+    jac = approx_fprime(p, mod.score, centered=True)
+    hes = mod.hessian(p)
+    assert np.abs(hes - jac).max() <= 1e-6 * np.abs(jac).max()
+    assert np.allclose(hes, hes.T)
+
+
 def test_sem_exog_disp_mantem_caminho_antigo():
     X, y, n, _ = simular(N=400, theta=200.0)
     mod = m.BetaBinomial(y, X, n)
@@ -264,3 +289,75 @@ def test_simular_votos_grupo_aceita_n_por_simulacao():
     b = m.simular_votos_grupo(beta, cov, X, np.vstack([n1, n1]), g, B=2, rng=1)
     assert np.allclose(a, b)
     assert (m.simular_votos_grupo(beta, cov, X, n2.astype(int)[:, :3], g, B=2, rng=1) == 0).all()
+
+
+# --------------------------------------------------------------------------
+# Teto de theta (grupo no limite binomial)
+# --------------------------------------------------------------------------
+def _simular_grupo_binomial(
+    N: int = 900, seed: int = 7, theta_grupos: tuple[float | None, ...] = (300.0, 100.0, None)
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Três grupos (referência, g1, g2); `None` em theta_grupos = grupo binomial (theta -> infinito)."""
+    rng = np.random.default_rng(seed)
+    X = np.column_stack([np.ones(N), rng.normal(size=N)])
+    n = rng.integers(500, 5000, N)
+    g = rng.integers(0, 3, N)
+    pi = 1 / (1 + np.exp(-(X @ np.array([-0.3, 0.8]))))
+    y = np.empty(N, dtype=int)
+    for k, th in enumerate(theta_grupos):
+        i = g == k
+        y[i] = rng.binomial(n[i], pi[i]) if th is None else rng.binomial(n[i], rng.beta(pi[i] * th, (1 - pi[i]) * th))
+    Z = np.column_stack([np.ones(N), g == 1, g == 2]).astype(float)
+    return X, y, n, Z, g
+
+
+def test_grupo_binomial_converge_com_theta_no_teto() -> None:
+    X, y, n, Z, g = _simular_grupo_binomial()
+    mod = m.BetaBinomial(y, X, n, exog_disp=Z)
+    r = mod.fit()
+    assert mod.congelados == [X.shape[1] + 2]  # a dummy do grupo binomial
+    th = m.theta_de(r)
+    assert np.all(th[g == 2] == m.THETA_TETO)
+    assert np.allclose(np.median(th[g == 0]), 300.0, rtol=0.5)
+    assert np.allclose(np.median(th[g == 1]), 100.0, rtol=0.5)
+    assert r.mle_retvals["converged"]
+    assert np.abs(mod.score(np.asarray(r.params))).max() < 1e-2  # soma sobre 900 linhas
+    assert np.exp(r.params[X.shape[1]] + r.params[X.shape[1] + 2]) == pytest.approx(m.THETA_TETO)  # prever_theta
+    H = mod.hessian(np.asarray(r.params))
+    assert np.all(np.isfinite(np.linalg.inv(H)))
+    assert np.all(np.isfinite(r.bse))
+
+
+def test_dispersao_dentro_do_teto_fica_igual() -> None:
+    X, y, n, Z, _ = _simular_grupo_binomial(theta_grupos=(300.0, 100.0, 200.0))
+    mod = m.BetaBinomial(y, X, n, exog_disp=Z)
+    r = mod.fit()
+    assert mod.congelados == []
+    ref = m.BetaBinomial(y, X, n, exog_disp=Z)
+    r0 = m.GenericLikelihoodModel.fit(
+        ref, start_params=ref._start(), method="bfgs", maxiter=2000, gtol=1e-3, disp=False, full_output=1
+    )
+    np.testing.assert_array_equal(np.asarray(r.params), np.asarray(r0.params))
+
+
+def _logit_do_share(gl_uf: int | None) -> np.ndarray:
+    """Logit do share de uma única UF quase sem ruído binomial: isola o choque de UF."""
+    X, n, g = np.ones((1, 1)), np.array([10**9]), np.array(["a"])
+    cov = np.zeros((1, 1))
+    y = m.simular_votos_grupo(np.array([0.0]), cov, X, n, g, sigma=0.2, B=20000, rng=3, gl_uf=gl_uf)[:, 0]
+    return np.log(y / (n[0] - y))
+
+
+def test_choque_de_uf_normal_e_o_padrao() -> None:
+    X, n, g = np.ones((6, 1)), np.full(6, 5000), np.repeat(["a", "b"], 3)
+    args = (np.array([0.1]), np.zeros((1, 1)), X, n, g)
+    a = m.simular_votos_grupo(*args, sigma=0.2, B=50, rng=4)
+    b = m.simular_votos_grupo(*args, sigma=0.2, B=50, rng=4, gl_uf=None)
+    np.testing.assert_array_equal(a, b)
+
+
+def test_choque_de_uf_t_tem_variancia_sigma2_k_sobre_k_menos_2() -> None:
+    k = 10
+    var_t = _logit_do_share(k).var()
+    assert var_t == pytest.approx(0.2**2 * k / (k - 2), rel=0.08)
+    assert _logit_do_share(None).var() == pytest.approx(0.2**2, rel=0.08)

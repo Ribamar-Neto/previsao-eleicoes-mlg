@@ -811,11 +811,17 @@ def regional_base_e_final(d: pd.DataFrame, base_pt: pd.Series, nome_modelo: str)
 
 
 def erro_por_corte(tab: pd.DataFrame, anos: Sequence[int], coluna: str, rotulo_y: str, titulo: str) -> go.Figure:
-    """Erro de cada método (bruta, swing, modelo) por corte de apuração, um painel por ano, eixo y em log."""
-    cores = {"bruta": "#888888", "swing": LARANJA_REAL, "modelo": AZUL_FINAL}
+    """Erro de cada método do veredito (`apuracao.METODOS`) por corte, um painel por ano, eixo y em log."""
+    # os dois swings dividem a cor e se distinguem pelo traço: são o mesmo método com bases diferentes
+    estilos = {
+        "bruta": ("#888888", "solid"),
+        "swing": (LARANJA_REAL, "solid"),
+        "swing_1t": (LARANJA_REAL, "dash"),
+        "modelo": (AZUL_FINAL, "solid"),
+    }
     fig = make_subplots(rows=1, cols=2, subplot_titles=[str(a) for a in anos], shared_yaxes=True)
     for j, ano in enumerate(anos, 1):
-        for met, cor in cores.items():
+        for met, (cor, traco) in estilos.items():
             t = tab[(tab.ano == ano) & (tab.metodo == met)]
             fig.add_trace(
                 go.Scatter(
@@ -825,7 +831,7 @@ def erro_por_corte(tab: pd.DataFrame, anos: Sequence[int], coluna: str, rotulo_y
                     name=met,
                     legendgroup=met,
                     showlegend=(j == 1),
-                    line={"color": cor},
+                    line={"color": cor, "dash": traco},
                 ),
                 row=1,
                 col=j,

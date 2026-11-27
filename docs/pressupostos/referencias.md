@@ -1,6 +1,6 @@
 # Referências
 
-Lista única das referências dos arquivos 02 a 12 (46 entradas), sem duplicatas, em ordem de autor.
+Lista única das referências dos arquivos 02 a 14 (48 entradas), sem duplicatas, em ordem de autor.
 
 Legenda: ✔ = conferida por busca na web (autores, ano, título, veículo), com DOI, ISBN ou URL.
 Nenhuma entrada ficou sem conferência. Detalhes que a busca não fechou: o subtítulo de Griffith
@@ -26,7 +26,7 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Efron, B.; Tibshirani, R. J. (1993). *An Introduction to the Bootstrap*. Chapman & Hall. ✔ ISBN 0-412-04231-2 (https://doi.org/10.1201/9780429246593, reimpressão CRC)
 - Ferrari, S.; Cribari-Neto, F. (2004). Beta regression for modelling rates and proportions. *Journal of Applied Statistics*, 31(7), 799-815. ✔ https://doi.org/10.1080/0266476042000214501
 - Fox, J.; Monette, G. (1992). Generalized collinearity diagnostics. *Journal of the American Statistical Association*, 87(417), 178-183. ✔ https://doi.org/10.1080/01621459.1992.10475190 (conferida em 2026-11-18 no Crossref)
-- Gelman, A.; Carlin, J. B.; Stern, H. S.; Dunson, D. B.; Vehtari, A.; Rubin, D. B. (2013). *Bayesian Data Analysis* (3ª ed.). Chapman & Hall/CRC (distribuição preditiva posterior). ✔ https://doi.org/10.1201/b16018
+- Gelman, A.; Carlin, J. B.; Stern, H. S.; Dunson, D. B.; Vehtari, A.; Rubin, D. B. (2013). *Bayesian Data Analysis* (3ª ed.). Chapman & Hall/CRC (distribuição preditiva posterior; seção 3.2, distribuição t da previsão com variância desconhecida, usada no choque de UF σ̂·T_k do [11](11-apuracao-parcial.md)). ✔ https://doi.org/10.1201/b16018
 - Gelman, A.; Hill, J. (2007). *Data Analysis Using Regression and Multilevel/Hierarchical Models*. Cambridge University Press. ✔ https://doi.org/10.1017/CBO9780511790942
 - Griffith, D. A. (2003). *Spatial Autocorrelation and Spatial Filtering: Gaining Understanding Through Theory and Visualization*. Springer. ✔ https://doi.org/10.1007/978-3-540-24806-4
 - Halleck Vega, S.; Elhorst, J. P. (2015). The SLX model. *Journal of Regional Science*, 55(3), 339-363. ✔ https://doi.org/10.1111/jors.12188 (conferida em 2026-11-09 no IDEAS/RePEc e no EconPapers)
@@ -39,7 +39,9 @@ trazem 47-60 (usado 47-60). Bolognesi, Ribeiro e Codato (2023) é citada em
 - Moral, R. A.; Hinde, J.; Demétrio, C. G. B. (2017). Half-normal plots and overdispersed models in R: the hnp package. *Journal of Statistical Software*, 81(10), 1-23. ✔ https://doi.org/10.18637/jss.v081.i10
 - Moran, P. A. P. (1950). Notes on continuous stochastic phenomena. *Biometrika*, 37(1-2), 17-23. ✔ https://doi.org/10.1093/biomet/37.1-2.17
 - Papke, L. E.; Wooldridge, J. M. (1996). Econometric methods for fractional response variables with an application to 401(k) plan participation rates. *Journal of Applied Econometrics*, 11(6), 619-632. ✔ https://doi.org/10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1
-- Paula, G. A. (2013). *Modelos de Regressão com Apoio Computacional*. São Paulo: IME-USP. Seções usadas: 2.10.2 e 2.10.5 (tabelas descritivas e razão de chances), capítulo 3 (exemplo das turbinas), 4.2 a 4.4 (tabelas 2×2, Mantel-Haenszel, fator de k níveis) e 4.6.5 (passo 1 de Hosmer-Lemeshow).
+- Paula, G. A. (2013). *Modelos de Regressão com Apoio Computacional*. São Paulo: IME-USP. Seções usadas: 2.10.2 e 2.10.5 (tabelas descritivas e razão de chances), capítulo 3 (exemplo das turbinas), 4.2 a 4.4 (tabelas 2×2, Mantel-Haenszel, fator de k níveis) e 4.6.5 (passo 1 de Hosmer-Lemeshow), 1.7.2 e 2.8.1 (alavancagem e extrapolação do restante da apuração parcial, [14](14-apuracao-diagnostico-1t.md), D3).
+- Pavía-Miralles, J. M. (2005). Forecasts from nonrandom samples. *Journal of the American Statistical Association*, 100(472), 1113-1122. ✔ https://doi.org/10.1198/016214504000001835 (conferida em 2026-11-27 no Crossref; o subtítulo do artigo não veio no registro)
+- Pavía-Miralles, J. M.; Larraz-Iribas, B. (2008). Quick counts from non-selected polling stations. *Journal of Applied Statistics*, 35(4), 383-405. ✔ https://doi.org/10.1080/02664760701834881 (conferida em 2026-11-27 no Crossref)
 - Pregibon, D. (1980). Goodness of link tests for generalized linear models. *Applied Statistics*, 29(1), 15-24. ✔ https://doi.org/10.2307/2346405 (conferida em 2026-11-18 no Crossref; a última página, 24, vem de busca na web e não de página do veículo)
 - Pregibon, D. (1981). Logistic regression diagnostics. *The Annals of Statistics*, 9(4), 705-724. ✔ https://doi.org/10.1214/aos/1176345513
 - Rey, S. J.; Anselin, L. (2010). PySAL: a Python library of spatial analytical methods. In Fischer, M. M.; Getis, A. (orgs.), *Handbook of Applied Spatial Analysis*. Springer, 175-193. ✔ https://doi.org/10.1007/978-3-642-03647-7_11

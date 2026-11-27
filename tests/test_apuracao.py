@@ -115,6 +115,17 @@ def test_erros_e_regra() -> None:
     assert not bool(A.aplicar_regra(pd.DataFrame(linhas), minimo=4).loc[0, "util"])
 
 
+def test_swing_1t_que_vence_o_modelo_no_brasil_tira_o_corte() -> None:
+    linhas = []
+    for c in range(4):
+        for met, br, mae in (("bruta", 2, 4), ("swing", 2, 4), ("swing_1t", 0.4, 4), ("modelo", 0.5, 1)):
+            linhas.append({"ano": 2022, "corte": c, "metodo": met, "erro_brasil_pp": br, "mae_regional_pp": mae})
+    assert A.aplicar_regra(pd.DataFrame(linhas), minimo=1).loc[0, "vitorias_modelo"] == 0
+    sem = pd.DataFrame(linhas)
+    sem = sem[sem["metodo"] != "swing_1t"]
+    assert A.aplicar_regra(sem, minimo=1).loc[0, "vitorias_modelo"] == 4
+
+
 def test_representatividade_separa_maiores() -> None:
     base = pd.DataFrame(
         {"y_c": [60.0, 10.0], "n_c": [100.0, 20.0], "y_final": [300.0, 40.0], "n_final": [1000.0, 100.0]}

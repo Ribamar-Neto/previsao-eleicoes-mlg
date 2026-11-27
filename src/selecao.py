@@ -38,19 +38,20 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from scipy import stats
-from statsmodels.stats.contingency_tables import StratifiedTable
 from scipy.special import expit, gammaln
+from statsmodels.stats.contingency_tables import StratifiedTable
 from threadpoolctl import threadpool_limits
 
 from src import especificacoes as E
 from src import modelos as M
+from src.backtest import preparar
 from src.especificacoes import (
     _COL_OFFSET,
     BLOCOS,
-    REGIAO_REF,
-    REGIOES,
     CONTINUAS,
     LIGACOES,
+    REGIAO_REF,
+    REGIOES,
     Candidato,
     Padronizador,
     Termos,
@@ -785,6 +786,19 @@ def _melhor_bic(
     return metodo, vs, bic
 
 
+def grupos_fusao(cols_reg: list[str]) -> tuple[tuple[str, ...], ...]:
+    """Grupos de região para `Termos.regiao_fundir` a partir das colunas `reg_*` após a fusão.
+
+    Região fora de `cols_reg` não tem efeito próprio: vai ao grupo da referência (`REGIAO_REF`).
+    """
+    grupos = tuple(tuple(c[4:].split("+")) for c in cols_reg if "+" in c)
+    presentes = {r for c in cols_reg for r in c[4:].split("+")}
+    na_ref = tuple(r for r in REGIOES if r not in presentes)
+    if na_ref:
+        grupos += ((*na_ref, REGIAO_REF),)
+    return grupos
+
+
 def _fusoes(
     df: pd.DataFrame, mapa: dict[str, str], termos: Termos, p_fusao: float
 ) -> tuple[tuple[tuple[str, ...], ...], tuple[tuple[str, ...], ...]]:
@@ -798,11 +812,7 @@ def _fusoes(
     X = montar_X(df, mapa, pad, replace(termos, bloco_grupos=tuple((b,) for b in BLOCOS)))
     cols_reg = [c for c in X.columns if c.startswith("reg_")]
     X_reg, _, cols_reg = analisar_fator(X, y, n, cols_reg, "Região", "reg_", p_fusao, verbose=False, ref="Sudeste")
-    grupos = tuple(tuple(c[4:].split("+")) for c in cols_reg if "+" in c)
-    presentes = {r for c in cols_reg for r in c[4:].split("+")}
-    na_ref = tuple(r for r in REGIOES if r not in presentes)
-    if na_ref:
-        grupos += ((*na_ref, REGIAO_REF),)
+    grupos = grupos_fusao(cols_reg)
     cols_b = [f"bloco_{b}" for b in BLOCOS]
     _, _, cols_blo = analisar_fator(X_reg, y, n, cols_b, "Bloco", "bloco_", p_fusao, verbose=False, ref="direita")
     return grupos, tuple(tuple(c[6:].split("+")) for c in cols_blo)
@@ -941,7 +951,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     ap.add_argument("--folds-paralelos", type=int, default=1)
     ap.add_argument("--refazer", action="store_true")
     a = ap.parse_args(argv)
-    dados = pd.read_parquet(ARQ_DADOS).reset_index(drop=True)
+    # mesmo quadro do nb02 (`dados.carregar_base`): as colunas do 1º turno são derivadas, não gravadas
+    dados = preparar(pd.read_parquet(ARQ_DADOS)).reset_index(drop=True)
     ufs = a.ufs or sorted(dados[E.MAPA_2026["uf"]].astype(str).unique())
     r = rodar_folds(
         ufs, a.lote, a.status, n_jobs=a.n_jobs, folds_paralelos=a.folds_paralelos, refazer=a.refazer, df=dados

@@ -1,85 +1,72 @@
 {
- "versao": 1,
+ "versao": 5,
  "termos": {
   "vars": [
    "lag",
+   "lag1t",
+   "outros_1t",
+   "nota_dep",
+   "pct_dep_esq",
    "comparecimento",
-   "log_dens",
+   "delta_comp",
    "pct_mulheres",
-   "cobertura_pbf",
-   "pct_fund_inc",
-   "pct_indigenas",
-   "w_lag",
-   "w_comparecimento",
-   "w_log_dens",
-   "w_pct_mulheres",
-   "w_cobertura_pbf",
-   "w_pct_fund_inc",
-   "w_pct_indigenas"
+   "pct_16_24",
+   "pct_60_mais",
+   "pct_analfabeto",
+   "pct_evangelicos",
+   "pct_pretos_pardos",
+   "pct_urbana"
   ],
-  "disp": "regiao_logn",
-  "slx": [
-   "lag",
-   "comparecimento",
-   "log_dens",
-   "pct_mulheres",
-   "cobertura_pbf",
-   "pct_fund_inc",
-   "pct_indigenas"
-  ],
+  "disp": "regiao",
+  "slx": [],
   "regiao_fundir": [
    [
-    "Nordeste",
-    "Norte"
-   ],
-   [
     "Centro-Oeste",
-    "Sudeste"
+    "Norte"
    ]
   ],
   "bloco_grupos": []
  },
- "corte_km": 100.0,
- "sigma_uf": 0.05956748153067104,
- "limite": 1.4137398505841525,
+ "corte_km": 75.0,
+ "sigma_uf": 0.014581800705102127,
+ "limite": 0.27834070723997,
  "mae_pp": {
-  "r1": 1.2102727666159716,
-  "disp": 1.0894814918328262,
-  "slx": 1.03271090564981,
-  "final": 1.03271090564981
+  "r1": 0.22538153421274404,
+  "disp": 0.2249192141138695,
+  "final": 0.2249192141138695
  },
- "ep_r1_pp": 0.2034670839681809,
+ "ep_r1_pp": 0.05295917302722597,
  "aceitos": {
   "disp": true,
-  "slx": true
+  "slx": false
  },
  "wald": {
-  "A": 7.052545245301145e-11,
-  "B": 9.241199485757519e-74
+  "A": 0.00010097695494587113,
+  "B": 0.6503441697106351
  },
  "bic_dispersao": {
-  "const": 39641.248398550575,
-  "regiao": 39226.65304704897,
-  "regiao_logn": 38222.61799332104
+  "const": 29638.63906359073,
+  "regiao": 29578.472530111132,
+  "regiao_logn": 29585.970508212078
  },
  "n_ufs_loso": 26,
  "n_municipios": 2964,
- "tempo_s": 230.99483275413513,
+ "tempo_s": 209.44933152198792,
  "extra": {
-  "corte_r1_km": 50.0,
+  "corte_r1_km": 75.0,
   "wald_cortes_km": {
-   "corte_A_km": 150.0,
-   "corte_B_km": 200.0
+   "corte_A_km": 75.0,
+   "corte_B_km": 75.0
   },
   "ufs_puladas": {
    "r1": [],
-   "disp": [],
-   "slx": []
+   "disp": []
   },
   "piso_aplicado": {
    "r1": false,
    "final": false,
    "wald": false
   }
- }
+ },
+ "gl_sigma_uf": 26
 }

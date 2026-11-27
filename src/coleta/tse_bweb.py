@@ -17,13 +17,19 @@ Regras de negócio:
 
 from __future__ import annotations
 
+import sys
+
 import pandas as pd
 
 from src.coleta.comum import RAIZ, RAW, baixar, ler_csv_zip, salvar_interim
 
 DIR = RAW / "tse_bweb"
+# O pandas não declara colunas: o nome diz o que o quadro carrega.
+type BrutoBwebFrame = pd.DataFrame  # CSV do TSE como veio, só Presidente
+type Secoes1TFrame = pd.DataFrame  # seção do 1º turno (COLUNAS_1T)
 ANOS = (2022, 2026)
 CARIMBO = {2022: "311020221535", 2026: "261020260742"}
+CARIMBO_1T = {2022: "051020221321", 2026: "051020261403"}
 UFS = [
     "AC",
     "AL",
@@ -54,9 +60,24 @@ UFS = [
     "TO",
 ]
 BASE = "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes{ano}/buweb/bweb_2t_{uf}_{carimbo}.zip"
+BASE_1T = "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes{ano}/buweb/bweb_1t_{uf}_{carimbo}.zip"
+COLUNAS_1T = [
+    "ano",
+    "uf",
+    "cd_municipio_tse",
+    "zona",
+    "secao",
+    "votos_lula",
+    "votos_bolsonaro",
+    "validos",
+    "validos_todos",
+    "aptos",
+    "comparecimento",
+]
 FUSO = "America/Sao_Paulo"
 NR_LULA = "13"
 NR_BOLSONARO = "22"
+NAO_VALIDOS = ("95", "96", "97")  # branco, nulo, anulado e apurado em separado
 FORMATO_DATA = {2022: "%d/%m/%Y %H:%M:%S", 2026: "%Y-%m-%d %H:%M:%S"}
 COL_AGREGADAS = {2022: "DS_AGREGADAS", 2026: "DS_SECOES_AGREGADAS"}
 CHAVE = ["ano", "uf", "cd_municipio_tse", "zona", "secao"]
@@ -180,6 +201,66 @@ def coletar() -> pd.DataFrame:
     return df
 
 
+def normalizar_1t(bruto: BrutoBwebFrame, ano: int) -> Secoes1TFrame:
+    """Seção do 1º turno: só Presidente, `validos` = Lula + Bolsonaro como no 2º turno.
+
+    Atenção: no 1º turno há outros candidatos, então `validos` NÃO é o total de válidos
+    do município; serve para medir o share Lula x Bolsonaro, não o comparecimento válido.
+    `validos_todos` é o total de válidos (todos os candidatos), denominador de `outros_1t`.
+    """
+    out = normalizar(bruto, ano)
+    p = _so_presidente(bruto)
+    p = p[~p["NR_VOTAVEL"].isin(NAO_VALIDOS)]
+    chave = {"SG_UF": "uf", "CD_MUNICIPIO": "cd_municipio_tse", "NR_ZONA": "zona", "NR_SECAO": "secao"}
+    tot = (
+        p[list(chave)]
+        .rename(columns=chave)
+        .astype({"cd_municipio_tse": "int64", "zona": "int64", "secao": "int64"})
+        .assign(validos_todos=pd.to_numeric(p["QT_VOTOS"]).astype("int64").to_numpy())
+        .groupby(list(chave.values()), as_index=False)["validos_todos"]
+        .sum()
+    )
+    out = out.merge(tot, on=list(chave.values()), how="left", validate="one_to_one")
+    out["validos_todos"] = out["validos_todos"].fillna(0).astype("int64")
+    return out[COLUNAS_1T]
+
+
+def coletar_1t() -> Secoes1TFrame:
+    """Baixa (com cache) e normaliza as seções do 1º turno de 2022 e 2026 (só Presidente)."""
+    partes = [normalizar_1t(_ler_uf_bruto_1t(uf, ano), ano) for ano in ANOS for uf in UFS]
+    return pd.concat(partes, ignore_index=True).sort_values(CHAVE).reset_index(drop=True)
+
+
+def _ler_uf_bruto_1t(uf: str, ano: int) -> BrutoBwebFrame:
+    destino = DIR / f"bweb_1t_{uf}_{ano}.zip"
+    baixar(BASE_1T.format(ano=ano, uf=uf, carimbo=CARIMBO_1T[ano]), destino)
+    cols = USECOLS_BASE + [COL_AGREGADAS[ano]]
+    return ler_csv_zip(destino, "bweb_*.csv", usecols=cols, filtro=_so_presidente)
+
+
+def validar_secoes_1t(df: Secoes1TFrame) -> Secoes1TFrame:
+    """Esquema do 1º turno: colunas, chave única e contagens coerentes. Levanta ValueError."""
+    faltam = set(COLUNAS_1T) - set(df.columns)
+    if faltam:
+        raise ValueError(f"colunas ausentes: {sorted(faltam)}")
+    duplicadas = int(df.duplicated(CHAVE).sum())
+    if duplicadas:
+        raise ValueError(f"chave (ano, uf, município, zona, seção) duplicada em {duplicadas} linhas")
+    negativas = int((df[NUMERICAS] < 0).any(axis=1).sum())
+    if negativas:
+        raise ValueError(f"contagem negativa em {negativas} linhas")
+    soma_errada = int((df["validos"] != df["votos_lula"] + df["votos_bolsonaro"]).sum())
+    if soma_errada:
+        raise ValueError(f"validos != lula + bolsonaro em {soma_errada} linhas")
+    fora_da_ordem = int(((df["validos"] > df["comparecimento"]) | (df["comparecimento"] > df["aptos"])).sum())
+    if fora_da_ordem:
+        raise ValueError(f"validos <= comparecimento <= aptos violado em {fora_da_ordem} linhas")
+    fora_dos_todos = int(((df["validos_todos"] < df["validos"]) | (df["validos_todos"] > df["comparecimento"])).sum())
+    if fora_dos_todos:
+        raise ValueError(f"validos <= validos_todos <= comparecimento violado em {fora_dos_todos} linhas")
+    return df
+
+
 def curva(secoes: pd.DataFrame, ano: int) -> pd.DataFrame:
     """Curva nacional de apuração (domestica): acumulado por instante de recebimento.
 
@@ -220,7 +301,16 @@ def checar_totais(secoes: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(linhas, ignore_index=True)
 
 
+def main_1t() -> None:
+    df = validar_secoes_1t(coletar_1t())
+    salvar_interim(df, "tse_bweb_1t")
+    print(df.groupby("ano").size())
+
+
 def main() -> None:
+    if "--turno" in sys.argv and sys.argv[sys.argv.index("--turno") + 1] == "1":
+        main_1t()
+        return
     df = coletar()
     sem_ibge = df[df["id_municipio"].isna()][["uf", "cd_municipio_tse"]].drop_duplicates()
     print("municípios TSE sem IBGE:\n", sem_ibge.to_string())

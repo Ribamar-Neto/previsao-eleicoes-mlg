@@ -1,40 +1,49 @@
 {
- "versao": 1,
+ "versao": 5,
  "termos": {
   "vars": [
    "lag",
-   "log_pop",
+   "lag1t",
+   "outros_1t",
+   "pct_dep_esq",
+   "comparecimento",
    "log_dens",
+   "pct_16_24",
    "pct_60_mais",
-   "pct_analfabeto",
+   "pct_superior",
+   "cobertura_pbf",
    "pct_vab_agro",
    "pct_evangelicos",
-   "pct_pretos_pardos",
    "pct_urbana",
-   "pct_indigenas",
    "w_lag",
-   "w_log_pop",
+   "w_lag1t",
+   "w_outros_1t",
+   "w_pct_dep_esq",
+   "w_comparecimento",
    "w_log_dens",
+   "w_pct_16_24",
    "w_pct_60_mais",
-   "w_pct_analfabeto",
+   "w_pct_superior",
+   "w_cobertura_pbf",
    "w_pct_vab_agro",
    "w_pct_evangelicos",
-   "w_pct_pretos_pardos",
-   "w_pct_urbana",
-   "w_pct_indigenas"
+   "w_pct_urbana"
   ],
-  "disp": "regiao_logn",
+  "disp": "regiao",
   "slx": [
    "lag",
-   "log_pop",
+   "lag1t",
+   "outros_1t",
+   "pct_dep_esq",
+   "comparecimento",
    "log_dens",
+   "pct_16_24",
    "pct_60_mais",
-   "pct_analfabeto",
+   "pct_superior",
+   "cobertura_pbf",
    "pct_vab_agro",
    "pct_evangelicos",
-   "pct_pretos_pardos",
-   "pct_urbana",
-   "pct_indigenas"
+   "pct_urbana"
   ],
   "regiao_fundir": [
    [
@@ -42,34 +51,38 @@
     "Norte"
    ]
   ],
-  "bloco_grupos": []
+  "bloco_grupos": [
+   [
+    "sem_prefeito"
+   ]
+  ]
  },
- "corte_km": 200.0,
- "sigma_uf": 0.10620981807135163,
- "limite": 2.106562496618955,
+ "corte_km": 100.0,
+ "sigma_uf": 0.01885877615420706,
+ "limite": 0.37355217782369,
  "mae_pp": {
-  "r1": 1.7432345781130496,
-  "disp": 1.6856524354965923,
-  "slx": 1.535134601770699,
-  "final": 1.535134601770699
+  "r1": 0.3319109507021785,
+  "disp": 0.32626608851191635,
+  "slx": 0.3441248031035528,
+  "final": 0.3441248031035528
  },
- "ep_r1_pp": 0.36332791850590535,
+ "ep_r1_pp": 0.0416412271215115,
  "aceitos": {
   "disp": true,
   "slx": true
  },
  "wald": {
-  "A": 0.0001968016723257795,
-  "B": 6.379522577697656e-23
+  "A": 2.5110203421702827e-08,
+  "B": 0.22046264226712012
  },
  "bic_dispersao": {
-  "const": 55298.742581799124,
-  "regiao": 55133.63941685051,
-  "regiao_logn": 54673.62449618069
+  "const": 42618.77098127381,
+  "regiao": 42533.680840384644,
+  "regiao_logn": 42539.13094237076
  },
  "n_ufs_loso": 26,
  "n_municipios": 4008,
- "tempo_s": 304.64819741249084,
+ "tempo_s": 277.05537366867065,
  "extra": {
   "corte_r1_km": 200.0,
   "wald_cortes_km": {
@@ -86,5 +99,6 @@
    "final": false,
    "wald": false
   }
- }
+ },
+ "gl_sigma_uf": 26
 }

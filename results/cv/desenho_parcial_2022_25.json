@@ -1,74 +1,90 @@
 {
- "versao": 1,
+ "versao": 5,
  "termos": {
   "vars": [
    "lag",
-   "nota_dep",
-   "log_pop",
+   "lag1t",
+   "outros_1t",
+   "pct_dep_esq",
    "log_dens",
+   "pct_16_24",
    "pct_60_mais",
-   "pct_evangelicos",
-   "pct_pretos_pardos",
+   "pct_superior",
+   "cobertura_pbf",
+   "pct_vab_agro",
    "pct_urbana",
    "w_lag",
-   "w_nota_dep",
-   "w_log_pop",
+   "w_lag1t",
+   "w_outros_1t",
+   "w_pct_dep_esq",
    "w_log_dens",
+   "w_pct_16_24",
    "w_pct_60_mais",
-   "w_pct_evangelicos",
-   "w_pct_pretos_pardos",
+   "w_pct_superior",
+   "w_cobertura_pbf",
+   "w_pct_vab_agro",
    "w_pct_urbana"
   ],
-  "disp": "regiao_logn",
+  "disp": "regiao",
   "slx": [
    "lag",
-   "nota_dep",
-   "log_pop",
+   "lag1t",
+   "outros_1t",
+   "pct_dep_esq",
    "log_dens",
+   "pct_16_24",
    "pct_60_mais",
-   "pct_evangelicos",
-   "pct_pretos_pardos",
+   "pct_superior",
+   "cobertura_pbf",
+   "pct_vab_agro",
    "pct_urbana"
   ],
   "regiao_fundir": [
    [
-    "Nordeste",
     "Centro-Oeste",
     "Norte"
+   ],
+   [
+    "Nordeste",
+    "Sudeste"
    ]
   ],
-  "bloco_grupos": []
+  "bloco_grupos": [
+   [
+    "sem_prefeito"
+   ]
+  ]
  },
- "corte_km": 150.0,
- "sigma_uf": 0.1332657815635053,
- "limite": 2.2562208512152226,
+ "corte_km": 100.0,
+ "sigma_uf": 0.01972105604066482,
+ "limite": 0.37824558726969604,
  "mae_pp": {
-  "r1": 1.8394398292274268,
-  "disp": 1.7650356607615836,
-  "slx": 1.7510044504590456,
-  "final": 1.7510044504590456
+  "r1": 0.3355643329374274,
+  "disp": 0.32942394950799375,
+  "slx": 0.3650873386638217,
+  "final": 0.3650873386638217
  },
- "ep_r1_pp": 0.4167810219877961,
+ "ep_r1_pp": 0.04268125433226867,
  "aceitos": {
   "disp": true,
   "slx": true
  },
  "wald": {
-  "A": 0.000746287564163772,
-  "B": 2.8457491840580273e-37
+  "A": 1.4081013272725824e-05,
+  "B": 0.5755456621741182
  },
  "bic_dispersao": {
-  "const": 42171.33084093514,
-  "regiao": 41988.61800462127,
-  "regiao_logn": 41425.881803136675
+  "const": 31403.442756616383,
+  "regiao": 31374.062892912727,
+  "regiao_logn": 31381.964366235963
  },
  "n_ufs_loso": 26,
  "n_municipios": 3147,
- "tempo_s": 239.6469419002533,
+ "tempo_s": 221.08827447891235,
  "extra": {
-  "corte_r1_km": 150.0,
+  "corte_r1_km": 200.0,
   "wald_cortes_km": {
-   "corte_A_km": 150.0,
+   "corte_A_km": 200.0,
    "corte_B_km": 200.0
   },
   "ufs_puladas": {
@@ -81,5 +97,6 @@
    "final": false,
    "wald": false
   }
- }
+ },
+ "gl_sigma_uf": 26
 }

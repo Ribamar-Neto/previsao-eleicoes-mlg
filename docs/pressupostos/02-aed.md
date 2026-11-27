@@ -27,8 +27,9 @@ Os mapas são coropléticos Plotly exportados em PNG (kaleido), com geometria si
   Em 2022 ← 2018 a reta cruza y = x perto do logit 0,65 (66% para o PT): abaixo disso o PT ganhou, acima perdeu.
 
 ## Parte 3: Covariáveis
-- **Escopo**: 24 numéricas (com `log(pib_per_capita_2023)`) mais duas indicadoras de `bloco_prefeito_2024` (esquerda e centro; base: direita e sem prefeito) e o fator `regiao`.
+- **Escopo**: 26 numéricas (com `log(pib_per_capita_2023)` e as duas do 1º turno de 2026, abaixo) mais duas indicadoras de `bloco_prefeito_2024` (esquerda e centro; base: direita e sem prefeito) e o fator `regiao`.
   Zero valores ausentes.
+- **Covariáveis do 1º turno do mesmo ciclo.** `logit_1t_2026` (logit da parcela do PT entre os dois finalistas no 1º turno) e `outros_1t_2026` (parcela dos válidos do 1º turno que foi para os demais candidatos). Entram como candidatas porque o 1º turno é conhecido quatro semanas antes do 2º (regra de informação, [09](09-modelo-final.md)); na apuração parcial vêm das seções do 1º turno (`tse_bweb_1t`, [dicionário](../dados/dicionario.md)). Denominador zero dá logit 0 e `outros_1t` 0, nunca ausente.
 - **Linearidade** (`logit_empirico_por_decil` e `media_ponderada_por_decil`, 10 classes por posto, empates desfeitos por ordem): o logit empírico do decil é `log(ΣY / Σ(n−Y))`, que é o que o preditor linear do GLM tenta reproduzir.
   O eixo y do swing usa a média ponderada por `n`.
   Quando o maior salto entre médias de faixa consecutivas passa da metade da amplitude (só `pct_indigenas_2022`), o eixo x
@@ -43,10 +44,11 @@ Os mapas são coropléticos Plotly exportados em PNG (kaleido), com geometria si
 
   | Lista | VIF máximo | Maiores |
   |---|---|---|
-  | Cheia (26 colunas) | 124,2 (`log_populacao_2022`) | `log_eleitorado_2026` 121,4; `pct_catolicos_2022` 38,5; `pct_evangelicos_2022` 21,0; `taxa_alfabetizacao_15mais_2022` 8,8 |
-  | Reduzida (22 colunas) | 6,9 (`pct_16_24_2026`) | `pct_ate_fund_incompleto_2026` 6,2; `cobertura_pbf_2026` 5,7; `pct_60_mais_2026` 5,5; `logit_pt_2t_2022` 5,0 |
+  | Cheia (28 colunas) | 124,9 (`log_populacao_2022`) | `log_eleitorado_2026` 122,3; `logit_1t_2026` 78,8; `logit_pt_2t_2022` 71,9; `pct_catolicos_2022` 39,1; `pct_evangelicos_2022` 21,2; `taxa_alfabetizacao_15mais_2022` 8,9 |
+  | Reduzida (24 colunas) | 78,3 (`logit_1t_2026`) | `logit_pt_2t_2022` 71,6; `pct_16_24_2026` 7,1; `pct_ate_fund_incompleto_2026` 6,2; `cobertura_pbf_2026` 6,1; `pct_60_mais_2026` 5,5 |
 
-- **Lista recomendada**: `logit_pt_2t_2022`, `pct_dep_esq_2026`, `taxa_comparecimento_2t_2026`, `delta_comparecimento_2t_2026`, `log_populacao_2022`, `log_densidade_2022`, `pct_mulheres_2026`,
+- **Colinearidade do 1º turno.** `logit_1t_2026` e `logit_pt_2t_2022` são quase a mesma medida (o PT entre os finalistas, em 2026 e em 2022), daí o VIF acima de 70 nos dois. Regra: a colinearidade é só reportada, nunca motivo para descartar uma delas; as duas ficam na lista e a seleção do [03](03-modelos-candidatos.md) decide. Fora dessas duas, o maior VIF da lista reduzida é 7,1 (`pct_16_24_2026`). `outros_1t_2026` não tem problema (VIF 1,6).
+- **Lista recomendada**: `logit_pt_2t_2022`, `logit_1t_2026`, `outros_1t_2026`, `pct_dep_esq_2026`, `taxa_comparecimento_2t_2026`, `delta_comparecimento_2t_2026`, `log_populacao_2022`, `log_densidade_2022`, `pct_mulheres_2026`,
   `pct_16_24_2026`, `pct_60_mais_2026`, `pct_superior_completo_2026`, `pct_analfabeto_2026`, `pct_ate_fund_incompleto_2026`, `cobertura_pbf_2026`, `log(pib_per_capita_2023)`, `pct_vab_agro_2021`,
   `pct_evangelicos_2022`, `pct_sem_religiao_2022`, `pct_pretos_pardos_2022`, `pct_indigenas_2022`, `pct_urbana_2022`, `bloco_prefeito_2024`, `regiao`.
 - **Descartadas e motivo**:
@@ -54,7 +56,7 @@ Os mapas são coropléticos Plotly exportados em PNG (kaleido), com geometria si
   - `log_eleitorado_2026`: ρ = 0,99 com `log_populacao_2022`; a população é do Censo e não depende da eleição.
   - `taxa_alfabetizacao_15mais_2022`: mede o mesmo que `pct_analfabeto_2026` (ρ = −0,90), este é do eleitorado e mais recente.
   - `nota_media_dep_2026`: mede o mesmo que `pct_dep_esq_2026` (VIF 2,9 e 2,4 na lista cheia); preferida a fração, que é mais interpretável e já é parcela binomial.
-- **Atenção**: cinco variáveis ficam entre 5 e 7 de VIF (moderado). Aceitável para previsão; para inferência, conferir a estabilidade dos coeficientes. O fator `bloco_prefeito_2024` tem só 49 municípios no centro e 16 sem prefeito (agrupar com a direita se der instabilidade).
+- **Atenção**: quatro variáveis ficam entre 5 e 7,1 de VIF (moderado), além das duas do par de defasagens acima. Aceitável para previsão; para inferência, conferir a estabilidade dos coeficientes. O fator `bloco_prefeito_2024` tem só 49 municípios no centro e 16 sem prefeito (agrupar com a direita se der instabilidade).
 
 ### 3.1 Categóricas e binárias, nível a nível
 Roteiro de Paula (2013): tabela descritiva por nível (seção 2.10.5), razão de chances ψ de cada nível contra uma referência, sem dicotomizar sem motivo (4.4), tabela 2×2 e Mantel-Haenszel por estrato para a binária (4.2 e 4.3) e LRT univariado como passo 1 de Hosmer-Lemeshow (4.6.5). Referências: região Sudeste, bloco direita.

@@ -198,6 +198,24 @@ def test_fusoes_regiao_sem_efeito_vai_para_a_referencia() -> None:
     assert ("Centro-Oeste", "Sudeste") in grupos_reg
 
 
+def test_grupos_fusao_mantem_o_grupo_da_referencia_sem_nordeste() -> None:
+    """Nordeste sem efeito (igual a Sudeste) some de cols_reg: o grupo (Nordeste, Sudeste) fica."""
+    from src.selecao import grupos_fusao
+
+    grupos = grupos_fusao(["reg_Centro-Oeste", "reg_Norte", "reg_Sul"])
+    assert grupos == (("Nordeste", "Sudeste"),)
+
+
+def test_montar_x_com_o_grupo_da_referencia_nao_cria_reg_nordeste(df: pd.DataFrame) -> None:
+    from src.selecao import grupos_fusao
+
+    fundir_ = grupos_fusao(["reg_Centro-Oeste", "reg_Norte", "reg_Sul"])
+    pad = E.Padronizador(MAPA_2026).fit(df)
+    X = montar_X(df, MAPA_2026, pad, Termos(vars=("lag", *CAND), regiao_fundir=fundir_))
+    assert "reg_Nordeste" not in X.columns
+    assert {"reg_Norte", "reg_Sul", "reg_Centro-Oeste"} <= set(X.columns)
+
+
 def test_analisar_fator_passos_p_igual_ao_lrt_feito_a_mao() -> None:
     from scipy import stats
 
@@ -230,3 +248,29 @@ def test_analisar_fator_rotulo_da_referencia_acumula_niveis_fundidos() -> None:
     seguinte = passos[primeiro + 1]
     rotulos = set(seguinte.loc[seguinte.nivel_b.str.startswith("A"), "nivel_b"])
     assert rotulos == {f"A+{nivel}"}
+
+
+def test_main_le_o_quadro_com_as_colunas_do_1t(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """O script lê o mesmo quadro do nb02: `lag1t` e `outros_1t` são derivados, não gravados no parquet."""
+    from src import selecao as S
+
+    bruto = pd.DataFrame(
+        {
+            MAPA_2026["uf"]: ["BA", "SP"],
+            "votos_pt_1t_2026": [60.0, 30.0],
+            "votos_bolsonaro_1t_2026": [30.0, 60.0],
+            "validos_1t_2026": [100.0, 100.0],
+        }
+    )
+    arq = tmp_path / "municipios.parquet"
+    bruto.to_parquet(arq)
+    visto: dict[str, pd.DataFrame] = {}
+
+    def falso(ufs: list[str], lote: str, status: Path, *, df: pd.DataFrame, **_: object) -> pd.DataFrame:
+        visto["df"] = df
+        return pd.DataFrame({"erro_abs_pp": [0.0]})
+
+    monkeypatch.setattr(S, "ARQ_DADOS", arq)
+    monkeypatch.setattr(S, "rodar_folds", falso)
+    S.main(["--status", str(tmp_path / "status.txt")])
+    assert {MAPA_2026["lag1t"], MAPA_2026["outros_1t"]} <= set(visto["df"].columns)

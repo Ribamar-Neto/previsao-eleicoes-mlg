@@ -1,85 +1,70 @@
 {
- "versao": 1,
+ "versao": 5,
  "termos": {
   "vars": [
    "lag",
+   "lag1t",
+   "nota_dep",
    "comparecimento",
+   "delta_comp",
    "pct_mulheres",
    "pct_16_24",
-   "pct_superior",
-   "cobertura_pbf",
-   "pct_fund_inc",
-   "pct_indigenas",
-   "w_lag",
-   "w_comparecimento",
-   "w_pct_mulheres",
-   "w_pct_16_24",
-   "w_pct_superior",
-   "w_cobertura_pbf",
-   "w_pct_fund_inc",
-   "w_pct_indigenas"
+   "pct_60_mais",
+   "pct_analfabeto",
+   "pct_evangelicos",
+   "pct_pretos_pardos",
+   "pct_urbana"
   ],
-  "disp": "regiao_logn",
-  "slx": [
-   "lag",
-   "comparecimento",
-   "pct_mulheres",
-   "pct_16_24",
-   "pct_superior",
-   "cobertura_pbf",
-   "pct_fund_inc",
-   "pct_indigenas"
-  ],
+  "disp": "const",
+  "slx": [],
   "regiao_fundir": [
    [
     "Centro-Oeste",
-    "Norte",
+    "Norte"
+   ],
+   [
+    "Nordeste",
     "Sudeste"
    ]
   ],
   "bloco_grupos": []
  },
- "corte_km": 50.0,
- "sigma_uf": 0.07271614935065626,
- "limite": 2.606965294663619,
+ "corte_km": 75.0,
+ "sigma_uf": 0.027164105160060157,
+ "limite": 0.42672056201903563,
  "mae_pp": {
-  "r1": 2.3451112062083563,
-  "disp": 1.4498867154276056,
-  "slx": 1.2521267031953838,
-  "final": 1.2521267031953838
+  "r1": 0.3173342535233942,
+  "final": 0.3173342535233942
  },
- "ep_r1_pp": 0.26185408845526253,
+ "ep_r1_pp": 0.10938630849564142,
  "aceitos": {
-  "disp": true,
-  "slx": true
+  "disp": false,
+  "slx": false
  },
  "wald": {
-  "A": 3.982991968113733e-10,
-  "B": 9.648630480606826e-68
+  "A": 0.07075102527238691,
+  "B": NaN
  },
  "bic_dispersao": {
-  "const": 26647.528783344158,
-  "regiao": 26167.26326927804,
-  "regiao_logn": 25470.207557757876
+  "const": 18750.96288965481,
+  "regiao": 18724.89154688932
  },
  "n_ufs_loso": 25,
  "n_municipios": 2111,
- "tempo_s": 201.69472432136536,
+ "tempo_s": 154.17975425720215,
  "extra": {
-  "corte_r1_km": 200.0,
+  "corte_r1_km": 75.0,
   "wald_cortes_km": {
-   "corte_A_km": 200.0,
-   "corte_B_km": 100.0
+   "corte_A_km": 75.0
   },
   "ufs_puladas": {
-   "r1": [],
-   "disp": [],
-   "slx": []
+   "r1": []
   },
   "piso_aplicado": {
-   "r1": true,
+   "r1": false,
    "final": false,
-   "wald": true
+   "wald": false
   }
- }
+ },
+ "gl_sigma_uf": 25
 }

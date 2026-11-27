@@ -118,7 +118,7 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   1 km equivale a HC0 e ignora a correlação espacial. Quando a regra da Parte 15 dá 0 km num desenho
   parcial, o corte passa a 200 km, o da regra aplicada à apuração completa de 2022 (conhecida antes
   do 2º turno de 2026, sem vazamento). Só 2026 a 5 % e 10 % usaram o piso
-  ([11](11-apuracao-parcial.md), seção 8).
+  (com o 1º turno do mesmo ano nenhum corte precisou; [11](11-apuracao-parcial.md), seção 8).
 
 - **Krigagem: o corte do correlograma (CORTE) vem dos resíduos dentro da amostra com todos
   os dados** (Parte 15, c. 20) e é reusado como alcance da krigagem (c. 33). Efeito:
@@ -135,16 +135,35 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   regional piora (krigagem 0,630 contra 0,433 p.p.; CAR 0,620 contra 0,585).
 - **[resolvida] Intervalos da apuração parcial tratavam n_u como fixo.** n_u passou a ser
   sorteado (choque de UF mais resíduo municipal, só com seções recebidas) e a cobertura é
-  reportada por unidade e ano. Resultado: nenhuma cobertura mudou e as larguras variam menos de
-  0,05 p.p. ([11](11-apuracao-parcial.md), seções 3 e 6).
+  reportada por unidade e ano. Resultado: nenhuma cobertura mudou; as larguras variavam menos de
+  0,05 p.p. antes do 1º turno do mesmo ano e até 0,15 p.p. (mediana) agora ([11](11-apuracao-parcial.md), seções 3 e 6).
 - **Descasamento de θ na apuração parcial**: θ é avaliado em log(n_u), fora da faixa de
   log n do ajuste (n apurado); o erro de θ é ignorado (só o bloco β da covariância de
   Conley é sorteado); σ_UF vem do LOSO do desenho de cada corte
   ([11](11-apuracao-parcial.md), seções 8 e 9).
-- **IC largo na apuração parcial vem da ordem de apuração.** As primeiras seções (capitais e grandes cidades) não
+- **[resolvida em parte] IC largo na apuração parcial.** O diagnóstico D1 a D4 mostrou que o σ_UF inflado, por falta do
+  1º turno do mesmo ano, era a causa principal; com a covariável o IC do Brasil caiu de 1,82 para 0,39 p.p. e a cobertura
+  foi de 56 de 60 para 60 de 60 ([14](14-apuracao-diagnostico-1t.md)). O texto abaixo é o estado de 26/11: as primeiras seções (capitais e grandes cidades) não
   são amostra aleatória da UF. O encolhimento por UF (BLUP) estreitou o IC e perdeu cobertura em 2026 (Brasil 6/6 → 4/6,
   regiões 27/30 → 20/30) e foi rejeitado ([13](13-apuracao-extensoes-rejeitadas.md)). Correção possível: encolhimento
   que pondere o apurado pela semelhança com o restante da UF, calibrado com critério que inclua a cobertura.
+
+- **[resolvida] Swing do 1º turno como linha de base do veredito.** Entrou como terceira linha de base (e como linha
+  tracejada no gráfico de erro): 2022 passa a não útil (3 de 6), 2026 segue útil (6 de 6). A regra mudou depois do
+  resultado, o que o [11](11-apuracao-parcial.md) (seção 1) declara.
+- **Cobertura do IC da apuração parcial não calibrada.** 72 de 72 itens dentro, com IC 5 vezes mais estreito; não
+  separa 95 % de valores maiores. Correção: mais eleições ou ano adicional ([11](11-apuracao-parcial.md), seção 6).
+- **[resolvida] Crista plana da dispersão do Centro-Oeste em 2026 a 10 %.** Teto de θ = 1e9 no limite binomial, com guarda
+  LRT; o ajuste converge ([14](14-apuracao-diagnostico-1t.md), seção 6).
+- **[resolvida] σ_UF e choque de UF.** O choque passou a σ̂·T_k, com k as UFs do desenho do corte ([11](11-apuracao-parcial.md),
+  seção 6).
+- **[resolvida] Fusão de região com a referência no 02.** O 02 passou a usar o mesmo agrupamento de `_fusoes` do 03.
+- **Contagem do funil de covariáveis desatualizada.** O item "Triagem" acima conta 13 selecionadas; com `lag1t` e
+  `outros_1t` como candidatas são 18 contínuas selecionadas (`results/tables/selecao_variaveis.json`). Correção: atualizar
+  o item na revisão do [03](03-modelos-candidatos.md).
+- **Bloco de resíduos negativos sem leitura.** A figura de influência do modelo final tem um bloco de resíduos
+  negativos nos índices ~1850 a 2100, talvez da BA (não conferido); nenhuma leitura o comenta. Correção: identificar
+  a UF e comentar na leitura da figura.
 
 ## Backtest
 
@@ -157,8 +176,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 
 - **[resolvida] Teste de convergência fraco.** `tests/test_convergencia.py` usa dados reais
   (`data/processed/municipios.parquet`; pulado se ausente): a tolerância antiga (`gtol` =
-  1e-4·N) parava 398 unidades de log-verossimilhança abaixo do ótimo polido; o padrão atual
-  fica a 2e-6. O teste sintético foi removido de `tests/test_modelos.py`.
+  1e-4·N) para a ~0,3 do ótimo polido nos parâmetros, quase tudo em log θ (θ ~35 % fora); o padrão
+  fica a 3e-7 de llf. A premissa do teste é essa distância, não a perda de llf, que depende do
+  condicionamento: 398, depois 150 no conjunto anterior e 41 com `lag` e `lag1t` colineares.
+  O teste sintético foi removido de `tests/test_modelos.py`.
 - **[resolvida] Referências com ✔m**: `referencias.md` tem 0 ✔m (36 entradas conferidas na
   web com DOI/ISBN/URL); detalhes residuais na legenda do arquivo.
 - **[resolvida] Saídas que variavam entre execuções.** `l1_logit` (solver `liblinear` sem
@@ -172,7 +193,8 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   ([11](11-apuracao-parcial.md), seção 6).
 - **Envelope da beta-binomial no 02-MLG consome a maior parte dos 7,5 min** (49 reajustes
   de ~4 s). Correção: partida a quente (warm start) e remover o passo de polimento.
-- **[resolvida] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos, depois 15. A
+- **[resolvida] `mypy` em `src/pressupostos.py`:** sem erros.
+- **[resolvida, histórico] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos, depois 15. A
   primeira leitura ("os 15 são lacunas dos stubs") estava errada: 7 eram do nosso código
   (Optional sem estreitamento em `exog_names` e na ligação, assinatura de `fit` diferente da
   do statsmodels, retorno de `_logit`) e foram corrigidos. Restam 3 `ty: ignore` com motivo,
@@ -186,13 +208,19 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   `BLOCOS_PADRAO` de propósito: compara famílias numa especificação fixa ([03](03-modelos-candidatos.md), [09](09-modelo-final.md)).
   Os p-valores dos passos de fusão (0,236; 0,474; 0,083) estão nas Tabelas 8.11 e 8.12 do `02-MLG`
   (`results/tables/fusao_regiao_passos.csv` e `fusao_bloco_passos.csv`) e reproduzem os valores antigos.
-- **Inconsistências no markdown do `02-MLG` (a corrigir no notebook).** A célula da Parte 6 diz que
-  `bin_probit` é o melhor (0,998; 13 de 18), contra o CSV e a célula seguinte (`bb_selecao`, 1,005); outra
-  cita 11 contínuas, e são 12 além do lag.
-- **Texto dos notebooks com números antigos.** Parte do markdown do `02-MLG` (ex.: seção 8, com
-  p = 0,921 e 0,466, e a seção 8.3, com 11 contínuas e BIC 72.844,9) ainda cita a rodada
-  anterior; as tabelas e figuras geradas estão certas. Correção: revisar o markdown contra as
-  saídas.
+- **[resolvida] Inconsistências no markdown do `02-MLG`.** A Parte 6 cita o `bb_selecao` como o melhor, como o CSV;
+  "11 contínuas" ficou só para o conjunto antigo.
+- **Texto com números ainda não conferido.** Em 2026-11-27 o markdown do `02-MLG` e do `03`, o README e os
+  arquivos 03, 04, 09, 11 e 14 foram conferidos contra `results/` e as saídas e corrigidos. Ficaram fora: as
+  células 26, 28, 33, 82 e 146 do `02-MLG` (índices dessa data), θ, ρ e fusão do [03](03-modelos-candidatos.md),
+  a coluna de 5 dobras e as tabelas das seções 6 e 8 do [05](05-validacao-cruzada.md), as larguras de BA e SP do
+  [09](09-modelo-final.md) e a tabela regional do README. Sem fonte em `results/`: n̂ 0,969 e 3,81 % do
+  [09](09-modelo-final.md); SP ≈ 5 p.p. e 77 % do [08](08-dependencia-espacial.md). Correção: conferir esses
+  pontos e tirar o número que não tiver fonte.
+- **Logit empírico sem citação em Paula.** A escolha do logit empírico (`log((y+½)/(n−y+½))`) como linha de base e para
+  `lag1t` cita McCullagh e Nelder ([referências](referencias.md)); a seção de Paula que a sustenta não foi
+  identificada. Também falta conferir se Paula 4.6.6 (citada no notebook 03 para a variância de β̂ e em `src/` para a
+  seleção dentro do município) é a seção certa nos dois usos.
 - **Agrupamento por UF não feito.** A seleção aninhada funde só níveis de região e de bloco de
   prefeito; UFs com comportamento parecido não são agrupadas. Correção: testar a fusão de UFs
   dentro de cada dobra, se o erro por UF justificar.

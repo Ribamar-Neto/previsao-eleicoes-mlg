@@ -1,77 +1,69 @@
 {
- "versao": 1,
+ "versao": 5,
  "termos": {
   "vars": [
    "lag",
+   "lag1t",
+   "outros_1t",
+   "pct_dep_esq",
+   "log_dens",
+   "pct_16_24",
    "pct_60_mais",
-   "pct_evangelicos",
-   "pct_urbana",
-   "pct_fund_inc",
-   "w_lag",
-   "w_pct_60_mais",
-   "w_pct_evangelicos",
-   "w_pct_urbana",
-   "w_pct_fund_inc"
+   "pct_superior",
+   "cobertura_pbf",
+   "pct_vab_agro"
   ],
-  "disp": "regiao_logn",
-  "slx": [
-   "lag",
-   "pct_60_mais",
-   "pct_evangelicos",
-   "pct_urbana",
-   "pct_fund_inc"
-  ],
+  "disp": "const",
+  "slx": [],
   "regiao_fundir": [
    [
-    "Centro-Oeste",
     "Nordeste",
     "Norte",
     "Sudeste"
    ]
   ],
-  "bloco_grupos": []
+  "bloco_grupos": [
+   [
+    "sem_prefeito"
+   ]
+  ]
  },
- "corte_km": 150.0,
- "sigma_uf": 0.1261883490266937,
- "limite": 2.6968172323169566,
+ "corte_km": 100.0,
+ "sigma_uf": 0.018635334725076596,
+ "limite": 0.40131657478699584,
  "mae_pp": {
-  "r1": 2.232529864899813,
-  "disp": 2.1880998545634553,
-  "slx": 1.9921559192166352,
-  "final": 1.9921559192166352
+  "r1": 0.35309953434339814,
+  "final": 0.35309953434339814
  },
- "ep_r1_pp": 0.4642873674171433,
+ "ep_r1_pp": 0.04821704044359771,
  "aceitos": {
-  "disp": true,
-  "slx": true
+  "disp": false,
+  "slx": false
  },
  "wald": {
-  "A": 4.377476793566178e-06,
-  "B": 9.411240314485401e-42
+  "A": 0.13632287684814842,
+  "B": NaN
  },
  "bic_dispersao": {
-  "const": 26906.535121006214,
-  "regiao": 26650.140299136805,
-  "regiao_logn": 26153.391189503862
+  "const": 19052.21709330624,
+  "regiao": 19049.941540722877
  },
  "n_ufs_loso": 26,
  "n_municipios": 2127,
- "tempo_s": 165.23461985588074,
+ "tempo_s": 157.202978849411,
  "extra": {
   "corte_r1_km": 100.0,
   "wald_cortes_km": {
-   "corte_A_km": 150.0,
-   "corte_B_km": 200.0
+   "corte_A_km": 100.0
   },
   "ufs_puladas": {
-   "r1": [],
-   "disp": [],
-   "slx": []
+   "r1": []
   },
   "piso_aplicado": {
    "r1": false,
    "final": false,
    "wald": false
   }
- }
+ },
+ "gl_sigma_uf": 26
 }

@@ -8,16 +8,30 @@ votos, validação cruzada, métricas, resíduos quantílicos e intervalos.
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 import statsmodels.api as sm
 from scipy import stats
-from scipy.special import betaln, digamma, expit, gammaln, xlogy
-from statsmodels.base.model import GenericLikelihoodModel
+from scipy.special import betaln, digamma, expit, gammaln, polygamma, xlogy
+from statsmodels.base.model import GenericLikelihoodModel, GenericLikelihoodModelResults
 
 _EPS = 1e-12
+# Argumentos posicionais de `_otimizar` depois de start_params: method, maxiter, full_output, disp, callback, retall.
+type _ArgsOtimizar = tuple[str, int, int, bool, Callable[[np.ndarray], None] | None, int]
+# Teto da precisão theta de um grupo de dispersão que corre para o limite binomial. O fator de
+# variância da beta-binomial é 1 + (n-1)/(1+theta); com o maior n da base (7e6 votos válidos de
+# um município em 2026) e theta = 1e9 ele fica a 0,7 % do binomial, dentro da tolerância de 1 %
+# adotada. Acima disso a verossimilhança é plana (theta é praticamente irrelevante) e o
+# otimizador fica sem direção de subida, sem convergir.
+THETA_TETO = 1e9
+# Um grupo só é candidato ao teto quando o theta de todos os seus municípios passa deste piso
+# (correlação intraclasse rho = 1/(1+theta) <= 1e-5): abaixo disso theta ainda é identificado
+# pelos dados e o ajuste não é tocado. Os ajustes regionais do 02-MLG ficam em theta <= 3e4.
+THETA_CANDIDATO_TETO = 1e5
 AVISO_NAO_PSD = "Covariância não PSD"
 
 
@@ -92,6 +106,11 @@ class BetaBinomial(GenericLikelihoodModel):
             self.k_extra = Z.shape[1]
             self.nparams = self._p + Z.shape[1]
         self._log_binom = gammaln(self.n + 1) - gammaln(self.endog + 1) - gammaln(self.n - self.endog + 1)
+        # Grupos no teto: dummies de dispersão fixadas (`congelados`, índices em params) e as
+        # linhas desses grupos, que passam a ter theta = THETA_TETO sem depender de params.
+        self.congelados: list[int] = []
+        self._linhas_teto: np.ndarray | None = None
+        self._teto_avaliado = False
 
     def _pi(self, params, exog=None):
         exog = self.exog if exog is None else exog
@@ -102,7 +121,10 @@ class BetaBinomial(GenericLikelihoodModel):
         if self.exog_disp is None:
             return np.exp(params[-1])
         Z = self.exog_disp if exog_disp is None else np.asarray(exog_disp, float)
-        return np.exp(Z @ np.asarray(params)[self._p :])
+        theta = np.exp(Z @ np.asarray(params)[self._p :])
+        if exog_disp is None and self._linhas_teto is not None:
+            theta = np.where(self._linhas_teto, THETA_TETO, theta)
+        return theta
 
     def loglikeobs(self, params):
         pi = self._pi(params)
@@ -130,12 +152,54 @@ class BetaBinomial(GenericLikelihoodModel):
         dpi = np.asarray(self.link.inverse_deriv(eta), float)
         g_eta = theta * dpi * (da - db)
         g_lt = theta * (pi * da + (1 - pi) * db)
+        if self._linhas_teto is not None:
+            g_lt = np.where(self._linhas_teto, 0.0, g_lt)  # theta fixo no teto: não depende de gamma
         return np.hstack([self.exog * g_eta[:, None], self.exog_disp * g_lt[:, None]])
 
     def score(self, params):
         if self.exog_disp is None:
             return super().score(params)
         return self.score_obs(params).sum(0)
+
+    def hessian(self, params: np.ndarray) -> np.ndarray:
+        """Hessiana analítica (trigamma) no caminho com dispersão; o antigo segue numérico.
+
+        A numérica do statsmodels (diferenças segundas da log-verossimilhança somada) erra ~1e-3
+        do maior elemento quando n chega a 1e6. Com autovalores de 0,04 a 3e6 (corte 2026/5 da
+        apuração) isso a torna indefinida: o statsmodels zera cov_params e o pão de Conley sai errado.
+        """
+        if self.exog_disp is None:
+            return super().hessian(params)
+        params = np.asarray(params, float)
+        eta = self.exog @ params[: self._p]
+        pi = _pi_de_eta(eta, self.link)
+        theta = self._theta(params, exog_disp=None)
+        a, b = pi * theta, (1 - pi) * theta
+        y, n = self.endog, self.n
+        comum = digamma(theta) - digamma(n + theta)
+        da = digamma(y + a) - digamma(a) + comum
+        db = digamma(n - y + b) - digamma(b) + comum
+        ab = polygamma(1, theta) - polygamma(1, n + theta)  # ∂²ℓ/∂a∂b
+        aa = polygamma(1, y + a) - polygamma(1, a) + ab
+        bb = polygamma(1, n - y + b) - polygamma(1, b) + ab
+        d1 = np.asarray(self.link.inverse_deriv(eta), float)
+        d2 = np.asarray(self.link.inverse_deriv2(eta), float)
+        t1 = theta * d1  # ∂a/∂η = −∂b/∂η; ∂a/∂log θ = a, ∂b/∂log θ = b
+        h_ee = t1**2 * (aa + bb - 2 * ab) + theta * d2 * (da - db)
+        h_el = t1 * (a * (aa - ab) + b * (ab - bb) + da - db)
+        h_ll = a**2 * aa + 2 * a * b * ab + b**2 * bb + a * da + b * db
+        if self._linhas_teto is not None:
+            h_el, h_ll = np.where(self._linhas_teto, 0.0, h_el), np.where(self._linhas_teto, 0.0, h_ll)
+        X, Z = self.exog, self.exog_disp
+        H = np.block(
+            [
+                [X.T @ (X * h_ee[:, None]), X.T @ (Z * h_el[:, None])],
+                [Z.T @ (X * h_el[:, None]), Z.T @ (Z * h_ll[:, None])],
+            ]
+        )
+        for j in self.congelados:
+            H[j, j] = -1.0  # parâmetro fora do ajuste: bloco inversível e sem covariância com os demais
+        return H
 
     def predict(self, params, exog=None, *args, **kwds):
         """Retorna pi (média da proporção de votos)."""
@@ -163,16 +227,17 @@ class BetaBinomial(GenericLikelihoodModel):
             return np.append(np.asarray(glm.params), gam)
         return np.append(np.asarray(glm.params), lt)
 
-    def fit(
-        self, start_params=None, method="bfgs", maxiter=2000, full_output=1, disp=False, callback=None, retall=0, **kwds
-    ):
-        if start_params is None:
-            start_params = self._start()
-        # gtol sobre a log-verossimilhança SOMADA: um limite proporcional a N (1e-4*N)
-        # parava ~390 unidades abaixo do ótimo; 1e-3 absoluto chega ao ótimo (< 0,05).
-        # Só o BFGS aceita gtol; o L-BFGS usa pgtol e emite aviso com gtol.
-        if method == "bfgs":
-            kwds.setdefault("gtol", 1e-3)
+    def _otimizar(
+        self,
+        start_params: np.ndarray,
+        method: str,
+        maxiter: int,
+        full_output: int,
+        disp: bool,
+        callback: Callable[[np.ndarray], None] | None,
+        retall: int,
+        **kwds: object,
+    ) -> GenericLikelihoodModelResults:
         return super().fit(
             start_params=start_params,
             method=method,
@@ -183,6 +248,92 @@ class BetaBinomial(GenericLikelihoodModel):
             retall=retall,
             **kwds,
         )
+
+    def fit(
+        self, start_params=None, method="bfgs", maxiter=2000, full_output=1, disp=False, callback=None, retall=0, **kwds
+    ):
+        if start_params is None:
+            start_params = self._start()
+        # gtol sobre a log-verossimilhança SOMADA: um limite proporcional a N (1e-4*N)
+        # parava ~390 unidades abaixo do ótimo; 1e-3 absoluto chega ao ótimo (< 0,05).
+        # Só o BFGS aceita gtol; o L-BFGS usa pgtol e emite aviso com gtol.
+        if method == "bfgs":
+            kwds.setdefault("gtol", 1e-3)
+        args = (method, maxiter, full_output, disp, callback, retall)
+        res = self._otimizar(start_params, *args, **kwds)
+        if self.exog_disp is None:
+            return res
+        if not self._teto_avaliado:
+            res = self._aplicar_teto(res, args, kwds)
+        if self.congelados:
+            res = self._polir_newton(res)
+            self._reposicionar_congelados(res.params)
+        return res
+
+    def _polir_newton(self, res: GenericLikelihoodModelResults) -> GenericLikelihoodModelResults:
+        """Newton com a hessiana analítica a partir do ajuste com grupo no teto.
+
+        Com theta fixo no teto sobra uma hessiana de condição ~1e7 (n chega a 1e6): BFGS e L-BFGS
+        param com gradiente de ~0,7 na soma, sem convergir. Newton fecha em 3 passos. Só roda
+        quando há grupo no teto, para os demais ajustes ficarem como estavam.
+        """
+        try:
+            pol = self._otimizar(np.asarray(res.params, float), "newton", 50, 1, False, None, 0)
+        except np.linalg.LinAlgError:
+            return res
+        return pol if pol.llf >= res.llf else res
+
+    def _colunas_no_teto(self, params: np.ndarray) -> list[int]:
+        """Dummies de dispersão cujo grupo tem theta >= THETA_CANDIDATO_TETO em toda linha."""
+        Z, p = self.exog_disp, self._p
+        assert Z is not None and p is not None, "só roda no caminho com submodelo de dispersão"
+        theta = self._theta(params, exog_disp=None)
+        achadas: list[int] = []
+        for j in range(Z.shape[1]):
+            col = Z[:, j]
+            if not (set(np.unique(col)) <= {0.0, 1.0}) or col.sum() in (0, len(col)):
+                continue
+            g = col == 1.0
+            if np.all(theta[g] >= THETA_CANDIDATO_TETO):
+                achadas.append(p + j)
+        return achadas
+
+    def _aplicar_teto(
+        self, res: GenericLikelihoodModelResults, args: _ArgsOtimizar, kwds: dict[str, Any]
+    ) -> GenericLikelihoodModelResults:
+        """Refaz o ajuste com os grupos no limite binomial fixados em THETA_TETO.
+
+        Sem candidato, o resultado volta intacto. O teto só vale se a verossimilhança não cair
+        mais que o LRT a 5 % admite (meio qui-quadrado com um gl por grupo): o grupo é então
+        indistinguível do binomial.
+        """
+        self._teto_avaliado = True
+        cols = self._colunas_no_teto(np.asarray(res.params))
+        if not cols:
+            return res
+        Z, p = self.exog_disp, self._p
+        assert Z is not None and p is not None, "só roda no caminho com submodelo de dispersão"
+        linhas = np.any(Z[:, [c - p for c in cols]] == 1.0, axis=1)
+        livres = [j for j in range(Z.shape[1]) if p + j not in cols]
+        if linhas.all() or np.linalg.matrix_rank(Z[~linhas][:, livres]) < len(livres):
+            return res  # grupo de referência no limite: sem dummy para fixar, o ajuste fica como está
+        self.congelados, self._linhas_teto = cols, linhas
+        ini = np.asarray(res.params, float)
+        res_t = self._otimizar(ini, *args, **kwds)
+        if res_t.llf < res.llf - stats.chi2.ppf(0.95, len(cols)) / 2:
+            self.congelados, self._linhas_teto = [], None
+            return res
+        return res_t
+
+    def _reposicionar_congelados(self, params: np.ndarray) -> None:
+        """Põe a dummy fixada onde `exp(Z gamma)` do grupo dá THETA_TETO (previsões fora do treino usam Z gamma)."""
+        Z, p = self.exog_disp, self._p
+        assert Z is not None and p is not None, "só roda no caminho com submodelo de dispersão"
+        for c in self.congelados:
+            j = c - p
+            g = Z[:, j] == 1.0
+            resto = Z[g] @ params[p:] - params[c]
+            params[c] = np.log(THETA_TETO) - resto.mean()
 
 
 def _theta_ajustado(resultado):
@@ -371,7 +522,19 @@ def simular_agregado(
 
 
 def simular_votos_grupo(
-    beta_hat, cov_beta, X, n, grupos, link=None, theta=None, sigma=0.0, B=1000, rng=None, lote=100, offset=None
+    beta_hat,
+    cov_beta,
+    X,
+    n,
+    grupos,
+    link=None,
+    theta=None,
+    sigma=0.0,
+    B=1000,
+    rng=None,
+    lote=100,
+    offset=None,
+    gl_uf: int | None = None,
 ):
     """Votos simulados por grupo: matriz B x G (colunas na ordem de np.unique(grupos)).
 
@@ -382,6 +545,8 @@ def simular_votos_grupo(
     (regiões, Brasil) antes de dividir pelo total de votos. `offset` (opcional) é
     somado ao preditor linear sem coeficiente (modelos com defasagem fixa). `n` pode ter
     forma (B, municípios): um total de votos por simulação (incerteza do restante).
+    `gl_uf` (opcional): σ̂ é estimado de `gl_uf` resíduos de UF, então o choque de uma UF nova é
+    σ̂·T com T de Student com `gl_uf` graus de liberdade; `None` mantém o choque normal.
     """
     rng = np.random.default_rng(rng)
     link = _link(link)
@@ -395,7 +560,11 @@ def simular_votos_grupo(
         if offset is not None:
             eta = eta + np.asarray(offset, float)[None, :]
         if sigma > 0:
-            eta = eta + rng.normal(0.0, sigma, size=(b, len(nomes)))[:, cods]
+            if gl_uf is None:
+                choque = rng.normal(0.0, sigma, size=(b, len(nomes)))
+            else:
+                choque = sigma * rng.standard_t(gl_uf, size=(b, len(nomes)))
+            eta = eta + choque[:, cods]
         pi = _pi_de_eta(eta, link)
         if theta is not None:
             pi = rng.beta(pi * theta, (1 - pi) * theta)

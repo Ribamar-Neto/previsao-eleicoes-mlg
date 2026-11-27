@@ -35,6 +35,8 @@ MAPA_2026 = {
     "y": "votos_pt_2t_2026",
     "n": "n_2t_2026",
     "lag": "logit_pt_2t_2022",
+    "lag1t": "logit_1t_2026",  # 1º turno do próprio ciclo: conhecido 4 semanas antes do 2º turno
+    "outros_1t": "outros_1t_2026",
     "nota_dep": "nota_media_dep_2026",
     "pct_dep_esq": "pct_dep_esq_2026",
     "bloco_pref": "bloco_prefeito_2024",
@@ -63,6 +65,8 @@ MAPA_2026 = {
 MAPA_2026_PRE = MAPA_2026  # apelido até o `02-MLG` e o `03-apuracao-parcial` deixarem de citá-lo
 CONTINUAS = [
     "lag",
+    "lag1t",
+    "outros_1t",
     "nota_dep",
     "pct_dep_esq",
     "comparecimento",
@@ -470,7 +474,8 @@ class Candidato:
             pol = mod.fit(start_params=res.params, method="lbfgs", maxiter=3000)
             res = pol if pol.llf >= res.llf else res
             nomes = [c for c in X.columns if c != _COL_OFFSET] + ["log_theta"]
-            return Ajuste(res, pad, nomes, len(nomes), float(res.llf), {"theta": M.theta_de(res), "rho": M.icc(res)})
+            extra = {"theta": M.theta_de(res), "rho": M.icc(res), "n_beta": len(nomes) - 1}
+            return Ajuste(res, pad, nomes, len(nomes), float(res.llf), extra)
         if f == "betareg":
             if link is None:
                 raise ValueError(f"ligação desconhecida: {self.ligacao}")

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from .especificacoes import Ajuste, Candidato
 
-Matriz = np.ndarray
+type Matriz = np.ndarray
 
 
 def reajustar(res: Any, exog: Matriz, manter: np.ndarray | None = None) -> Any:
@@ -265,7 +265,7 @@ def residuos_quantilicos_rapido(
     número de pontos cresce com n: J = max(base, c*sqrt(n/theta)), arredondado para base*2^k.
     Erro máximo da FDA ~2e-4 (conferido contra a scipy no notebook). theta=None: binomial.
     """
-    rng = np.random.default_rng(rng)
+    gerador = np.random.default_rng(rng)
     y, n = np.asarray(y).astype(np.int64), np.asarray(n).astype(np.int64)
     pv = np.clip(np.asarray(pi, float), 1e-9, 1 - 1e-9)
     if theta is None:
@@ -287,7 +287,7 @@ def residuos_quantilicos_rapido(
             return out
 
     lo, hi = fda(y - 1), fda(y)
-    u = np.clip(lo + rng.uniform(size=y.shape) * (hi - lo), 1e-10, 1 - 1e-10)
+    u = np.clip(lo + gerador.uniform(size=y.shape) * (hi - lo), 1e-10, 1 - 1e-10)
     return stats.norm.ppf(u)
 
 

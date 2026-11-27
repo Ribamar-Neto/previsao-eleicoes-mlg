@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sp
+from libpysal.weights import WSP, W
 from scipy.special import expit, logit
 
 from src import desenho_parcial as DP
@@ -30,7 +31,7 @@ REGIAO_UF = {
 }
 
 
-def _base(por_uf: dict[str, int], seed: int = 3) -> tuple[pd.DataFrame, SimpleNamespace]:
+def _base(por_uf: dict[str, int], seed: int = 3) -> tuple[pd.DataFrame, W]:
     rng = np.random.default_rng(seed)
     uf = np.concatenate([[u] * k for u, k in por_uf.items()])
     N = len(uf)
@@ -45,7 +46,8 @@ def _base(por_uf: dict[str, int], seed: int = 3) -> tuple[pd.DataFrame, SimpleNa
     df[MAPA_2026["bloco_pref"]] = rng.choice(["esquerda", "direita", "centro"], N)
     df["lat"], df["lon"] = rng.uniform(-30, 0, N), rng.uniform(-60, -40, N)
     A = sp.diags([np.ones(N - 1), np.ones(N - 1)], [-1, 1], format="csr")  # cadeia i-1, i+1
-    w = SimpleNamespace(n=N, sparse=sp.diags(1.0 / np.asarray(A.sum(axis=1)).ravel()) @ A)
+    w = WSP(A).to_W()
+    w.transform = "r"  # linha-padronizada: mesma matriz de pesos que o código usa
     return df, w
 
 
@@ -60,6 +62,9 @@ def test_2022_exclui_delta_comp_e_2026_mantem() -> None:
     assert "delta_comp" not in DP.candidatas_do_ano(2022)
     assert "delta_comp" in DP.candidatas_do_ano(2026)
     assert "lag" not in DP.candidatas_do_ano(2026)
+    for ano in (2022, 2026):
+        assert {"lag1t", "outros_1t"} <= set(DP.candidatas_do_ano(ano))
+    assert DP.VERSAO == 5  # 5: theta no limite binomial fixado no teto e fora do Wald de Conley
 
 
 class _Parar(Exception):
@@ -135,13 +140,14 @@ def _desenho() -> DP.DesenhoParcial:
 
 
 def test_cache_ida_e_volta(tmp_path: Path) -> None:
-    d = _desenho()
+    d = replace(_desenho(), gl_sigma_uf=18)
     DP.gravar_cache(d, 2026, 25, tmp_path)
     lido = DP.ler_cache(2026, 25, tmp_path)
     assert lido is not None
     assert lido.termos == d.termos
     assert lido.corte_km == 150.0
     assert lido.n_ufs_loso == 20
+    assert lido.gl_sigma_uf == 18
     assert lido.aceitos == {"disp": True, "slx": False}
     assert (tmp_path / "desenho_parcial_2026_25.json").exists()
 
@@ -245,6 +251,7 @@ def test_aceitos_usam_loso_do_desenho_final_no_sigma(dados: DP.DadosCorte, monke
     assert d.sigma_uf == pytest.approx(DP.sigma_uf(f(Candidato("x", "betabin", "logit", d.termos), None, None, 1)))
     assert d.limite == pytest.approx(d.mae_pp["r1"] + d.ep_r1_pp)
     assert d.n_ufs_loso == 10
+    assert d.gl_sigma_uf == len(f(Candidato("x", "betabin", "logit", d.termos), None, None, 1).prev)
 
 
 # --- ponta a ponta com ajustes reais ------------------------------------------------------
@@ -328,3 +335,109 @@ def test_desenhos_por_corte_registra_falha_de_linalg(
     assert out == {}
     assert "singular" in falhas[(2026, 5)]
     assert DP.ler_cache(2026, 5, tmp_path) is None
+
+
+# --- lag1t e outros_1t por parte (3b) -----------------------------------------------------------
+def _cenario_1t() -> tuple[pd.DataFrame, W, np.ndarray, np.ndarray, dict[str, np.ndarray], dict[str, np.ndarray]]:
+    df, w = _base({u: 10 for u in REGIAO_UF})
+    y, n = df[MAPA_2026["y"]].to_numpy(), df[MAPA_2026["n"]].to_numpy()
+    n_c = n * 0.5
+    n_c[:5] = 0.0  # municípios sem apurado ficam fora de D
+    treino = {
+        MAPA_2026["lag1t"]: df[MAPA_2026["lag1t"]].to_numpy() + 0.7,
+        MAPA_2026["outros_1t"]: df[MAPA_2026["outros_1t"]].to_numpy() + 0.1,
+    }
+    resto = {MAPA_2026["lag1t"]: df[MAPA_2026["lag1t"]].to_numpy() - 0.4}
+    return df, w, y * 0.5, n_c, treino, resto
+
+
+def test_dados_do_corte_sobrescritas_iguais_ao_quadro_dao_o_mesmo_D() -> None:
+    df, w, y_c, n_c, _, _ = _cenario_1t()
+    own = {MAPA_2026[k]: df[MAPA_2026[k]].to_numpy() for k in ("lag1t", "outros_1t")}
+    ref = DP.dados_do_corte(df, MAPA_2026, w, y_c, n_c)
+    com = DP.dados_do_corte(df, MAPA_2026, w, y_c, n_c, treino=own)
+    pd.testing.assert_frame_equal(ref.D, com.D, check_exact=True)
+
+
+def test_dados_do_corte_sobrescrita_so_em_D_e_slx_municipal() -> None:
+    df, w, y_c, n_c, treino, _ = _cenario_1t()
+    d = DP.dados_do_corte(df, MAPA_2026, w, y_c, n_c, treino=treino)
+    col = MAPA_2026["lag1t"]
+    assert np.array_equal(d.D[col].to_numpy(), treino[col][n_c > 0])
+    assert np.array_equal(d.df[col].to_numpy(), df[col].to_numpy())  # quadro completo segue municipal
+    base = Termos(vars=("lag", "lag1t"))
+    ref = DP._escolher_slx(base, DP.dados_do_corte(df, MAPA_2026, w, y_c, n_c))[3]
+    com = DP._escolher_slx(base, d)[3]
+    wcol = f"w_{col}"
+    assert np.array_equal(com.df[wcol].to_numpy(), ref.df[wcol].to_numpy())  # W·x municipal
+    assert np.array_equal(com.D[col].to_numpy(), treino[col][n_c > 0])  # a própria coluna segue por parte
+
+
+def test_ajustar_parcial_identidade_com_sobrescritas_proprias() -> None:
+    from src import apuracao as A
+
+    df, _, y_c, n_c, _, _ = _cenario_1t()
+    cand = Candidato("t", "betabin", "logit", Termos(vars=("lag", "lag1t", "outros_1t"), disp="regiao"))
+    n_u = df[MAPA_2026["n"]].to_numpy() * 0.5
+    args = (cand, df, MAPA_2026, y_c, n_c, n_u, df["lat"].to_numpy(), df["lon"].to_numpy(), 200.0)
+    own = {MAPA_2026[k]: df[MAPA_2026[k]].to_numpy() for k in ("lag1t", "outros_1t")}
+    a, b = A.ajustar_parcial(*args), A.ajustar_parcial(*args, treino=own, resto=own)
+    for campo in ("pi", "beta", "cov", "X", "theta"):
+        assert np.array_equal(getattr(a, campo), getattr(b, campo)), campo
+    c = A.ajustar_parcial(*args, treino=_cenario_1t()[4], resto=_cenario_1t()[5])
+    assert not np.array_equal(a.beta, c.beta) and not np.array_equal(a.X, c.X)
+
+
+def test_ajustar_parcial_sem_dispersao() -> None:
+    """Corte cujo desenho rejeitou a dispersão (disp="const", beta-binomial simples) também ajusta."""
+    from src import apuracao as A
+
+    df, _, y_c, n_c, _, _ = _cenario_1t()
+    cand = Candidato("t", "betabin", "logit", Termos(vars=("lag", "lag1t")))
+    n_u = df[MAPA_2026["n"]].to_numpy() * 0.5
+    r = A.ajustar_parcial(cand, df, MAPA_2026, y_c, n_c, n_u, df["lat"].to_numpy(), df["lon"].to_numpy(), 200.0)
+    assert r.beta.shape == (r.X.shape[1],)
+    assert r.cov.shape == (r.X.shape[1], r.X.shape[1])
+    assert r.theta is not None
+    assert np.ptp(r.theta) == 0.0  # theta único
+
+
+# --- grupo de dispersão no limite binomial: fixado no teto e fora do Wald -----------------------
+def _dados_centro_oeste_binomial() -> DP.DadosCorte:
+    df, w = _base({u: 10 for u in REGIAO_UF}, seed=11)
+    co = (df[MAPA_2026["regiao"]] == "Centro-Oeste").to_numpy()
+    rng = np.random.default_rng(4)
+    n = df[MAPA_2026["n"]].to_numpy().copy()
+    n[co] = rng.integers(200, 400, co.sum())
+    p = expit(0.2 + 0.5 * df[MAPA_2026["lag"]] + 0.6 * df[MAPA_2026["nota_dep"]]).to_numpy()
+    y = df[MAPA_2026["y"]].to_numpy().copy()
+    y[co] = rng.binomial(n[co].astype(int), p[co])  # sem sobredispersão: theta -> infinito
+    df[MAPA_2026["n"]], df[MAPA_2026["y"]] = n, y
+    return DP.dados_do_corte(df, MAPA_2026, w, y, n)
+
+
+def test_regiao_binomial_fica_no_teto_e_fora_do_wald() -> None:
+    from src import modelos as M
+
+    d = _dados_centro_oeste_binomial()
+    D, mapa = d.D, d.mapa
+    aj = DP._candidato(Termos(vars=("lag", "nota_dep"), disp="regiao")).ajustar(D, mapa)
+    mod = aj.modelo.model
+    i_co = aj.nomes.index("disp_reg_Centro-Oeste")
+    assert mod.congelados == [i_co]
+    assert np.all(aj.extra["theta_regiao"]["Centro-Oeste"] == M.THETA_TETO)
+    assert DP._bic(aj, len(D)) == pytest.approx((aj.k - 1) * np.log(len(D)) - 2 * aj.loglik)
+    lat, lon = D["lat"].to_numpy(float), D["lon"].to_numpy(float)
+    cov = S.cov_conley(aj.modelo, lat, lon, 100.0)
+    ind = [i for i, s in enumerate(aj.nomes) if s.startswith("disp_reg_") and i != i_co]
+    esperado = S.wald_robusto(aj.modelo.params, cov, ind)[2]
+    p = DP._p_wald(aj, lambda s: s.startswith("disp_reg_"), D, 100.0)
+    assert np.isfinite(p)
+    assert p == pytest.approx(esperado)
+
+
+def test_dispersao_dentro_do_teto_nao_congela_nada(dados: DP.DadosCorte) -> None:
+    D, mapa = dados.D, dados.mapa
+    aj = DP._candidato(Termos(vars=("lag", "nota_dep"), disp="regiao")).ajustar(D, mapa)
+    assert aj.modelo.model.congelados == []
+    assert DP._bic(aj, len(D)) == pytest.approx(aj.k * np.log(len(D)) - 2 * aj.loglik)

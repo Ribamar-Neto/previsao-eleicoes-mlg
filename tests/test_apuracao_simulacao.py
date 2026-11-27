@@ -162,3 +162,36 @@ def test_estimar_aninhado_usa_sigma_sem_por_uf_e_regiao() -> None:
     np.testing.assert_array_equal(d[d.nivel == "uf"].q50, ref[ref.nivel == "uf"].q50)
     ref_s = A.resumo_f(A.simular_f(partes, "cov_conley", A.sigma_sem(res, ["CC"]), nhat=nhat, link=link, B=40), **kw)
     assert d[d.nome == "S"].q50.iloc[0] == ref_s[ref_s.nome == "S"].q50.iloc[0]
+
+
+def test_simular_f_com_gl_uf_muda_o_choque_e_none_nao() -> None:
+    partes, nhat, link = _partes(lambda k: None), np.full(15, 700.0), E.LIGACOES["logit"]
+    base = A.simular_f(partes, "cov_conley", 0.2, nhat=nhat, link=link, B=40)
+    np.testing.assert_array_equal(base, A.simular_f(partes, "cov_conley", 0.2, nhat=nhat, link=link, B=40, gl_uf=None))
+    com_t = A.simular_f(partes, "cov_conley", 0.2, nhat=nhat, link=link, B=40, gl_uf=5)
+    assert not np.array_equal(base, com_t)
+    vet = A.simular_f(partes, "cov_conley", 0.2, nhat=nhat, link=link, B=40, gl_uf=[5, 5, 5])
+    np.testing.assert_array_equal(com_t, vet)
+
+
+def test_estimar_aninhado_com_t_usa_k_menos_as_ufs_excluidas() -> None:
+    partes, nhat, link = _partes(lambda k: None), np.full(15, 700.0), E.LIGACOES["logit"]
+    res = pd.Series([0.3, -0.4, 0.5], index=UFS)
+    kw = {
+        "ufs": UFS,
+        "regs": REGS,
+        "n_uf": np.array([3000.0, 4000.0, 5000.0]),
+        "uf_reg": np.array(["N", "N", "S"]),
+        "obs_uf": pd.Series([0.4, 0.5, 0.6], index=UFS),
+        "obs_reg": pd.Series([0.45, 0.6], index=REGS),
+        "obs_brasil": 0.5,
+        "prev_uf": pd.Series([0.4, 0.5, 0.6], index=UFS),
+    }
+    d = A.estimar_aninhado(partes, "cov_conley", res, kw, A.Sorteio(nhat, link, n_boot=40, gl_uf=7))
+    sig_uf = [A.sigma_sem(res, [u]) for u in UFS]
+    ref = A.resumo_f(A.simular_f(partes, "cov_conley", sig_uf, nhat=nhat, link=link, B=40, gl_uf=6), **kw)
+    np.testing.assert_array_equal(d[d.nivel == "uf"].q50, ref[ref.nivel == "uf"].q50)
+    ref_s = A.resumo_f(
+        A.simular_f(partes, "cov_conley", A.sigma_sem(res, ["CC"]), nhat=nhat, link=link, B=40, gl_uf=6), **kw
+    )
+    assert d[d.nome == "S"].q50.iloc[0] == ref_s[ref_s.nome == "S"].q50.iloc[0]

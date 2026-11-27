@@ -12,8 +12,10 @@ Regras de negócio:
   válidos da UF.
 - Contagem bruta: share apurado da região. Swing uniforme: swing nacional médio dos apurados
   contra o 2º turno anterior, somado ao share anterior de cada município não apurado.
+  Swing do 1º turno (`swing_1t`): mesmo swing, medido contra o 1º turno do mesmo ano.
 - Regra de utilidade (fixada antes): o modelo vence um corte se o erro absoluto do Brasil E o
-  MAE regional forem menores que os da contagem bruta E do swing; é útil com >= 4 de 6 cortes.
+  MAE regional forem menores que os da contagem bruta, do swing E do swing do 1º turno; é útil
+  com >= 4 de 6 cortes.
 """
 
 from __future__ import annotations
@@ -23,10 +25,9 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, cast
 
-from statsmodels.genmod.families.links import Link
-
 import numpy as np
 import pandas as pd
+from statsmodels.genmod.families.links import Link
 
 from src import espacial as S
 from src import especificacoes as E
@@ -34,11 +35,21 @@ from src import modelos as M
 
 CORTES: tuple[int, ...] = (5, 10, 25, 50, 67, 90)
 MINIMO_VITORIAS = 4
-METODOS: tuple[str, ...] = ("bruta", "swing", "modelo")
+METODOS: tuple[str, ...] = ("bruta", "swing", "swing_1t", "modelo")
 PREVIO: dict[int, int] = {2022: 2018, 2026: 2022}
 # Definição da taxa de n_u: todos os válidos do 1º turno (adotada) ou só os dois finalistas (literal).
 DEFINICAO_TAXA = "todos_validos"
 DEFINICOES_TAXA: tuple[str, ...] = ("todos_validos", "dois_candidatos")
+
+# Quadros nomeados pelo papel: o pandas não declara colunas, então o nome diz o que cada um carrega.
+type SecoesFrame = pd.DataFrame  # seções do 2º turno (CHAVE_SECAO + votos)
+type Secoes1TFrame = pd.DataFrame  # seções do 1º turno, por ano
+type MunicipiosFrame = pd.DataFrame  # um município por linha
+type SomaPartesFrame = pd.DataFrame  # Σ dos votos do 1º turno de uma parte, por município
+type ValoresParteFrame = pd.DataFrame  # lag1t, outros_1t, share e fonte de uma parte
+type PartesFrame = pd.DataFrame  # colunas PARTES_1T, por município
+type QuadroModelo = pd.DataFrame  # quadro do modelo, uma linha por município ou grupo
+type BaseSimulacaoFrame = pd.DataFrame  # base de `simular_shares` (municípios, UFs, grupos)
 
 
 # --------------------------------------------------------------------------
@@ -83,14 +94,131 @@ def votos_restantes(aptos_pendentes: pd.Series, taxa: pd.Series) -> pd.Series:
     return (aptos_pendentes.astype(float) * taxa.astype(float)).round()
 
 
+CHAVE_SECAO: list[str] = ["uf", "cd_municipio_tse", "zona", "secao"]
+PARTES_1T: tuple[str, ...] = (
+    "lag1t_c",
+    "lag1t_u",
+    "outros_1t_c",
+    "outros_1t_u",
+    "share_c",
+    "share_u",
+    "fonte_c",
+    "fonte_u",
+)
+COLUNA_MUNICIPAL_1T: dict[str, str] = {"lag1t": "logit_1t", "outros_1t": "outros_1t"}
+
+
+def _soma_parte(m: SecoesFrame) -> SomaPartesFrame:
+    """Σ dos finalistas e dos válidos totais do 1º turno nas seções casadas, por município."""
+    return m.groupby("cd_municipio_tse")[["votos_lula", "votos_bolsonaro", "validos_todos"]].sum()
+
+
+def _valores_da_parte(
+    soma: SomaPartesFrame, n_secoes: pd.Series, n_total: pd.Series, mun: MunicipiosFrame
+) -> ValoresParteFrame:
+    """lag1t, outros_1t, share e fonte de uma parte; cai no municipal se a parte não tem dado próprio.
+
+    Regra: a parte vale pelo 1º turno das suas seções só se tem seção casada, denominadores > 0 e não
+    contém todas as seções do município (senão é o próprio município e o valor municipal é exato).
+    """
+    pt = soma["votos_lula"].reindex(mun.index).fillna(0.0)
+    bo = soma["votos_bolsonaro"].reindex(mun.index).fillna(0.0)
+    vt = soma["validos_todos"].reindex(mun.index).fillna(0.0)
+    tem = (pt + bo > 0) & (vt > 0) & (n_secoes.reindex(mun.index).fillna(0) < n_total.reindex(mun.index))
+    lag = pd.Series(np.log((pt + 0.5) / (bo + 0.5)), index=mun.index)
+    share = pt / (pt + bo).where(pt + bo > 0)
+    return pd.DataFrame(
+        {
+            "lag1t": lag.where(tem, mun["lag1t"]),
+            "outros_1t": (1.0 - (pt + bo) / vt.where(vt > 0)).where(tem, mun["outros_1t"]),
+            "share": share.where(tem, 1.0 / (1.0 + np.exp(-mun["lag1t"]))),
+            "fonte": np.where(tem, "secoes", "municipal"),
+        },
+        index=mun.index,
+    )
+
+
+def partes_1t(
+    secoes: SecoesFrame, secoes_1t: Secoes1TFrame, recebida: pd.Series, dfm: MunicipiosFrame, ano: int
+) -> PartesFrame:
+    """lag1t e outros_1t do 1º turno de `ano` medidos na parte apurada (`_c`) e na restante (`_u`).
+
+    Por quê: a ordem de apuração seleciona seções em y, mas as covariáveis são municipais; medir as
+    covariáveis do mesmo ano nas duas partes torna a seleção uma seleção em x. Do 2º turno só entram a
+    chave da seção e a máscara `recebida` (nenhum voto), então não há vazamento. Seção do 2º turno sem
+    par no 1º turno fica fora das somas. Índice: município (código TSE) das seções.
+    """
+    s = secoes[CHAVE_SECAO].assign(_rec=recebida.to_numpy())
+    m = s.merge(
+        secoes_1t.loc[secoes_1t["ano"] == ano, [*CHAVE_SECAO, "votos_lula", "votos_bolsonaro", "validos_todos"]],
+        on=CHAVE_SECAO,
+        how="inner",
+    )
+    n_total = s.groupby("cd_municipio_tse").size()
+    mun = dfm.assign(cd=dfm["id_municipio_tse"].astype("int64")).set_index("cd")
+    mun = pd.DataFrame(
+        {"lag1t": mun[f"logit_1t_{ano}"].astype(float), "outros_1t": mun[f"outros_1t_{ano}"].astype(float)}
+    ).reindex(n_total.index)
+    n_rec = s.groupby("cd_municipio_tse")["_rec"].sum()
+    partes: dict[str, ValoresParteFrame] = {}
+    for sufixo, mascara, n_sec in (("c", m["_rec"], n_rec), ("u", ~m["_rec"], n_total - n_rec)):
+        v = _valores_da_parte(_soma_parte(m[mascara]), n_sec, n_total, mun)
+        partes[sufixo] = v
+    out = pd.DataFrame(index=n_total.index)
+    for k in ("lag1t", "outros_1t"):
+        for sufixo in ("c", "u"):
+            out[f"{k}_{sufixo}"] = partes[sufixo][k]
+    for sufixo in ("c", "u"):
+        out[f"share_{sufixo}"] = partes[sufixo]["share"]
+    for sufixo in ("c", "u"):
+        out[f"fonte_{sufixo}"] = partes[sufixo]["fonte"]
+    return out[list(PARTES_1T)]
+
+
+def sobrescritas_1t(base: PartesFrame, mapa: dict[str, str]) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """(treino, resto): coluna do quadro -> valores por parte, só para as chaves lag1t/outros_1t do mapa.
+
+    `base` já vem reindexada nas linhas do quadro do modelo. Sem colunas de parte, devolve dois vazios.
+    """
+    treino: dict[str, np.ndarray] = {}
+    resto: dict[str, np.ndarray] = {}
+    for chave in COLUNA_MUNICIPAL_1T:
+        if chave in mapa and f"{chave}_c" in base.columns:
+            treino[mapa[chave]] = base[f"{chave}_c"].to_numpy(float)
+            resto[mapa[chave]] = base[f"{chave}_u"].to_numpy(float)
+    return treino, resto
+
+
+def aplicar_sobrescritas(df: QuadroModelo, sobre: Mapping[str, np.ndarray] | None, linhas: np.ndarray) -> QuadroModelo:
+    """Cópia de `df` com as colunas de `sobre` trocadas nas `linhas`; NaN mantém o valor do quadro.
+
+    `None` ou vazio devolve o próprio `df` (comportamento de sempre). Só a coluna do próprio município é
+    trocada: W·x vem de colunas calculadas antes, com valores municipais.
+    """
+    if not sobre:
+        return df
+    out = df.copy()
+    for col, v in sobre.items():
+        novo = np.asarray(v, float)
+        troca = np.asarray(linhas, bool) & np.isfinite(novo)
+        out[col] = np.where(troca, novo, out[col].to_numpy(float))
+    return out
+
+
 def montar_base(
-    secoes: pd.DataFrame, dfm: pd.DataFrame, ano: int, recebida: pd.Series, definicao: str = DEFINICAO_TAXA
+    secoes: pd.DataFrame,
+    dfm: pd.DataFrame,
+    ano: int,
+    recebida: pd.Series,
+    definicao: str = DEFINICAO_TAXA,
+    secoes_1t: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Uma linha por município (código TSE) das seções do `ano`, no corte `recebida`.
 
     Colunas: uf, regiao, y_c, n_c (apurados), aptos_pend, aptos_rec, taxa, n_u, y_final, n_final, prev
     (share do 2º turno anterior; NaN sem linha no parquet) e `no_modelo`. `definicao` escolhe a taxa
-    de n_u (`DEFINICOES_TAXA`); a contagem bruta não usa n_u.
+    de n_u (`DEFINICOES_TAXA`); a contagem bruta não usa n_u. Com `secoes_1t`, junta as colunas de
+    `partes_1t` (lag1t/outros_1t por parte).
     """
     s = secoes.assign(_rec=recebida.to_numpy())
     ap = s[~s["_rec"]].groupby("cd_municipio_tse")["aptos"].sum()
@@ -118,6 +246,8 @@ def montar_base(
     den = dfm[f"aptos_1t_{ano}"].astype(float).groupby(dfm["sigla_uf"]).sum()
     base["taxa"] = base["taxa"].fillna(base["uf"].map(num / den))
     base["n_u"] = votos_restantes(base["aptos_pend"], base["taxa"])
+    if secoes_1t is not None:
+        base = base.join(partes_1t(secoes, secoes_1t, recebida, dfm, ano))
     return base
 
 
@@ -187,7 +317,7 @@ class ParcialModelo:
     beta: np.ndarray
     cov: np.ndarray
     X: np.ndarray
-    theta: np.ndarray
+    theta: np.ndarray | None  # None: contagem binomial pura, sem sobredispersão
     n_treino: int
 
 
@@ -201,18 +331,23 @@ def ajustar_parcial(
     lat: np.ndarray,
     lon: np.ndarray,
     corte_km: float,
+    treino: Mapping[str, np.ndarray] | None = None,
+    resto: Mapping[str, np.ndarray] | None = None,
 ) -> ParcialModelo:
     """Ajusta `cand` nos (y_c, n_c) com n_c > 0 e prevê π̂ do restante em todos os municípios.
 
     A padronização vem só das linhas de treino. O n da linha de previsão é o n_u (dispersão
-    por log n: o número de ensaios previstos), com piso 1.
+    por log n: o número de ensaios previstos), com piso 1. `treino` e `resto` (coluna do quadro -> valores
+    alinhados às linhas) trocam a covariável do próprio município na parte apurada e na restante;
+    `None` mantém os valores municipais.
     """
     d = dfm.copy()
     d[mapa["y"]] = y_c
     d[mapa["n"]] = n_c
     ok = n_c > 0
-    aj = cand.ajustar(d[ok], mapa)
-    dte = d.copy()
+    todas = np.ones(len(d), bool)
+    aj = cand.ajustar(aplicar_sobrescritas(d, treino, todas)[ok], mapa)
+    dte = aplicar_sobrescritas(d, resto, todas).copy()
     dte[mapa["n"]] = np.maximum(n_u, 1.0)
     nb = int(aj.extra["n_beta"])
     X = E.montar_X(dte, mapa, aj.pad, cand.termos)
@@ -286,13 +421,36 @@ def intervalos(
     B: int,
     semente: int,
     fatores: np.ndarray | None = None,
+    gl_uf: int | None = None,
 ) -> pd.DataFrame:
     """IC 95 % do share por região e Brasil: votos já apurados + restante simulado.
 
     `base_m` = linhas do parquet (ordem de `pm`); município fora do modelo entra fixo no
     share de UF `pi_uf`. Choque de UF com `sigma_uf`, β com Conley, beta-binomial com θᵢ.
     `fatores` (de `fatores_nu`, B x linhas de `base`) simula n_u por município, nos votos e no
-    denominador; sem ele, n_u é fixo.
+    denominador; sem ele, n_u é fixo. `gl_uf` (nº de UFs atrás de `sigma_uf`) troca o choque normal
+    pelo de Student: σ̂ vem de poucas UFs e o choque de uma UF nova é σ̂·T_k.
+    """
+    share, regs = simular_shares(pm, base_m, base, pi_uf, ligacao, sigma_uf, B, semente, fatores, gl_uf)
+    q = np.quantile(share, [0.025, 0.5, 0.975], axis=0)
+    return pd.DataFrame({"q025": q[0], "q50": q[1], "q975": q[2]}, index=regs + ["Brasil"])
+
+
+def simular_shares(
+    pm: ParcialModelo,
+    base_m: BaseSimulacaoFrame,
+    base: BaseSimulacaoFrame,
+    pi_uf: pd.Series,
+    ligacao: str,
+    sigma_uf: float,
+    B: int,
+    semente: int,
+    fatores: np.ndarray | None = None,
+    gl_uf: int | None = None,
+) -> tuple[np.ndarray, list[str]]:
+    """Shares simulados (B x [regiões, Brasil]) e os nomes das regiões; base de `intervalos`.
+
+    Separado para que a decomposição da variância use as mesmas simulações do IC.
     """
     n_u = base_m["n_u"].to_numpy(float)
     nu_b = None
@@ -311,6 +469,7 @@ def intervalos(
         sigma=sigma_uf,
         B=B,
         rng=semente,
+        gl_uf=gl_uf,
     )
     ufs = np.unique(base_m["uf"].to_numpy())
     reg_da_uf = base_m.groupby("uf")["regiao"].first().reindex(ufs).astype(str)
@@ -331,8 +490,7 @@ def intervalos(
         den_r = den_r + (nu_b - base["n_u"].to_numpy(float)[None, :]) @ reg_mat
     votos = votos + (apurado.reindex(regs).to_numpy()[None, :] + fixo_r)
     share = np.column_stack([votos / den_r, votos.sum(1) / den_r.sum(1)])
-    q = np.quantile(share, [0.025, 0.5, 0.975], axis=0)
-    return pd.DataFrame({"q025": q[0], "q50": q[1], "q975": q[2]}, index=regs + ["Brasil"])
+    return share, regs
 
 
 def share_uf_modelo(base: pd.DataFrame, pi: pd.Series) -> pd.Series:
@@ -415,15 +573,23 @@ def simular_f(
     link: type[Link],
     B: int = 1000,
     seed: int = 7,
+    gl_uf: int | Sequence[int] | None = None,
 ) -> np.ndarray:
     """Votos simulados da UF retida, uma coluna por UF (ordem de `partes`), com o n̂ do LOSO.
 
     `chave` escolhe a covariância de β (`cov_conley` ou `cov_modelo`); `sigma` é o choque de UF.
     O gerador é um só para todas as UFs: a mesma semente reproduz os mesmos sorteios.
     `sigma` pode ser um vetor, um choque por UF na ordem de `partes` (validação aninhada).
+    `gl_uf` (escalar ou um por UF) troca o choque normal pelo de Student com esses graus de
+    liberdade; `None` mantém o normal.
     """
     rng = np.random.default_rng(seed)
     sig = np.broadcast_to(np.asarray(sigma, float), (len(partes),)).tolist()
+    gls: list[int | None] = (
+        [None] * len(partes)
+        if gl_uf is None
+        else [int(g) for g in np.broadcast_to(np.asarray(gl_uf), (len(partes),)).tolist()]
+    )
     return np.column_stack(
         [
             M.simular_votos_grupo(
@@ -437,8 +603,9 @@ def simular_f(
                 sigma=sg,
                 B=B,
                 rng=rng,
+                gl_uf=gl,
             )[:, 0]
-            for v, sg in zip(partes.values(), sig, strict=True)
+            for v, sg, gl in zip(partes.values(), sig, gls, strict=True)
         ]
     )
 
@@ -457,6 +624,7 @@ class Sorteio:
     link: type[Link]
     n_boot: int = 1000
     seed: int = 7
+    gl_uf: int | None = None  # UFs atrás do σ̂ cheio; None = choque normal
 
 
 def estimar_aninhado(
@@ -469,16 +637,19 @@ def estimar_aninhado(
     """Resumo por UF e região com σ aninhado: UF u usa σ_{-u}; região r usa σ_{-r} (UFs fora de r).
 
     Brasil não tem versão aninhada (precisaria de todas as UFs) e fica de fora. Mesmos `n_boot` e
-    semente de `simular_f`. O mapa UF→região vem de `kw_resumo["uf_reg"]`.
+    semente de `simular_f`. O mapa UF→região vem de `kw_resumo["uf_reg"]`. Com `sorteio.gl_uf` (k do
+    σ̂ cheio) o choque é Student e cada σ aninhado perde as UFs excluídas: k−1 para a UF, k−|r| para a região.
     """
     ufs = list(partes)
     uf_reg = list(kw_resumo["uf_reg"])
     por_uf = [sigma_sem(res_logit, [u]) for u in ufs]
     sim = partial(simular_f, partes, chave, nhat=sorteio.nhat, link=sorteio.link, B=sorteio.n_boot, seed=sorteio.seed)
-    saida = [resumo_f(sim(por_uf), **kw_resumo).query("nivel == 'uf'")]
+    k = sorteio.gl_uf
+    saida = [resumo_f(sim(por_uf, gl_uf=None if k is None else k - 1), **kw_resumo).query("nivel == 'uf'")]
     for r in dict.fromkeys(uf_reg):
         s_r = sigma_sem(res_logit, [u for u, g in zip(ufs, uf_reg, strict=True) if g == r])
-        d = resumo_f(sim(s_r), **kw_resumo)
+        n_r = sum(g == r for g in uf_reg)
+        d = resumo_f(sim(s_r, gl_uf=None if k is None else k - n_r), **kw_resumo)
         saida.append(d[(d.nivel == "regiao") & (d.nome == r)])
     return pd.concat(saida, ignore_index=True)
 

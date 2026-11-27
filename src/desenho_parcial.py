@@ -39,7 +39,7 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -47,6 +47,7 @@ import scipy.sparse as sp
 from scipy.special import logit
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
 
+from src import apuracao as AP
 from src import espacial as S
 from src import especificacoes as E
 from src import pressupostos as PR
@@ -57,7 +58,7 @@ if TYPE_CHECKING:
     from libpysal.weights import W
 
 
-VERSAO = 1
+VERSAO = 5  # 2: lag1t e outros_1t entram como candidatas; 3: lag1t/outros_1t por parte (1º turno das seções); 4: hessiana analítica da beta-binomial com dispersão muda o Wald de Conley dos passos A e B; 5: θ no limite binomial fixado no teto e fora do Wald
 MIN_MUN_UF = 5
 N_JOBS = 14  # mesmo número de processos de selecao.py
 P_FUSAO = 0.05
@@ -92,18 +93,31 @@ class DadosCorte:
     mapa: dict[str, str]
     w: W  # pesos Queen dos municípios (só geometria): usa `.sparse` e `.n`
     ok: np.ndarray
+    # lag1t/outros_1t da parte apurada, só em D; `df` fica municipal porque W·x é sempre municipal
+    treino: Mapping[str, np.ndarray] | None = None
 
     @property
     def D(self) -> pd.DataFrame:
-        return self.df.loc[self.ok].reset_index(drop=True)
+        return AP.aplicar_sobrescritas(self.df, self.treino, self.ok).loc[self.ok].reset_index(drop=True)
 
 
-def dados_do_corte(df: pd.DataFrame, mapa: dict[str, str], w: W, y_c: np.ndarray, n_c: np.ndarray) -> DadosCorte:
-    """Mesmas linhas e valores que `apuracao.ajustar_parcial` usa no treino (n apurado > 0)."""
+def dados_do_corte(
+    df: pd.DataFrame,
+    mapa: dict[str, str],
+    w: W,
+    y_c: np.ndarray,
+    n_c: np.ndarray,
+    treino: Mapping[str, np.ndarray] | None = None,
+) -> DadosCorte:
+    """Mesmas linhas e valores que `apuracao.ajustar_parcial` usa no treino (n apurado > 0).
+
+    `treino` (coluna do quadro -> valores alinhados às linhas) troca a covariável do próprio município
+    por seu valor na parte apurada; `None` mantém os valores municipais.
+    """
     d = df.copy()
     d[mapa["y"]] = np.asarray(y_c, float)
     d[mapa["n"]] = np.asarray(n_c, float)
-    return DadosCorte(d, dict(mapa), w, np.asarray(n_c, float) > 0)
+    return DadosCorte(d, dict(mapa), w, np.asarray(n_c, float) > 0, treino)
 
 
 def candidatas_do_ano(ano: int) -> tuple[str, ...]:
@@ -115,6 +129,36 @@ def candidatas_do_ano(ano: int) -> tuple[str, ...]:
 # --------------------------------------------------------------------------
 # Resultado
 # --------------------------------------------------------------------------
+class TermosJson(TypedDict):
+    """Termos como gravados em results/cv/desenho_parcial_*.json (chaves persistidas: não renomear)."""
+
+    vars: list[str]
+    disp: str | None
+    slx: list[str]
+    regiao_fundir: list[list[str]]
+    bloco_grupos: list[list[str]]
+
+
+class DesenhoJson(TypedDict):
+    """Desenho como gravado em results/cv/desenho_parcial_*.json (chaves persistidas: não renomear)."""
+
+    versao: int
+    termos: TermosJson
+    corte_km: float
+    sigma_uf: float
+    limite: float
+    mae_pp: dict[str, float]
+    ep_r1_pp: float
+    aceitos: dict[str, bool]
+    wald: dict[str, float]
+    bic_dispersao: dict[str, float]
+    n_ufs_loso: int
+    n_municipios: int
+    tempo_s: float
+    extra: dict[str, Any]
+    gl_sigma_uf: int | None
+
+
 @dataclass(frozen=True)
 class DesenhoParcial:
     """Desenho escolhido num (ano, corte) e os números que justificam cada decisão."""
@@ -133,31 +177,34 @@ class DesenhoParcial:
     tempo_s: float
     versao: int = VERSAO
     extra: dict[str, Any] = field(default_factory=dict)
+    gl_sigma_uf: int | None = None  # UFs atrás de sigma_uf (graus de liberdade do choque t); None = desconhecido
 
-    def para_dict(self) -> dict[str, Any]:
+    def para_dict(self) -> DesenhoJson:
         t = self.termos
-        return {
-            "versao": self.versao,
-            "termos": {
-                "vars": list(t.vars),
-                "disp": t.disp,
-                "slx": list(t.slx),
-                "regiao_fundir": [list(g) for g in t.regiao_fundir],
-                "bloco_grupos": [list(g) for g in t.bloco_grupos],
-            },
-            "corte_km": self.corte_km,
-            "sigma_uf": self.sigma_uf,
-            "limite": self.limite,
-            "mae_pp": self.mae_pp,
-            "ep_r1_pp": self.ep_r1_pp,
-            "aceitos": self.aceitos,
-            "wald": self.wald,
-            "bic_dispersao": self.bic_dispersao,
-            "n_ufs_loso": self.n_ufs_loso,
-            "n_municipios": self.n_municipios,
-            "tempo_s": self.tempo_s,
-            "extra": self.extra,
-        }
+        termos = TermosJson(
+            vars=list(t.vars),
+            disp=t.disp,
+            slx=list(t.slx),
+            regiao_fundir=[list(g) for g in t.regiao_fundir],
+            bloco_grupos=[list(g) for g in t.bloco_grupos],
+        )
+        return DesenhoJson(
+            versao=self.versao,
+            termos=termos,
+            corte_km=self.corte_km,
+            sigma_uf=self.sigma_uf,
+            limite=self.limite,
+            mae_pp=self.mae_pp,
+            ep_r1_pp=self.ep_r1_pp,
+            aceitos=self.aceitos,
+            wald=self.wald,
+            bic_dispersao=self.bic_dispersao,
+            n_ufs_loso=self.n_ufs_loso,
+            n_municipios=self.n_municipios,
+            tempo_s=self.tempo_s,
+            extra=self.extra,
+            gl_sigma_uf=self.gl_sigma_uf,
+        )
 
     @classmethod
     def de_dict(cls, d: Mapping[str, Any]) -> DesenhoParcial:
@@ -184,6 +231,7 @@ class DesenhoParcial:
             float(d["tempo_s"]),
             int(d["versao"]),
             dict(d.get("extra", {})),
+            d.get("gl_sigma_uf"),
         )
 
 
@@ -321,14 +369,23 @@ def _corte_do_desenho(cand: Candidato, D: pd.DataFrame, mapa: dict[str, str]) ->
     return _corte_proprio(_residuos(cand, cand.ajustar(D, mapa), D, mapa), D)
 
 
+def _congelados(aj: Ajuste) -> list[int]:
+    """Parâmetros de dispersão fixados no teto de θ (grupo no limite binomial); ficam fora de BIC e Wald."""
+    return list(getattr(aj.modelo.model, "congelados", []))
+
+
 def _p_wald(aj: Ajuste, sel: Callable[[str], bool], D: pd.DataFrame, corte: float) -> float:
-    ind = [i for i, s in enumerate(aj.nomes) if sel(s)]
+    # Um grupo no teto é binomial na prática: o θ dele não é estimado, então não entra no contraste.
+    fixos = _congelados(aj)
+    ind = [i for i, s in enumerate(aj.nomes) if sel(s) and i not in fixos]
+    if not ind:
+        return float("nan")
     cov = S.cov_conley(aj.modelo, D["lat"].to_numpy(float), D["lon"].to_numpy(float), corte)
     return float(S.wald_robusto(aj.modelo.params, cov, ind)[2])
 
 
 def _bic(aj: Ajuste, nobs: int) -> float:
-    return float(aj.k * np.log(nobs) - 2 * aj.loglik)
+    return float((aj.k - len(_congelados(aj))) * np.log(nobs) - 2 * aj.loglik)
 
 
 def _wald_dispersao(
@@ -380,7 +437,7 @@ def _escolher_slx(base: Termos, dados: DadosCorte) -> tuple[tuple[str, ...], boo
     """
     opcoes = {"nenhuma": (), "W_lag": ("lag",), "W_vars": tuple(base.vars)}
     df2, mapa2 = S.adicionar_slx(dados.df, dados.mapa, list(base.vars), dados.w)
-    d2 = DadosCorte(df2, mapa2, dados.w, dados.ok)
+    d2 = DadosCorte(df2, mapa2, dados.w, dados.ok, dados.treino)
     D2, nobs = d2.D, int(dados.ok.sum())
     aj, res, bic = {}, {}, {}
     for nome, ch in opcoes.items():
@@ -493,6 +550,7 @@ def desenho_no_corte(
         termos=atual.termos,
         corte_km=corte,
         sigma_uf=sigma_uf(atual.loso),  # R7
+        gl_sigma_uf=len(atual.loso.prev),
         limite=trilha.limite,
         mae_pp=trilha.mae,
         ep_r1_pp=trilha.ep_r1,

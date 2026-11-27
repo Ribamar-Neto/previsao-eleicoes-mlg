@@ -24,14 +24,15 @@ def test_figuras_do_notebook_05():
     assert len(G.regional_base_e_final(d, pd.Series([40.2, 60.1], index=["N", "S"]), "m").data) == 3
 
 
-def test_erro_por_corte_tem_tres_metodos_por_ano():
+def test_erro_por_corte_tem_os_quatro_metodos_do_veredito_por_ano() -> None:
     tab = pd.DataFrame(
         [
             {"ano": a, "corte": c, "metodo": m, "erro_brasil_pp": 1.0 + c}
             for a in (2022, 2026)
             for c in (5, 10)
-            for m in ("bruta", "swing", "modelo")
+            for m in ("bruta", "swing", "swing_1t", "modelo")
         ]
     )
     fig = G.erro_por_corte(tab, (2022, 2026), "erro_brasil_pp", "erro", "t")
-    assert len(fig.data) == 6 and np.all([t.mode == "lines+markers" for t in fig.data])
+    assert len(fig.data) == 8 and np.all([t.mode == "lines+markers" for t in fig.data])
+    assert {t.name for t in fig.data} == {"bruta", "swing", "swing_1t", "modelo"}

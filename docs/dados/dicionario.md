@@ -150,3 +150,15 @@ Fonte e regras em [consolidacao.md](consolidacao.md). Uma linha por seção e an
 | votos_lula, votos_bolsonaro | Votos nominais em 13 e 22 | votos |
 | validos | votos_lula + votos_bolsonaro | votos |
 | agregadas | Seções agregadas à principal, texto da fonte | |
+
+## Seções do bweb, 1º turno (`data/interim/tse_bweb_1t.parquet`)
+
+Resultado do 1º turno de 2022 e de 2026 para Presidente, por seção, para medir uma covariável
+separadamente nas seções já apuradas e nas restantes do 2º turno. Mesma chave da tabela acima.
+Só `ano, uf, cd_municipio_tse, zona, secao, votos_lula, votos_bolsonaro, validos, validos_todos, aptos,
+comparecimento`.
+`validos` = votos_lula + votos_bolsonaro (mesma regra do 2º turno), portanto **não** é o total de
+válidos do 1º turno, que inclui os demais candidatos. Esse total é `validos_todos` (todos os
+candidatos; sem branco 95, nulo 96 e anulado e apurado em separado 97): é o denominador de
+`outros_1t` medido por parte da seção, com a mesma definição de `validos_1t_{ano}` do município. Seções agregadas ou renumeradas entre turnos
+podem não casar pela chave.

@@ -4,6 +4,13 @@ Notebook `notebooks/03-apuracao-parcial.ipynb`. Testado em 2026-11-26 e **rejeit
 [11-apuracao-parcial.md](11-apuracao-parcial.md). O código da tentativa não foi mantido: ficam as regras e os
 resultados. Com λ = ρ = 0 ele reproduzia o modelo atual.
 
+**Estado datado.** "Modelo atual" e "antes" neste arquivo são o modelo de 2026-11-26, sem a covariável do 1º turno do
+mesmo ano. Depois dela ([14](14-apuracao-diagnostico-1t.md)) o IC do modelo é de 0,39 p.p. (Brasil, já com o choque de
+UF t de Student, [11](11-apuracao-parcial.md), seção 6) e cobre 72 de 72 itens; o encolhimento por UF não foi retestado
+nesse modelo e a rejeição vale para o estado de 26/11. A coluna "Vitórias pela regra" da seção 4 usa a regra daquele dia
+(bruta e swing): com o `swing_1t` como terceira linha de base ([11](11-apuracao-parcial.md), seção 1) o veredito atual é
+2022 não útil (3 de 6) e 2026 útil (6 de 6), e as comparações abaixo não foram refeitas com ele.
+
 ## 1. Pergunta
 
 Por que o IC é tão largo e a estimativa tão sensível à região dos municípios já apurados? Daria para usar o
@@ -88,8 +95,10 @@ Por corte (erro Brasil / largura Brasil, p.p.):
 - **Razão [deduced].** O encolhimento trata os municípios apurados de uma UF como amostra aleatória dela. Na ordem
   real do TSE eles não são: capitais e grandes cidades entram primeiro ([11](11-apuracao-parcial.md), seção 7). O
   desvio deles diz pouco sobre o restante da UF, e o BLUP confia demais nele e tira variância que existe.
-- **Resposta à pergunta da seção 1.** O IC largo do modelo atual é o preço honesto da ordem de apuração não
-  aleatória. A sensibilidade à região do apurado vem dessa mesma ordem. Ela não é ruído que um encolhimento remove.
+- **Resposta à pergunta da seção 1, no estado de 26/11.** O IC largo era lido como o preço da ordem de apuração não
+  aleatória, e o encolhimento não o removia. Essa leitura ficou incompleta [fact]: o diagnóstico de
+  [14](14-apuracao-diagnostico-1t.md) mostrou que a maior parte da largura vinha de um σ_UF inflado pela covariável do
+  1º turno ausente, e não da ordem em si.
 - **O que poderia funcionar.** Um encolhimento que modele a ordem (por exemplo, rᵢ ponderado pela semelhança entre
   o município apurado e o restante da UF), calibrado com critério que inclua a cobertura do IC. Fica como
   pendência ([12](12-pendencias.md)).

@@ -1,89 +1,68 @@
 {
- "versao": 1,
+ "versao": 5,
  "termos": {
   "vars": [
    "lag",
-   "log_pop",
-   "log_dens",
+   "lag1t",
+   "nota_dep",
+   "comparecimento",
    "pct_mulheres",
-   "pct_16_24",
-   "pct_superior",
-   "pct_fund_inc",
-   "pct_indigenas",
-   "w_lag",
-   "w_log_pop",
-   "w_log_dens",
-   "w_pct_mulheres",
-   "w_pct_16_24",
-   "w_pct_superior",
-   "w_pct_fund_inc",
-   "w_pct_indigenas"
+   "pct_60_mais",
+   "pct_analfabeto",
+   "cobertura_pbf",
+   "pct_evangelicos",
+   "pct_pretos_pardos"
   ],
-  "disp": "regiao_logn",
-  "slx": [
-   "lag",
-   "log_pop",
-   "log_dens",
-   "pct_mulheres",
-   "pct_16_24",
-   "pct_superior",
-   "pct_fund_inc",
-   "pct_indigenas"
-  ],
+  "disp": "const",
+  "slx": [],
   "regiao_fundir": [
+   [
+    "Centro-Oeste",
+    "Nordeste"
+   ],
    [
     "Norte",
     "Sul"
-   ],
-   [
-    "Centro-Oeste",
-    "Nordeste",
-    "Sudeste"
    ]
   ],
   "bloco_grupos": []
  },
- "corte_km": 200.0,
- "sigma_uf": 0.13721669654942498,
- "limite": 3.809278520733699,
+ "corte_km": 75.0,
+ "sigma_uf": 0.021009780300627324,
+ "limite": 0.375446852770413,
  "mae_pp": {
-  "r1": 3.207830265755597,
-  "disp": 2.054160206117794,
-  "slx": 2.00484471610798,
-  "final": 2.00484471610798
+  "r1": 0.3031580033922341,
+  "final": 0.3031580033922341
  },
- "ep_r1_pp": 0.6014482549781022,
+ "ep_r1_pp": 0.07228884937817895,
  "aceitos": {
-  "disp": true,
-  "slx": true
+  "disp": false,
+  "slx": false
  },
  "wald": {
-  "A": 5.992216082518296e-10,
-  "B": 9.335887698260833e-24
+  "A": 0.7772298333949654,
+  "B": NaN
  },
  "bic_dispersao": {
-  "const": 17932.913090329803,
-  "regiao": 17541.212067377375,
-  "regiao_logn": 17250.936913156627
+  "const": 12333.213855796565,
+  "regiao": 12345.747242290534
  },
  "n_ufs_loso": 24,
  "n_municipios": 1497,
- "tempo_s": 138.98612594604492,
+ "tempo_s": 124.92437434196472,
  "extra": {
-  "corte_r1_km": 200.0,
+  "corte_r1_km": 75.0,
   "wald_cortes_km": {
-   "corte_A_km": 200.0,
-   "corte_B_km": 200.0
+   "corte_A_km": 75.0
   },
   "ufs_puladas": {
-   "r1": [],
-   "disp": [],
-   "slx": []
+   "r1": []
   },
   "piso_aplicado": {
-   "r1": true,
-   "final": true,
-   "wald": true
+   "r1": false,
+   "final": false,
+   "wald": false
   }
- }
+ },
+ "gl_sigma_uf": 24
 }

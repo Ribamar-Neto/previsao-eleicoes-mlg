@@ -78,3 +78,57 @@ def virada_idx(c: pd.DataFrame) -> int:
     v = b.virada(c)
     assert v is not None
     return int(str(v.name))
+
+
+@pytest.mark.parametrize("ano", [2022, 2026])
+def test_normalizar_1t_so_presidente_e_colunas(ano: int) -> None:
+    out = b.normalizar_1t(_bruto(ano), ano)
+    assert list(out.columns) == b.COLUNAS_1T
+    linha = out.iloc[0]
+    assert (linha["votos_lula"], linha["votos_bolsonaro"], linha["validos"]) == (48, 90, 138)
+    assert (linha["aptos"], linha["comparecimento"]) == (185, 147)
+    assert len(out) == 1
+
+
+def test_carimbos_1t_cobrem_os_anos() -> None:
+    assert set(b.CARIMBO_1T) == set(b.ANOS)
+    assert "bweb_1t_AC_051020261403.zip" in b.BASE_1T.format(ano=2026, uf="AC", carimbo=b.CARIMBO_1T[2026])
+
+
+def test_validar_secoes_1t_rejeita_chave_duplicada() -> None:
+    out = b.normalizar_1t(_bruto(2022), 2022)
+    b.validar_secoes_1t(out)
+    with pytest.raises(ValueError):
+        b.validar_secoes_1t(pd.concat([out, out], ignore_index=True))
+
+
+def _bruto_1t(ano: int) -> pd.DataFrame:
+    """Seção do 1º turno com um terceiro candidato, branco e voto anulado e apurado em separado."""
+    bruto = _bruto(ano)
+    extra = bruto.iloc[[0, 0, 0]].copy()
+    extra["NR_VOTAVEL"] = ["12", "95", "97"]
+    extra["QT_VOTOS"] = ["5", "3", "1"]
+    return pd.concat([bruto, extra], ignore_index=True)
+
+
+@pytest.mark.parametrize("ano", [2022, 2026])
+def test_validos_todos_soma_candidatos_sem_branco_nulo_anulado(ano: int) -> None:
+    out = b.normalizar_1t(_bruto_1t(ano), ano)
+    linha = out.iloc[0]
+    assert linha["validos"] == 48 + 90  # só os finalistas, como no 2º turno
+    assert linha["validos_todos"] == 48 + 90 + 5  # 95, 96 e 97 não são válidos
+
+
+def test_validar_secoes_1t_rejeita_validos_todos_menor_que_finalistas() -> None:
+    out = b.normalizar_1t(_bruto_1t(2022), 2022)
+    b.validar_secoes_1t(out)
+    out.loc[0, "validos_todos"] = 100
+    with pytest.raises(ValueError):
+        b.validar_secoes_1t(out)
+
+
+def test_validar_secoes_1t_rejeita_validos_incoerente() -> None:
+    out = b.normalizar_1t(_bruto(2022), 2022)
+    out.loc[0, "validos"] = 1
+    with pytest.raises(ValueError):
+        b.validar_secoes_1t(out)

@@ -57,9 +57,13 @@ def test_preparar_e_ajuste_rapido():
     assert np.isfinite(d["logit_1t_2022"]).all() and (d["outros_1t_2026"] > -1e-9).all()
     ok = B.linhas_modeladas(d, B.MAPA_FIT_2022, B.MAPA_PREV_2026)
     amostra = d[ok].sample(1500, random_state=1).reset_index(drop=True)
-    aj, pi = B.ajustar_e_prever("quasi_logit", amostra, B.MAPA_FIT_2022, B.MAPA_PREV_2026)
+    _, pi = B.ajustar_e_prever("quasi_logit", amostra, B.MAPA_FIT_2022, B.MAPA_PREV_2026)
     assert pi.shape == (1500,) and ((pi > 0) & (pi < 1)).all()
-    assert 0.5 < B.coef_lag(aj) < 1.2
+    # A elasticidade do lag do 2º turno anterior só faz sentido sem o 1º turno do próprio ciclo,
+    # que absorve a informação do lag quando entra junto.
+    sem_1t = tuple(v for v in B.VARS_EXANTE if v not in ("lag1t", "outros_1t"))
+    aj_lag, _ = B.ajustar_e_prever("quasi_logit", amostra, B.MAPA_FIT_2022, B.MAPA_PREV_2026, sem_1t)
+    assert 0.5 < B.coef_lag(aj_lag) < 1.2
 
 
 def test_tabelar_uma_linha_por_variante_modelo_peso() -> None:
@@ -74,3 +78,29 @@ def test_tabelar_uma_linha_por_variante_modelo_peso() -> None:
     assert len(res) == 4 and set(res["peso"]) == {"n_prev", "n_real"}
     assert len(reg) == 4 * 2 and len(ufs) == 4 * 4
     assert "Brasil" not in set(reg["grupo"]) | set(ufs["grupo"])
+
+
+def test_derivadas_do_1t_seguem_as_formulas_e_protegem_denominador_zero() -> None:
+    df = pd.DataFrame(
+        {
+            "votos_pt_1t_2022": [30.0, 0.0, 10.0],
+            "votos_bolsonaro_1t_2022": [10.0, 0.0, 10.0],
+            "validos_1t_2022": [80.0, 50.0, 0.0],
+            "votos_pt_1t_2026": [30.0, 0.0, 10.0],
+            "votos_bolsonaro_1t_2026": [10.0, 0.0, 10.0],
+            "validos_1t_2026": [80.0, 50.0, 0.0],
+        }
+    )
+    d = B.preparar(df)
+    assert d["logit_1t_2022"][0] == pytest.approx(np.log(3.0), abs=1e-5)
+    assert d["outros_1t_2022"][0] == pytest.approx(1 - 40 / 80)
+    assert d["logit_1t_2022"][1] == pytest.approx(0.0) and d["outros_1t_2022"][1] == pytest.approx(
+        1.0
+    )  # sem finalistas
+    assert d["outros_1t_2022"][2] == pytest.approx(0.0)  # sem válidos
+    assert np.isfinite(d[["logit_1t_2026", "outros_1t_2026"]].to_numpy()).all()
+
+
+def test_mapa_de_2022_do_1t_le_so_colunas_de_2022() -> None:
+    assert B.MAPA_FIT_2022["lag1t"].endswith("_2022") and B.MAPA_FIT_2022["outros_1t"].endswith("_2022")
+    assert B.MAPA_PREV_2026["lag1t"].endswith("_2026") and B.MAPA_PREV_2026["outros_1t"].endswith("_2026")

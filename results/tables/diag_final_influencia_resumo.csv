@@ -1,3 +1,3 @@
 modelo,max_abs_ep,termo_max,n_gt_05ep,n_termos,trocas_sinal
-bb_selecao,0.690689745412632,log_theta,1,19,0
-bb_slx,0.6693699053739012,disp_reg_Norte,3,37,0
+bb_selecao,1.3698172762491776,log_theta,1,24,0
+bb_slx,1.0499430066134146,disp_reg_Nordeste,6,46,0

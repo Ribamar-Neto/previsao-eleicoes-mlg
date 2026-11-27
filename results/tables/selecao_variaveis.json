@@ -2,23 +2,28 @@
   "metodo": "backward_bic",
   "variaveis": [
     "lag",
+    "lag1t",
+    "nota_dep",
     "pct_dep_esq",
     "comparecimento",
     "delta_comp",
+    "log_pop",
     "log_dens",
     "pct_mulheres",
-    "pct_16_24",
+    "pct_60_mais",
+    "pct_superior",
     "cobertura_pbf",
+    "pib_pc",
     "pct_vab_agro",
+    "pct_evangelicos",
     "pct_pretos_pardos",
-    "pct_fund_inc",
-    "pct_sem_religiao",
-    "pct_indigenas"
+    "pct_urbana",
+    "pct_fund_inc"
   ],
   "regiao_fundir": [
     [
       "Nordeste",
-      "Norte"
+      "Sudeste"
     ]
   ],
   "bloco_grupos": [
@@ -26,7 +31,7 @@
       "esquerda"
     ]
   ],
-  "BIC_bb": 72624.4754620459,
-  "AIC_bb": 72498.5976057204,
-  "mae_uf_loso_pp": 1.005284855134226
+  "BIC_bb": 62571.43019188845,
+  "AIC_bb": 62412.42658389834,
+  "mae_uf_loso_pp": 0.2133817438918458
 }
