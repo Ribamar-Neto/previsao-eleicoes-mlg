@@ -86,7 +86,7 @@ Erro absoluto do Brasil / MAE regional (p.p.). Em negrito, o menor de cada colun
 | 2026 | 25 | 2,37 / 0,83 | 0,39 / 0,46 | 0,20 / 0,42 | **0,08** / **0,09** |
 | 2026 | 50 | 1,67 / 0,60 | 0,53 / 0,33 | 0,14 / 0,27 | **0,04** / **0,04** |
 | 2026 | 67 | 0,95 / 0,49 | 0,40 / 0,22 | 0,11 / 0,17 | **0,02** / **0,02** |
-| 2026 | 90 | 0,22 / 0,15 | 0,14 / 0,08 | 0,04 / 0,04 | **0,00** / **0,01** |
+| 2026 | 90 | 0,22 / 0,15 | 0,14 / 0,07 | 0,04 / 0,04 | **0,00** / **0,01** |
 
 Fonte: `apuracao_2022.csv` e `apuracao_2026.csv`. Média dos 12 cortes (Brasil + MAE regional): modelo
 0,157 p.p. (0,081 + 0,075); swing do 1º turno 0,394 (0,160 + 0,234); antes do 1º turno do mesmo ano (seção 10), o
@@ -114,11 +114,11 @@ e o σ_UF (2022: 0,018 a 0,023; 2026: 0,011 a 0,027) **do desenho de cada corte*
 apurado por região. Cobertura nominal 95 % (5 regiões + Brasil, 6 itens por corte): **todos os 72 itens (12 cortes x 6)
 ficam dentro do IC**, Brasil em 12 de 12 e regiões em 60 de 60 (antes 56 de 60).
 
-**Choque de UF: σ̂·T_k, T de Student com k graus de liberdade, k = número de UFs que estimam σ̂; no 03, as UFs do desenho
-do corte** (`gl_sigma_uf`, 24 a 26). Razão: σ̂ é a RMS de k resíduos de UF de média zero; tratar σ̂ como conhecido estreita
-o intervalo. É a mesma regra do 02 (lá, 27 UFs), e a fórmula de variância do modelo usa σ²·k/(k−2). Fundamento: distribuição
-preditiva t com variância desconhecida (Gelman et al. 2013, seção 3.2; [referências](referencias.md)). O efeito foi
-alargar um pouco o IC (largura média do Brasil de 0,37 e 0,36 para 0,39 e 0,38 p.p.) sem mudar nenhuma contagem de cobertura.
+**Choque de UF: σ̂·T_k, T de Student com k graus de liberdade, k = número de UFs que estimam σ̂; no 03, as UFs do desenho do corte**
+(`gl_sigma_uf`, 24 a 26). Razão: σ̂ é a RMS de k resíduos de UF de média zero; tratar σ̂ como conhecido estreita o intervalo. É a mesma
+regra do 02 (lá, 27 UFs), e a fórmula de variância do modelo usa σ²·k/(k−2). Fundamento: distribuição preditiva t com variância
+desconhecida (Gelman et al. 2013, seção 3.2; [referências](referencias.md)). O efeito foi alargar um pouco o IC sem mudar nenhuma contagem
+de cobertura: a largura média do Brasil foi de 0,37 e 0,36 (choque normal; execução de 2e1f30d não guardada) para 0,39 e 0,38 p.p.
 
 Largura média do Brasil: 0,39 p.p. em 2022 e 0,38 em 2026; máxima 0,66 (2022 a 5 %) e 0,75 (2026 a 10 %); mínima 0,07
 nos dois anos (a 90 %). Largura média regional: 0,56 (2022) e 0,54 (2026). Antes eram 1,82 (Brasil) e 2,67 (regiões)
