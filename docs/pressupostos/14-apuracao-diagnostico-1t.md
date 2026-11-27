@@ -19,13 +19,14 @@ Quatro hipóteses para a largura, testadas uma a uma sobre os 12 cortes (cada um
 |---|---|---|---|---|
 | D1 variância por componente | Parte do IC vinda do piso binomial, de β̂, do choque de UF (σ_UF), de θ e de n_u | choque de UF explica em média 88 % da variância do Brasil; σ_UF de 0,052 a 0,137; meia-largura média do IC (unidades) 1,49 (2022) e 1,04 (2026) p.p. | UF 66 %, n_u 23 %; σ_UF de 0,011 a 0,027; meia-largura 0,26 nos dois anos, em p.p. | **Causa principal.** O σ_UF absorvia o que o desenho sem o 1º turno não explicava |
 | D2 composição do apurado | Fração do final já apurada, municípios com apuração, parcela de capitais | Brasil a 5 % em 2022: 5 % do final, 25 % dos municípios | Igual (a ordem do TSE não mudou) | Propriedade dos dados; não se corrige no modelo |
-| D3 extrapolação de n_u | Alavancagem do restante contra o máximo do ajuste (Paula 1.7.2 e 2.8.1) | 2 de 60 casos fora do suporte; erro máximo 2,56 p.p. | 2 de 72 casos fora do suporte (n_u extrapolado ≤ 0,015 %); erro máximo 0,35 p.p. | Marginal em ambos |
+| D3 extrapolação de n_u | Alavancagem do restante contra o máximo do ajuste (Paula 1.7.2 e 2.8.1) | 4 de 72 casos fora do suporte (2 de 60 nas regiões); erro máximo 2,56 p.p. | 2 de 72 casos fora do suporte (n_u extrapolado ≤ 0,015 %); erro máximo 0,35 p.p. | Marginal em ambos |
 | D4 seleção dentro do município | Lacuna do 1º turno entre as seções apuradas e as restantes (logit), por município e por UF | Igual: a lacuna não usa o modelo (votos do 1º turno por seção, ordem do TSE e n_u = aptos pendentes × taxa) | município -0,21 a 0,28 (mediana -0,01); UF -0,47 a 0,19, negativa em 58 de 72 | Medida direta de que o apurado difere do restante |
 
 D1 soma as partes dentro de 10 % da variância total em 90 % das unidades (antes 81 %); o maior componente é a UF em 61
 de 72 unidades, n_u em 10 e θ em 1 (antes UF em todas). O choque de UF é σ̂·T_k ([11](11-apuracao-parcial.md), seção 6).
 Na coluna HEAD, as larguras, o σ_UF e o erro máximo do D3 estão no git (`2e1f30d~1`); as frações do D1 e a contagem do D3
-vêm do diagnóstico rodado sobre o modelo anterior e não foram guardadas.
+vêm do diagnóstico atual rodado sobre o modelo anterior (refeito em 2026-11-27; larguras e erro máximo idênticos aos do
+git) e não ficam em `results/`.
 
 ## 3. Decisão: 1º turno do mesmo ano por seção
 
@@ -97,17 +98,19 @@ de base ([11](11-apuracao-parcial.md), seção 1): o modelo só vence um corte s
 ## 6. Hessiana analítica do beta-binomial com dispersão regional
 
 - **Achado.** A Hessiana numérica (diferenças finitas da log-verossimilhança somada, n até 1e6) era indefinida em
-  2026 a 5 e a 10 % (erro de cerca de 1e-3 da maior entrada): `cov_params` falhava e o pão do Conley e os Wald do
-  desenho usavam uma matriz errada. Passou-se a usar a Hessiana analítica (trigama); cache do desenho passou da versão 3
-  para a 4. Os números de antes do teto (θ 4,3e8, erro 1e-3, EPs 15 %) e o |g| vêm das execuções de 2e1f30d e não ficam
-  em `results/`.
+  2026 a 5 e a 10 % (maior autovalor +14.742 e +0,67; a analítica é negativa definida nos dois): `cov_params`
+  falhava e o pão do Conley e os Wald do desenho usavam uma matriz errada. Passou-se a usar a Hessiana analítica
+  (trigama); cache do desenho passou da versão 3 para a 4. Os números sem teto (θ 4,3e8, autovalores, |g| 0,73, EPs)
+  e o |g| com teto foram refeitos em 2026-11-27 com o código atual e o teto desligado (o erro de 1e-3 e os EPs de
+  15 % de 2e1f30d não se reproduziram) e não ficam em `results/`.
 - **Dispersão no limite binomial: resolvido com um teto de θ.** Em 2026 a 5 % o θ do Centro-Oeste chega a 4,3e8, o limite
   binomial; nesse ponto θ não é identificado e seu contraste de Wald não tem sentido. Regra (versão 5 do desenho, [11](11-apuracao-parcial.md),
   seção 9): se todas as linhas do grupo têm θ ≥ 1e5, fixa-se θ = 1e9, com guarda por razão de verossimilhanças, fora
   dos Wald e da contagem do BIC. O fator de variância fica dentro da tolerância de 1 % com n = 7e6.
-- **Crista plana em 2026 a 10 %: resolvida.** O θ do Centro-Oeste ficava numa crista plana e o otimizador não convergia
-  (EPs de β mudavam até 15 % ao liberá-lo). Com o teto o ajuste converge (|g| 1,4e-5); o Wald A dá p = 0,0708 e a
-  decisão continua dispersão única (BIC 18.724,9 com `regiao` contra 18.751,0 constante, sem teste de Wald que a sustente).
+- **Crista plana em 2026 a 10 %: resolvida.** O θ do Centro-Oeste ficava numa crista plana e o otimizador parava fora do
+  ótimo (|g| 0,73 contra a tolerância de 1e-3; ao liberá-lo, os EPs Conley de β mudavam até 72 % e os do modelo até
+  21 %). Com o teto o ajuste converge (|g| 1,4e-5); o Wald A dá p = 0,0708 e a decisão continua dispersão única (BIC
+  18.724,9 com `regiao` contra 18.751,0 constante, sem teste de Wald que a sustente).
 
 ## 7. Outros defeitos corrigidos (regras, não código)
 

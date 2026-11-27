@@ -210,9 +210,9 @@ em todas as linhas do grupo), ele não é identificado: o contraste de Wald de �
 nessa direção. O θ é fixado em `THETA_TETO` = 1e9, com teste da razão de verossimilhanças como guarda, e sai dos
 contrastes de Wald e da contagem de parâmetros do BIC. Razão do valor: com n = 7e6 por grupo, o fator de variância
 1 + (n − 1)/(1 + θ) com θ = 1e9 fica dentro da tolerância de 1 % adotada, então o teto é indistinguível do binomial. Efeito:
-o ajuste de 2026 a 10 % (Centro-Oeste), que antes não convergia (crista plana), converge (|g| 1,4e-5); o Wald A dá
-p = 0,0708 e a decisão continua dispersão única ([14](14-apuracao-diagnostico-1t.md), seção 6). Todos os 12 desenhos
-foram refeitos na versão 5.
+o ajuste de 2026 a 10 % (Centro-Oeste), que antes parava fora do ótimo numa crista plana (|g| 0,73), converge
+(|g| 1,4e-5); o Wald A dá p = 0,0708 e a decisão continua dispersão única ([14](14-apuracao-diagnostico-1t.md),
+seção 6). Todos os 12 desenhos foram refeitos na versão 5.
 
 **Entradas.** O 03 não lê mais `final_decisao.json` nem `final_cobertura.csv`; lê só a base municipal (covariáveis
 pré-turno) e `tse_bweb`. O desenho de cada corte fica em `results/tables/apuracao_desenho.csv`.
