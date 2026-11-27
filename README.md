@@ -445,57 +445,56 @@ $$
 
 ### Coeficientes (escala z)
 
-Cada covariável contínua entra padronizada (média 0, desvio-padrão 1), então $e^\beta$ é a razão de chances do voto em Lula para **+1 desvio-padrão (DP)** da covariável, mantidos os demais termos. A leitura é sobre a **participação municipal** de Lula nos votos válidos, não sobre o comportamento de um eleitor (ver [Limitações](#limitações)). Os 47 termos vêm de `results/tables/final_ep.csv`; os cinco últimos (γ) são da dispersão, e $e^\gamma$ multiplica θ.
+Cada covariável contínua entra padronizada (média 0, desvio-padrão 1), então $e^\beta$ é a razão de chances do voto em Lula para **+1 desvio-padrão (DP)** da covariável, mantidos os demais termos. A leitura é sobre a **participação municipal** de Lula nos votos válidos, não sobre o comportamento de um eleitor (ver [Limitações](#limitações)). Os 46 termos vêm de `results/tables/final_ep.csv`; os cinco últimos (γ) são da dispersão, e $e^\gamma$ multiplica θ.
 
 | Termo | β (z) | EP Conley | e^β (OR por 1 DP) | Signif. 5% | Leitura |
 | --- | --- | --- | --- | --- | --- |
-| intercepto | 0,2013 | 0,0029 | 1,223 | sim | logit de Lula no município de referência (Sudeste, prefeito de direita, covariáveis na média): 55,0% |
-| defasagem (logit de 2022) | 0,0998 | 0,0061 | 1,105 | sim | com o 1º turno do mesmo ano no modelo, o voto de 2022 pesa pouco; mantido o resto |
+| intercepto | 0,1940 | 0,0018 | 1,214 | sim | logit de Lula no município de referência (Sudeste e Nordeste, prefeito de direita, covariáveis na média): 54,8% |
+| defasagem (logit de 2022) | 0,0994 | 0,0060 | 1,105 | sim | com o 1º turno do mesmo ano no modelo, o voto de 2022 pesa pouco; mantido o resto |
 | 1º turno de 2026 (logit de Lula/(Lula+Bolsonaro)) | 0,7300 | 0,0063 | 2,075 | sim | o voto do 1º turno domina: +1 DP multiplica a chance de Lula por 2,08 |
-| nota ideológica dos deputados | 0,0022 | 0,0011 | 1,002 | sim | associação positiva com Lula, mantido o resto |
-| % de esquerda na Câmara | −0,0045 | 0,0011 | 0,996 | sim | associação negativa com Lula, mantido o resto |
-| comparecimento no 1º turno | −0,0076 | 0,0008 | 0,992 | sim | associação negativa com Lula, mantido o resto |
-| variação do comparecimento no 2º turno (2018 a 2022) | −0,0019 | 0,0007 | 0,998 | sim | associação negativa com Lula, mantido o resto |
-| log da população | 0,0089 | 0,0010 | 1,009 | sim | associação positiva com Lula, mantido o resto |
-| log da densidade | −0,0070 | 0,0012 | 0,993 | sim | associação negativa com Lula, mantido o resto |
-| % de mulheres | 0,0084 | 0,0011 | 1,008 | sim | associação positiva com Lula, mantido o resto |
-| % de 60 anos ou mais | −0,0063 | 0,0010 | 0,994 | sim | associação negativa com Lula, mantido o resto |
-| % com ensino superior | −0,0055 | 0,0010 | 0,994 | sim | associação negativa com Lula, mantido o resto |
-| cobertura do Bolsa Família | 0,0070 | 0,0014 | 1,007 | sim | associação positiva com Lula, mantido o resto |
+| nota ideológica dos deputados | 0,0021 | 0,0011 | 1,002 | não | sem efeito distinguível de zero, com o EP de Conley |
+| % de esquerda na Câmara | −0,0044 | 0,0011 | 0,996 | sim | associação negativa com Lula, mantido o resto |
+| comparecimento no 1º turno | −0,0078 | 0,0008 | 0,992 | sim | associação negativa com Lula, mantido o resto |
+| variação do comparecimento no 2º turno (2018 a 2022) | −0,0018 | 0,0006 | 0,998 | sim | associação negativa com Lula, mantido o resto |
+| log da população | 0,0090 | 0,0010 | 1,009 | sim | associação positiva com Lula, mantido o resto |
+| log da densidade | −0,0069 | 0,0012 | 0,993 | sim | associação negativa com Lula, mantido o resto |
+| % de mulheres | 0,0081 | 0,0011 | 1,008 | sim | associação positiva com Lula, mantido o resto |
+| % de 60 anos ou mais | −0,0061 | 0,0010 | 0,994 | sim | associação negativa com Lula, mantido o resto |
+| % com ensino superior | −0,0056 | 0,0010 | 0,994 | sim | associação negativa com Lula, mantido o resto |
+| cobertura do Bolsa Família | 0,0066 | 0,0015 | 1,007 | sim | associação positiva com Lula, mantido o resto |
 | log do PIB per capita | 0,0009 | 0,0009 | 1,001 | não | sem efeito distinguível de zero, com o EP de Conley |
-| % do VAB agropecuário | −0,0043 | 0,0009 | 0,996 | sim | associação negativa com Lula, mantido o resto |
-| % de evangélicos | −0,0023 | 0,0009 | 0,998 | sim | associação negativa com Lula, mantido o resto |
-| % de pretos e pardos | −0,0031 | 0,0026 | 0,997 | não | sem efeito distinguível de zero, com o EP de Conley |
+| % do VAB agropecuário | −0,0044 | 0,0009 | 0,996 | sim | associação negativa com Lula, mantido o resto |
+| % de evangélicos | −0,0024 | 0,0009 | 0,998 | sim | associação negativa com Lula, mantido o resto |
+| % de pretos e pardos | −0,0029 | 0,0026 | 0,997 | não | sem efeito distinguível de zero, com o EP de Conley |
 | % de população urbana | 0,0035 | 0,0011 | 1,004 | sim | associação positiva com Lula, mantido o resto |
-| % com até fundamental incompleto | −0,0081 | 0,0015 | 0,992 | sim | associação negativa com Lula, mantido o resto |
-| W·defasagem (logit de 2022) | −0,0220 | 0,0094 | 0,978 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
-| W·1º turno de 2026 (logit de Lula/(Lula+Bolsonaro)) | 0,0247 | 0,0100 | 1,025 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·nota ideológica dos deputados | 0,0015 | 0,0015 | 1,002 | não | sem efeito distinguível de zero, com o EP de Conley |
-| W·% de esquerda na Câmara | −0,0022 | 0,0014 | 0,998 | não | sem efeito distinguível de zero, com o EP de Conley |
-| W·comparecimento no 1º turno | 0,0054 | 0,0012 | 1,005 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·variação do comparecimento no 2º turno (2018 a 2022) | −0,0036 | 0,0011 | 0,996 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
-| W·log da população | −0,0065 | 0,0013 | 0,994 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
-| W·log da densidade | 0,0071 | 0,0020 | 1,007 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·% de mulheres | 0,0048 | 0,0015 | 1,005 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·% de 60 anos ou mais | −0,0000 | 0,0018 | 1,000 | não | sem efeito distinguível de zero, com o EP de Conley |
-| W·% com ensino superior | −0,0021 | 0,0019 | 0,998 | não | sem efeito distinguível de zero, com o EP de Conley |
-| W·cobertura do Bolsa Família | 0,0141 | 0,0026 | 1,014 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·log do PIB per capita | 0,0081 | 0,0019 | 1,008 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·% do VAB agropecuário | −0,0016 | 0,0014 | 0,998 | não | sem efeito distinguível de zero, com o EP de Conley |
-| W·% de evangélicos | −0,0057 | 0,0013 | 0,994 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
-| W·% de pretos e pardos | −0,0055 | 0,0032 | 0,995 | não | sem efeito distinguível de zero, com o EP de Conley |
-| W·% de população urbana | 0,0040 | 0,0015 | 1,004 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
-| W·% com até fundamental incompleto | −0,0002 | 0,0021 | 1,000 | não | sem efeito distinguível de zero, com o EP de Conley |
-| prefeito de esquerda | −0,0043 | 0,0018 | 0,996 | sim | prefeito de esquerda (contra direita): chance menor |
-| Centro-Oeste | −0,0131 | 0,0045 | 0,987 | sim | contra Sudeste: chance menor |
-| Nordeste | −0,0187 | 0,0057 | 0,981 | sim | contra Sudeste: chance menor |
-| Norte | −0,0257 | 0,0055 | 0,975 | sim | contra Sudeste: chance menor |
-| Sul | −0,0353 | 0,0038 | 0,965 | sim | contra Sudeste: chance menor |
-| γ intercepto (Sudeste) | 9,4352 | 0,1168 | 12.521 (fator em θ) | sim | log θ do Sudeste: θ ≈ 12.521 |
-| γ Centro-Oeste | 0,4224 | 0,2701 | 1,526 (fator em θ) | não | θ ≈ 19.102; sem diferença distinguível do Sudeste |
-| γ Nordeste | −0,9912 | 0,2015 | 0,371 (fator em θ) | sim | θ ≈ 4.647 (região mais dispersa) |
-| γ Norte | −0,1688 | 0,2670 | 0,845 (fator em θ) | não | θ ≈ 10.577; sem diferença distinguível do Sudeste |
-| γ Sul | 0,8375 | 0,2069 | 2,311 (fator em θ) | sim | θ ≈ 28.930 (a mais homogênea) |
+| % com até fundamental incompleto | −0,0082 | 0,0014 | 0,992 | sim | associação negativa com Lula, mantido o resto |
+| W·defasagem (logit de 2022) | −0,0237 | 0,0096 | 0,977 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
+| W·1º turno de 2026 (logit de Lula/(Lula+Bolsonaro)) | 0,0243 | 0,0101 | 1,025 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·nota ideológica dos deputados | 0,0011 | 0,0014 | 1,001 | não | sem efeito distinguível de zero, com o EP de Conley |
+| W·% de esquerda na Câmara | −0,0017 | 0,0014 | 0,998 | não | sem efeito distinguível de zero, com o EP de Conley |
+| W·comparecimento no 1º turno | 0,0033 | 0,0011 | 1,003 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·variação do comparecimento no 2º turno (2018 a 2022) | −0,0030 | 0,0011 | 0,997 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
+| W·log da população | −0,0064 | 0,0014 | 0,994 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
+| W·log da densidade | 0,0079 | 0,0020 | 1,008 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·% de mulheres | 0,0033 | 0,0015 | 1,003 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·% de 60 anos ou mais | 0,0014 | 0,0019 | 1,001 | não | sem efeito distinguível de zero, com o EP de Conley |
+| W·% com ensino superior | −0,0024 | 0,0020 | 0,998 | não | sem efeito distinguível de zero, com o EP de Conley |
+| W·cobertura do Bolsa Família | 0,0119 | 0,0028 | 1,012 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·log do PIB per capita | 0,0077 | 0,0019 | 1,008 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·% do VAB agropecuário | −0,0016 | 0,0015 | 0,998 | não | sem efeito distinguível de zero, com o EP de Conley |
+| W·% de evangélicos | −0,0052 | 0,0013 | 0,995 | sim | vizinhança: associação negativa com Lula, dado o próprio município |
+| W·% de pretos e pardos | −0,0061 | 0,0033 | 0,994 | não | sem efeito distinguível de zero, com o EP de Conley |
+| W·% de população urbana | 0,0042 | 0,0016 | 1,004 | sim | vizinhança: associação positiva com Lula, dado o próprio município |
+| W·% com até fundamental incompleto | −0,0013 | 0,0021 | 0,999 | não | sem efeito distinguível de zero, com o EP de Conley |
+| prefeito de esquerda | −0,0049 | 0,0018 | 0,995 | sim | prefeito de esquerda (contra direita): chance menor |
+| Centro-Oeste | −0,0095 | 0,0045 | 0,991 | sim | contra Sudeste e Nordeste: chance menor |
+| Norte | −0,0141 | 0,0046 | 0,986 | sim | contra Sudeste e Nordeste: chance menor |
+| Sul | −0,0331 | 0,0039 | 0,967 | sim | contra Sudeste e Nordeste: chance menor |
+| γ intercepto (Sudeste) | 9,4388 | 0,1169 | 12.567 (fator em θ) | sim | log θ do Sudeste: θ ≈ 12.567 |
+| γ Centro-Oeste | 0,3967 | 0,2585 | 1,487 (fator em θ) | não | θ ≈ 18.687; sem diferença distinguível do Sudeste |
+| γ Nordeste | −1,0495 | 0,1991 | 0,350 (fator em θ) | sim | θ ≈ 4.400 (região mais dispersa) |
+| γ Norte | −0,2132 | 0,2711 | 0,808 (fator em θ) | não | θ ≈ 10.154; sem diferença distinguível do Sudeste |
+| γ Sul | 0,7972 | 0,2076 | 2,219 (fator em θ) | sim | θ ≈ 27.890 (a mais homogênea) |
 
 **Ressalva de colinearidade.** No `bb_slx`, onze termos têm VIF > 10: `W·lag1t` (251,8), `W·defasagem` (229,0), `lag1t` (114,4), a defasagem (110,5), `W·pct_pretos_pardos` (23,8), `pct_pretos_pardos` (18,4), `W·cobertura_pbf` (18,1), `W·pct_fund_inc` (14,5), `W·log_dens` (11,8), `pct_fund_inc` (10,2) e `log_dens` (10,0). Os dois logits (2022 e 1º turno de 2026) e as suas vizinhanças medem quase o mesmo voto, e cada covariável compartilha informação com a própria defasagem espacial, então os coeficientes desses termos, lidos um a um, são frágeis; a previsão não é afetada ([diagnóstico](docs/pressupostos/04-diagnostico.md), seção 8.6).
 
@@ -589,7 +588,7 @@ Demais limitações:
 
 * **Autocorrelação espacial residual** (I de Moran 0,270): Conley corrige a inferência, não as estimativas pontuais;
 * **Cobertura com poucas unidades:** sem $\sigma_{UF}$, 21 das 27 UFs ficam dentro do intervalo; com ele (também aninhado) são 25 de 27, e 5 regiões e 27 UFs são poucas para estimar cobertura;
-* **Seleção:** 8 dos 18 modelos ficam dentro de 1 EP, e a escolha repousa na parcimônia, não numa vantagem demonstrada;
+* **Seleção:** 4 dos 18 modelos ficam dentro de 1 EP, e a escolha repousa na parcimônia, não numa vantagem demonstrada;
 * **Pouca base regional:** só 5 regiões e 27 UFs para avaliar o erro; o erro regional não escolhe modelo;
 * **Regras tardias:** o Wald robusto, o SLX e o corte de Conley foram fixados antes de cada resultado, mas não antes das Partes 13 a 17 inteiras; uma versão anterior da validação vazava informação da UF de teste (corrigida);
 * **Covariáveis defasadas:** o comparecimento é o do 1º turno e nenhuma covariável do 2º turno entra; `pct_vab_agro` usa 2021;

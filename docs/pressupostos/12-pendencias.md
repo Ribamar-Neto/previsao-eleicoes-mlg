@@ -101,8 +101,8 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   Agora o modelo usa só covariáveis anteriores ao turno e o LOSO pesa a UF retida por n̂
   ([09](09-modelo-final.md), seção 1); as métricas das Partes 11 e 13 a 17 são ponderadas
   por n̂. O limite de aceitação passou a 1,1358 (LOSO sem vazamento, valor da época) e, com a seleção aninhada, a 1,2088.
-- **[resolvida] σ_UF (0,0570) ajustado nas mesmas 27 UFs.** Conferido com σ aninhado, sem efeito na
-  cobertura (item acima).
+- **[resolvida] σ_UF ajustado nas mesmas 27 UFs** (0,0570 na época, antes da covariável do 1º turno; hoje 0,0114,
+  [09](09-modelo-final.md)). Conferido com σ aninhado, sem efeito na cobertura (item acima).
 - **[resolvida] Seleção de variáveis e fusão Nordeste + Norte usavam o 2º turno de todas as UFs**,
   o que tornava otimista o LOSO do `bb_selecao` (1,005). Refeitas dentro de cada dobra: 1,067;
   a escolha não muda e L passa a 1,2088 ([05](05-validacao-cruzada.md), seção 8).
@@ -210,13 +210,11 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   (`results/tables/fusao_regiao_passos.csv` e `fusao_bloco_passos.csv`) e reproduzem os valores antigos.
 - **[resolvida] Inconsistências no markdown do `02-MLG`.** A Parte 6 cita o `bb_selecao` como o melhor, como o CSV;
   "11 contínuas" ficou só para o conjunto antigo.
-- **Texto com números ainda não conferido.** Em 2026-11-27 o markdown do `02-MLG` e do `03`, o README e os
-  arquivos 03, 04, 09, 11 e 14 foram conferidos contra `results/` e as saídas e corrigidos. Ficaram fora: as
-  células 26, 28, 33, 82 e 146 do `02-MLG` (índices dessa data), θ, ρ e fusão do [03](03-modelos-candidatos.md),
-  a coluna de 5 dobras e as tabelas das seções 6 e 8 do [05](05-validacao-cruzada.md), as larguras de BA e SP do
-  [09](09-modelo-final.md) e a tabela regional do README. Sem fonte em `results/`: n̂ 0,969 e 3,81 % do
-  [09](09-modelo-final.md); SP ≈ 5 p.p. e 77 % do [08](08-dependencia-espacial.md). Correção: conferir esses
-  pontos e tirar o número que não tiver fonte.
+- **[resolvida] Texto com números conferido.** Corrigidos a tabela de coeficientes do README, os resultados finais,
+  a tabela regional e o MAE do [01](01-visao-geral.md), o σ_UF desta lista, o SP do [08](08-dependencia-espacial.md)
+  (5,6 p.p. e 81 %, recalculados) e a regra de n̂ do [09](09-modelo-final.md). Bateram com `results/` as células 26,
+  28, 33, 82 e 146 do `02-MLG`, θ, ρ e fusão do [03](03-modelos-candidatos.md), as seções 5 a 8 do
+  [05](05-validacao-cruzada.md), as larguras de BA e SP do [09](09-modelo-final.md) e a tabela regional do README.
 - **Logit empírico sem citação em Paula.** A escolha do logit empírico (`log((y+½)/(n−y+½))`) como linha de base e para
   `lag1t` cita McCullagh e Nelder ([referências](referencias.md)); a seção de Paula que a sustenta não foi
   identificada. Também falta conferir se Paula 4.6.6 (citada no notebook 03 para a variância de β̂ e em `src/` para a

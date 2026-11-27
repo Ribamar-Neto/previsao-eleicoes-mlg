@@ -99,35 +99,33 @@ O erro regional LOSO não é critério, porque favorece por construção as bino
 
 ## Resultados finais
 
-- Treze modelos ficam dentro de 1 EP do melhor (`bb_selecao`, 1,005 p.p., EP 0,158; limite
-  1,164). A regra escolhe `bb_selecao` (19 parâmetros, MAE por UF 1,005 p.p., EP 0,158); o
-  segundo é `bin_logit` (1,009) ([05](05-validacao-cruzada.md)).
-- Resíduos quantílicos: DP 1,03 na beta-binomial e 3,42 na binomial.
-- Sem os 10 municípios mais influentes (capitais), `bb_reglag` muda no máximo 0,18 EP;
-  `quasi_reglag` muda 9,5 EP.
+- Quatro de 18 modelos ficam dentro de 1 EP do melhor (`bb_selecao`, 0,213 p.p. por UF no LOSO,
+  EP 0,035; limite 0,248). A regra escolhe `bb_selecao` (24 parâmetros, o menor número dentro do
+  limite); o segundo é `bin_logit` (0,242) ([05](05-validacao-cruzada.md)).
+- Resíduos quantílicos: DP 0,98 na beta-binomial e 1,66 na binomial.
 
-Refinamento (Partes 13 a 17 do `02-MLG`): `bb_selecao` virou o modelo final `bb_slx` (37 parâmetros):
-dispersão por região e log n (`bb_disp`; [07](07-dispersao-regional.md); aceita, LOSO 0,996,
-confirmada por Wald robusto) mais covariáveis defasadas espacialmente, SLX (LOSO 1,073 ≤ 1,2088,
-acima do 1,005 de `bb_selecao`; I de Moran dos resíduos só de 0,353 para 0,348). O filtro de
-autovetores foi rejeitado (LOSO 1,584) e a inferência usa EPs de Conley a 200 km, corte
-conferido com 2022 ([08](08-dependencia-espacial.md)). Krigagem e CAR nos resíduos foram
-rejeitadas (queda do I de 0,0005 e 0,0311, abaixo do mínimo de 0,05;
-[10](10-extensoes-rejeitadas.md)). O modelo final segue `bb_slx`.
+Refinamento (Partes 13 a 17 do `02-MLG`): `bb_selecao` virou o modelo final `bb_slx` (46 parâmetros):
+dispersão por região (`bb_disp`; [07](07-dispersao-regional.md); aceita, LOSO 0,218, confirmada por
+Wald robusto; o log n foi testado e descartado) mais covariáveis defasadas espacialmente, SLX
+(LOSO 0,194 ≤ 0,2904; I de Moran dos resíduos só de 0,283 para 0,270). O filtro de autovetores foi
+rejeitado (LOSO 0,480) e a inferência usa EPs de Conley a 150 km, corte conferido com 2022
+([08](08-dependencia-espacial.md)). Krigagem e CAR nos resíduos foram rejeitadas (queda do I de
+0,0126 e 0,036, abaixo do mínimo de 0,05; [10](10-extensoes-rejeitadas.md)). O modelo final
+segue `bb_slx`.
 
-Estimativas regionais do modelo final (LOSO, Conley + σ_UF = 0,0570), Lula %, cenário "UF
+Estimativas regionais do modelo final (LOSO, Conley e choque de UF t de Student, σ_UF = 0,0114), Lula %, cenário "UF
 inédita" ([09](09-modelo-final.md)):
 
 | Região | Estimado | IC 95% | Real |
 |---|---|---|---|
-| Centro-Oeste | 39,96 | [38,4; 41,4] | 39,99 |
-| Nordeste | 69,58 | [68,6; 70,5] | 69,37 |
-| Norte | 49,28 | [47,8; 50,8] | 50,01 |
-| Sudeste | 47,94 | [46,3; 49,6] | 47,24 |
-| Sul | 36,92 | [35,4; 38,4] | 37,42 |
-| Brasil | 51,82 | [51,2; 52,5] (90%) | 51,78 |
+| Centro-Oeste | 40,13 | [39,77; 40,47] | 39,99 |
+| Nordeste | 69,55 | [69,33; 69,77] | 69,37 |
+| Norte | 49,91 | [49,57; 50,26] | 50,01 |
+| Sudeste | 47,50 | [47,11; 47,91] | 47,24 |
+| Sul | 37,47 | [37,15; 37,80] | 37,42 |
+| Brasil | 51,78 | [51,60; 51,97] | 51,78 |
 
-MAE por UF 1,073 p.p. no LOSO (0,846 no 5-fold); MAE regional 0,431 p.p.
+MAE por UF 0,194 p.p. no LOSO (0,140 no 5-fold); MAE regional 0,145 p.p.
 
 Apuração parcial na ordem real das seções (Parte 18): [11](11-apuracao-parcial.md). O desenho do
 modelo é refeito em cada corte só com os municípios já apurados (antes usava o desenho final,
