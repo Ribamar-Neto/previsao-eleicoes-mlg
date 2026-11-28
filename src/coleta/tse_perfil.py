@@ -13,7 +13,7 @@ Regras de negócio:
 
 import pandas as pd
 
-from src.coleta.comum import INTERIM, RAW, baixar, ler_csv_zip, salvar_interim
+from src.coleta.comum import RAW, baixar, ler_csv_zip, salvar_interim
 
 URL = "https://cdn.tse.jus.br/estatistica/sead/odsele/perfil_eleitorado/perfil_eleitorado_{ano}.zip"
 ANOS = (2022, 2026)

@@ -34,6 +34,9 @@ testpaths = ["tests"]
 line-length = 120
 extend-exclude = ["notebooks"]
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["src.especificacoes.Termos"]
+
 [tool.mypy]
 # Os notebooks importam os módulos de src/ pelos dois caminhos (src.x e x); a base explícita evita o nome duplicado.
 explicit_package_bases = true

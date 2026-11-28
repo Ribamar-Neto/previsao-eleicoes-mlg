@@ -117,7 +117,8 @@ def tabela(
         elif col in inteiros:
             formatos[col] = _fmt(lambda v: _num(v, 0))
         else:
-            formatos[col] = _fmt(lambda v, c=casas_col.get(col, casas): _num(v, c))
+            casas_da_col = casas_col.get(col, casas)
+            formatos[col] = _fmt(lambda v, c=casas_da_col: _num(v, c))
     saida = df.rename(columns=dict(rotulos)) if rotulos else df
     if rotulos:
         formatos = {rotulos.get(c, c): f for c, f in formatos.items()}

@@ -27,7 +27,7 @@ import zipfile
 import pandas as pd
 import requests
 
-from src.coleta.comum import INTERIM, RAW, UA, baixar, salvar_interim
+from src.coleta.comum import RAW, UA, baixar, salvar_interim
 
 PASTA = RAW / "mds_bolsa_familia"
 MESES = {
@@ -78,19 +78,18 @@ def _municipios_ibge() -> pd.DataFrame:
 def _familias_por_municipio(zip_path) -> pd.DataFrame:
     """Conta NIS distintos por (UF, SIAFI, nome) lendo o CSV em blocos."""
     partes = []
-    with zipfile.ZipFile(zip_path) as z:
-        with z.open(z.namelist()[0]) as f:
-            blocos = pd.read_csv(
-                f,
-                sep=";",
-                encoding="latin-1",
-                dtype=str,
-                chunksize=2_000_000,
-                usecols=["UF", "CÓDIGO MUNICÍPIO SIAFI", "NOME MUNICÍPIO", "NIS FAVORECIDO"],
-            )
-            for b in blocos:
-                b.columns = ["uf", "siafi", "nome", "nis"]
-                partes.append(b.drop_duplicates())
+    with zipfile.ZipFile(zip_path) as z, z.open(z.namelist()[0]) as f:
+        blocos = pd.read_csv(
+            f,
+            sep=";",
+            encoding="latin-1",
+            dtype=str,
+            chunksize=2_000_000,
+            usecols=["UF", "CÓDIGO MUNICÍPIO SIAFI", "NOME MUNICÍPIO", "NIS FAVORECIDO"],
+        )
+        for b in blocos:
+            b.columns = ["uf", "siafi", "nome", "nis"]
+            partes.append(b.drop_duplicates())
     tudo = pd.concat(partes, ignore_index=True).drop_duplicates()
     return tudo.groupby(["uf", "siafi", "nome"], as_index=False).agg(familias=("nis", "nunique"))
 

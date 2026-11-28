@@ -73,7 +73,7 @@ def test_painel_diagnostico_quatro_paineis_e_rotulos_cook() -> None:
     )
     assert fig.layout.title.text == "Diagnóstico"
     assert len(fig.data) == 6  # 4 painéis + rótulos Cook + LOWESS
-    assert len([t for t in fig.data if t.mode == "markers+text"][0].text) == 5
+    assert len(next(t for t in fig.data if t.mode == "markers+text").text) == 5
     assert all(isinstance(t, go.Scatter) for t in fig.data)
 
 

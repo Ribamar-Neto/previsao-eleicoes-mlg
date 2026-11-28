@@ -23,7 +23,7 @@ def test_fit_usa_so_informacao_anterior():
 def test_recalibrar_iguala_alvo():
     rng = np.random.default_rng(0)
     pi, n = rng.uniform(0.2, 0.8, 200), rng.integers(100, 5000, 200).astype(float)
-    novo, d = B.recalibrar(pi, n, 0.45)
+    novo, _d = B.recalibrar(pi, n, 0.45)
     assert np.sum(novo * n) / n.sum() == pytest.approx(0.45, abs=1e-8)
     assert np.all((novo > 0) & (novo < 1))
     _, d0 = B.recalibrar(pi, n, np.sum(pi * n) / n.sum())

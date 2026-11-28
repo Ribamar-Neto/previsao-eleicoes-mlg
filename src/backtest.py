@@ -143,7 +143,10 @@ def recalibrar(pi, n, alvo) -> tuple[np.ndarray, float]:
     """Desloca o logit de pi por delta, de modo que a média ponderada por n seja `alvo`."""
     pi, n = np.asarray(pi, float), np.asarray(n, float)
     z = logit(np.clip(pi, 1e-9, 1 - 1e-9))
-    f = lambda d: float(np.sum(expit(z + d) * n) / n.sum() - alvo)  # noqa: E731
+
+    def f(d: float) -> float:
+        return float(np.sum(expit(z + d) * n) / n.sum() - alvo)
+
     d = brentq(f, -3, 3)
     return expit(z + d), float(d)
 

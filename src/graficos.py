@@ -9,6 +9,7 @@ Os gráficos de diagnóstico do MLG (Parte 10 em diante) ficam na segunda metade
 from __future__ import annotations
 
 import atexit
+import contextlib
 import functools
 import math
 import os
@@ -73,13 +74,12 @@ def _iniciar_kaleido() -> None:
     if _servidor_kaleido:
         return
     _servidor_kaleido = True
-    try:
+    # sem servidor, write_image ainda funciona (mais lento)
+    with contextlib.suppress(Exception):
         import kaleido
 
         kaleido.start_sync_server(silence_warnings=True)
         atexit.register(kaleido.stop_sync_server, silence_warnings=True)
-    except Exception:  # noqa: BLE001 - sem servidor, write_image ainda funciona (mais lento)
-        pass
 
 
 df: pd.DataFrame = pd.DataFrame()
@@ -1039,8 +1039,8 @@ def forest_or(tabela: pd.DataFrame, titulo: str) -> go.Figure:
     return fig
 
 
-def moran_dispersao(z: Any, lag_z: Any, I: float, titulo: str) -> go.Figure:  # noqa: E741 - notação de Moran
-    """Diagrama de Moran: z contra a defasagem espacial; a reta passa pela origem com inclinação I.
+def moran_dispersao(z: ArrayLike, lag_z: ArrayLike, indice_moran: float, titulo: str) -> go.Figure:
+    """Diagrama de Moran: z contra a defasagem espacial; a reta passa pela origem com inclinação indice_moran.
 
     AA/BB = agrupamentos de valores altos/baixos; AB/BA = municípios discrepantes dos vizinhos.
     """
@@ -1059,9 +1059,9 @@ def moran_dispersao(z: Any, lag_z: Any, I: float, titulo: str) -> go.Figure:  # 
     fig.add_trace(
         go.Scatter(
             x=[-lim, lim],
-            y=[-I * lim, I * lim],
+            y=[-indice_moran * lim, indice_moran * lim],
             mode="lines",
-            name=f"Inclinação = I = {I:.3f}".replace(".", ","),
+            name=f"Inclinação = I = {indice_moran:.3f}".replace(".", ","),
             line={"color": COR_CURVA, "width": 2.5},
         )
     )

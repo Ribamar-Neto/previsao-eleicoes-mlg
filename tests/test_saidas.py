@@ -4,8 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 import plotly.graph_objects as go
+import pytest
 
 from src import saidas as SA
 

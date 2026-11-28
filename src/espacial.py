@@ -9,6 +9,7 @@ Referências: Griffith (2003); Tiefelsdorf & Griffith (2007); Conley (1999).
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
+from itertools import pairwise
 from multiprocessing import get_context
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -17,9 +18,9 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from scipy.optimize import minimize
-from scipy.special import expit, logit
 from scipy.sparse.linalg import LinearOperator, eigsh, splu
 from scipy.spatial import KDTree
+from scipy.special import expit, logit
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -232,7 +233,7 @@ def correlograma(residuos, lat, lon, faixas_km):
     i, j, d = i[m], j[m], d[m]
     prod = z[i] * z[j]
     linhas = []
-    for ini, fim in zip(bordas[:-1], bordas[1:]):
+    for ini, fim in pairwise(bordas):
         sel = (d >= ini) & (d < fim)
         n = int(sel.sum())
         linhas.append((ini, fim, n, prod[sel].mean() if n else np.nan))

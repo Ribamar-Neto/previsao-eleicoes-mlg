@@ -104,16 +104,16 @@ def test_metricas_exemplo():
 
 
 def test_residuos_quantilicos_normais():
-    X, y, n, pi = simular(N=500, theta=None)
+    _, y, n, pi = simular(N=500, theta=None)
     r = m.residuos_quantilicos(y, n, pi, rng=1)
     assert stats.kstest(r, "norm").pvalue > 0.01
-    X, y, n, pi = simular(N=500, theta=200.0, seed=4)
+    _, y, n, pi = simular(N=500, theta=200.0, seed=4)
     r = m.residuos_quantilicos(y, n, pi, theta=200.0, rng=2)
     assert stats.kstest(r, "norm").pvalue > 0.01
 
 
 def test_envelope_meio_normal():
-    X, y0, n, pi = simular(N=60, theta=None, beta=(0.0, 0.5), seed=7)
+    X, y0, n, _pi = simular(N=60, theta=None, beta=(0.0, 0.5), seed=7)
 
     def ajustar(y=None):
         yy = y0 if y is None else y
@@ -171,7 +171,10 @@ def test_simular_votos_grupo_forma_media_e_choque():
 # --------------------------------------------------------------------------
 # Dispersão por covariáveis (double GLM)
 # --------------------------------------------------------------------------
-def _simular_disp(N=3000, gam=(np.log(300.0), -1.0), seed=3):
+_GAM_PADRAO = (np.log(300.0), -1.0)
+
+
+def _simular_disp(N=3000, gam=_GAM_PADRAO, seed=3):
     rng = np.random.default_rng(seed)
     X, _, n, pi = simular(N=N, theta=None, seed=seed)
     g = rng.integers(0, 2, N)
@@ -238,7 +241,7 @@ def test_sem_exog_disp_mantem_caminho_antigo():
 
 
 def test_theta_vetor_em_residuos_e_simulacao():
-    X, y, n, Z, th = _simular_disp(N=400)
+    X, y, n, _, th = _simular_disp(N=400)
     pi = m._pi_de_eta(X @ np.array([-0.3, 0.8]), m._link(None))
     r = m.residuos_quantilicos(y, n, pi, theta=th, rng=1)
     assert r.shape == y.shape and abs(r.mean()) < 0.3 and 0.7 < r.std() < 1.3
@@ -257,7 +260,7 @@ def test_theta_vetor_em_residuos_e_simulacao():
 def test_residuos_quantilicos_rapido_theta_vetor():
     from src.pressupostos import residuos_quantilicos_rapido as rap
 
-    X, y, n, Z, th = _simular_disp(N=200)
+    X, y, n, _, th = _simular_disp(N=200)
     pi = m._pi_de_eta(X @ np.array([-0.3, 0.8]), m._link(None))
     r = rap(y, n, pi, theta=th, rng=5)
     ref = m.residuos_quantilicos(y, n, pi, theta=th, rng=5)
