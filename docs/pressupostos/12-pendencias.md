@@ -1,6 +1,7 @@
 # Pendências
 
-Todas são [fact] salvo marca em contrário. Cada item: efeito e correção possível.
+Todas são [fact] salvo marca em contrário. Conferidas em 2026-11-28 com o código, `results/` e os docs 03 a 15.
+Cada item: efeito e correção possível. As resolvidas ficam em [12-pendencias-resolvidas.md](12-pendencias-resolvidas.md).
 
 ## Dados
 
@@ -15,39 +16,16 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   usar o agregado oficial do MDS, hoje indisponível.
 - **Perfil do eleitorado 2026** gerado em 14/07/2026, sem confirmação de ser o perfil
   fechado. Efeito: pequenas diferenças de cadastro. Correção: rebaixar o perfil fechado.
-- **`pct_vab_agro` usa 2021** e **`pib_per_capita_2023` divide pela população de 2022**.
-  Efeito: defasagem de cinco anos e denominador aproximado. Correção: atualizar quando o
-  IBGE publicar VAB posterior e estimativas de população.
+- **`pct_vab_agro` usa 2021** e **`pib_per_capita_2023` divide pela população de 2022**
+  ([dicionário](../dados/dicionario.md)). Efeito: defasagem de cinco anos e denominador aproximado. Correção:
+  atualizar quando o IBGE publicar VAB posterior e estimativas de população.
 - **Classificação ideológica de UP e Missão sem citação** (não constam em Bolognesi,
-  Ribeiro e Codato 2023). Efeito: bloco de poucos votos com base fraca. Correção: citar
-  fonte ou agrupar como "outros".
+  Ribeiro e Codato 2023). UP em esquerda e Missão em direita é julgamento do projeto, registrado em
+  [ideologia-partidos](../dados/ideologia-partidos.md) (`CLASSE_MANUAL` em `src/coleta/tse_ideologia.py`), sem fonte
+  acadêmica. Efeito: bloco de poucos votos com base fraca. Correção: citar fonte ou agrupar como "outros".
 
 ## Modelo
 
-- **[resolvida] Triagem das covariáveis, funil registrado.** 24 numéricas na AED → 20 após o
-  VIF ([02](02-aed.md), Parte 3) → 21 candidatas do modelo (`CONTINUAS` em
-  `src/especificacoes.py`: as 20 mais `nota_dep`, que a AED descartou por medir o mesmo que
-  `pct_dep_esq` e que a seleção volta a testar) → 13 selecionadas por BIC (`lag` e 12).
-  As três candidatas que antes ficavam fora (`pct_ate_fund_incompleto_2026`,
-  `pct_sem_religiao_2022`, `pct_indigenas_2022`) agora entram e as três são selecionadas.
-  Nenhuma variável recomendada pela AED fica sem avaliação.
-- **[fechada como limitação] Resíduos com autocorrelação espacial em todos os modelos**
-  (I de Moran ≈ 0,35). Conley a 200 km corrige a inferência
-  ([08](08-dependencia-espacial.md), seções 4 e 5); ESF foi rejeitado (LOSO 1,575 contra o
-  limite 1,2088) e o SLX aceito, mas o SLX só baixou o I de 0,352 para 0,347. A Parte 17
-  decompôs o I e testou krigagem dos resíduos sob LOSO: rejeitada (queda do I de 0,0006
-  contra o mínimo de 0,05). Testou também CAR/BYM em dois estágios sob a mesma regra:
-  rejeitado (queda do I de 0,0304; MAE por UF de 0,984, mas MAE regional pior)
-  ([10](10-extensoes-rejeitadas.md)). A correlação não é removível com a informação
-  disponível para uma UF nova. Não resta alternativa espacial na lista.
-- **[resolvida] θ não é constante por região** (DP residual de 0,82 no Sudeste a 1,39 no
-  Norte). Dispersão por região e log n: máximo |DP − 1| de 0,388 para 0,075
-  ([07](07-dispersao-regional.md)). Resta o Norte (DP 1,08).
-- **[resolvida] LRT da dispersão supõe municípios independentes** ([07](07-dispersao-regional.md),
-  seção 3). O Wald robusto com Conley (e por UF) mantém `regiao` e `log n`, com p ≤ 2e-4
-  em todas as covariâncias ([07](07-dispersao-regional.md), seção 5).
-- **[resolvida] Corte de Conley (200 km) vinha do correlograma de uma só eleição.** O de 2022
-  dá 200 km também; mantido ([08](08-dependencia-espacial.md), seção 5).
 - **Regras adicionadas depois dos primeiros resultados da Parte 13** (Wald robusto, SLX e
   corte de 2022, em 2026-11-09): foram fixadas antes de cada resultado, mas não antes do
   notebook inteiro; o leitor deve pesar isso.
@@ -55,169 +33,85 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   Hosmer-Lemeshow e todos os subconjuntos) vieram da revisão da análise, depois dos
   resultados anteriores; o leitor deve pesar isso. A busca em todos os subconjuntos
   (triagem quase-binomial e reajuste dos 200 melhores) não achou o ótimo do stepwise (BIC
-  72.630,6 contra 72.624,5): fraqueza da triagem. Correção possível: ampliar a triagem.
+  62.571,7 com 16 variáveis contra 62.571,4, 0,3 ponto abaixo; [03](03-modelos-candidatos.md), Parte 8): fraqueza
+  da triagem, que não muda a escolha. Correção possível: ampliar a triagem.
 - **Stepwise de Hosmer-Lemeshow difere do livro em um ponto** (Paula, pp. 358-371): os
   limiares, a ordem das etapas, o passo 4 (Wald, alfa 0,05) e a tabela de π por iteração
   conferem. A etapa de interações testa só o `lag` e as 6 primeiras variáveis que
   sobreviveram ao Wald, por custo. Efeito: o stepwise é comparação, não decide o modelo (BIC
   decide). Correção possível: testar todos os pares, o que passou de 20 minutos sem terminar.
-- **Envelope meio-normal fora da banda em todos os beta-binomiais**: `bb_reglag` 92,4%,
-  `bb_selecao` 92,7%, `bb_slx` 77,8% dos pontos fora (corpo abaixo, caudas acima; curtose
-  3,67 / 3,77 / 2,24). A dispersão por região melhora a curtose, mas o padrão persiste. Efeito:
-  o envelope não valida a distribuição. Correção: modelo com caudas mais pesadas
-  ([04](04-diagnostico.md), seção 8.3).
-- **Influência no beta-binomial**: os maiores Cook de um passo são municípios pequenos
-  (Jutaí/AM, São João das Missões/MG), com Brasília só em 3º no `bb_slx`. O reajuste sem os
-  10 maiores move no máximo 0,69 EP, sem troca de sinal. Efeito: inferência estável; a sensibilidade do quase-binomial
-  às capitais fica restrita a ele ([04](04-diagnostico.md), seções 4 e 8.7).
-- **Ligação sinalizada só em `bb_slx`** (p Conley 0,0076; P95 de \|Δπ̂\| 0,25 p.p.,
-  máximo 0,41); `bb_selecao` não é sinalizado (p Conley 0,098). Efeito: pequeno, abaixo de 0,5 p.p. Correção: ligação
-  paramétrica ou η̂² na média, validado por validação cruzada
-  ([04](04-diagnostico.md), seção 8.1).
-- **Não linearidade de `pct_pretos_pardos`** (única material: P95 de \|Δπ̂\| 0,64 e
-  0,63 p.p., máximo 1,35 e 1,52). Correção: spline nessa covariável, a validar por validação
-  cruzada ([04](04-diagnostico.md), seção 8.2).
-- **VIF > 10 nas defasagens SLX do `bb_slx`** (`w_pct_pretos_pardos` 28,5, `pct_pretos_pardos` 24,0,
-  `w_cobertura_pbf` 17,4, `w_lag` 16,5, `w_pct_16_24` 13,7, `lag` 11,7, `w_log_dens` 10,1;
-  número de condição 21,3, 32 colunas). Efeito: leitura de coeficientes individuais frágil, inclusive a tabela
-  de coeficientes do README da raiz. Correção: ler os pares (x, Wx) por Wald de 2 gl
-  ([04](04-diagnostico.md), seção 8.6).
+- **Envelope meio-normal fora da banda nos beta-binomiais**: `bb_selecao` 94,6 % e `bb_slx` 72,8 % dos
+  pontos fora (corpo abaixo: 92,2 e 71,7 %; caudas acima: 2,44 e 1,06 %; curtose em excesso 2,27 e 2,25). A
+  dispersão por região não muda a curtose e o padrão persiste. As contagens vêm de B = 49 e de uma só realização
+  dos resíduos aleatorizados, então variam com a semente ([04](04-diagnostico.md), seção 7). Efeito: o envelope
+  não valida a distribuição. Correção: modelo com caudas mais pesadas ([04](04-diagnostico.md), seção 8.3).
+- **Influência no beta-binomial**: os maiores Cook de um passo são municípios pequenos; Belo Monte/AL e Santo
+  Antônio de Lisboa/PI lideram nos dois modelos. O reajuste sem os 10 maiores move no máximo 1,37 EP
+  (`bb_selecao`, `log_theta`) e 1,05 EP (`bb_slx`, `disp_reg_Nordeste`), sem troca de sinal. Efeito: inferência
+  estável pela regra 7; a sensibilidade do quase-binomial às capitais fica restrita a ele
+  ([04](04-diagnostico.md), seções 4 e 8.7).
+- **Ligação sinalizada nos dois modelos** (p Conley 1,3e-4 no `bb_selecao` e 4,6e-3 no `bb_slx`; P95 de
+  \|Δπ̂\| 0,13 e 0,09 p.p., máximo 0,25 e 0,19). Efeito: pequeno, abaixo de 0,5 p.p. Correção: ligação
+  paramétrica ou η̂² na média, validado por validação cruzada ([04](04-diagnostico.md), seção 8.1).
+- **VIF > 10 no `bb_slx`**: 11 de 38 fatores (`w_lag1t` 251,7, `w_lag` 228,7, `lag1t` 114,4, `lag` 110,5,
+  `w_pct_pretos_pardos` 23,7 e outros seis entre 10 e 18,4); número de condição 82,4, 41 colunas. Efeito: leitura
+  de coeficientes individuais frágil, inclusive a tabela de coeficientes do README da raiz. Correção: ler os pares
+  (x, Wx) por Wald de 2 gl, ainda não feito ([04](04-diagnostico.md), seção 8.6).
 
 ## Validação
 
-- **[resolvida] Cobertura dos intervalos (27/27 UFs, 5/5 regiões) com σ_UF ajustado nas mesmas UFs.**
-  Com σ_UF aninhado (σ_{-u} das outras 26 UFs, de 0,0529 a 0,0581; σ_{-r} das UFs fora da região)
-  a cobertura é a mesma: 27/27 a 95 %, 92,6 % a 90 %, 5/5 regiões; largura 5,41 p.p. por UF e 2,84
-  por região (contra 5,42 e 2,87). Resta só o tamanho da amostra (5/5 é compatível com cobertura real
-  a partir de ~55 %); com σ = 0 a cobertura é 13/27 ([09](09-modelo-final.md), seção 4).
 - **Erro regional LOSO favorece binomiais canônicas por construção** ([05](05-validacao-cruzada.md), seção 6);
   não serve para seleção.
-- **13 modelos dentro de 1 EP**: os dados não os separam com clareza [deduced]. A escolha
-  de `bb_selecao` repousa na regra de parcimônia, não numa vantagem demonstrada.
-  O modelo final `bb_slx` (LOSO 1,073) fica acima de `bb_selecao` (1,005), dentro da
-  tolerância de 1,2088.
-
-- **[resolvida] LOSO vazava o 2º turno da UF retida** (comparecimento e n reais de 2026).
-  Agora o modelo usa só covariáveis anteriores ao turno e o LOSO pesa a UF retida por n̂
-  ([09](09-modelo-final.md), seção 1); as métricas das Partes 11 e 13 a 17 são ponderadas
-  por n̂. O limite de aceitação passou a 1,1358 (LOSO sem vazamento, valor da época) e, com a seleção aninhada, a 1,2088.
-- **[resolvida] σ_UF ajustado nas mesmas 27 UFs** (0,0570 na época, antes da covariável do 1º turno; hoje 0,0114,
-  [09](09-modelo-final.md)). Conferido com σ aninhado, sem efeito na cobertura (item acima).
-- **[resolvida] Seleção de variáveis e fusão Nordeste + Norte usavam o 2º turno de todas as UFs**,
-  o que tornava otimista o LOSO do `bb_selecao` (1,005). Refeitas dentro de cada dobra: 1,067;
-  a escolha não muda e L passa a 1,2088 ([05](05-validacao-cruzada.md), seção 8).
+- **4 modelos dentro de 1 EP no registro, 10 na regra aninhada** ([05](05-validacao-cruzada.md), seções 5 e
+  8): os dados não os separam com clareza [deduced]. A escolha de `bb_selecao` repousa na regra de
+  parcimônia, não numa vantagem demonstrada. O modelo final `bb_slx` (LOSO 0,1940) fica abaixo de `bb_selecao`
+  (0,2134) e dentro de L = 0,2904 ([08](08-dependencia-espacial.md), seções 1 e 3).
 - **Extensões com a seleção dos dados completos.** `bb_disp`, `bb_slx` e as rejeitadas herdam
   as variáveis do `bb_selecao` escolhidas com todas as UFs; contra um L aninhado o limite é
-  mais folgado. Nenhuma decisão está perto dele (`bb_slx` 1,073 contra 1,2088). Correção:
-  refazer a seleção dentro de cada dobra para as extensões.
-- **[resolvida] Cenário de apuração parcial (ordem real das seções)**: Parte 18, em
-  [11](11-apuracao-parcial.md).
-- **[resolvida] σ_UF e corte de Conley de 2026 reusados na apuração parcial de 2022.** Cada
-  (ano, corte) tem agora o seu, só do apurado ([11](11-apuracao-parcial.md), seção 9).
-- **[resolvida] Piso de 1 km do corte de Conley nos cortes iniciais da apuração parcial.** Conley com
-  1 km equivale a HC0 e ignora a correlação espacial. Quando a regra da Parte 15 dá 0 km num desenho
-  parcial, o corte passa a 200 km, o da regra aplicada à apuração completa de 2022 (conhecida antes
-  do 2º turno de 2026, sem vazamento). Só 2026 a 5 % e 10 % usaram o piso
-  (com o 1º turno do mesmo ano nenhum corte precisou; [11](11-apuracao-parcial.md), seção 8).
-
+  mais folgado. Nenhuma decisão está perto dele (`bb_slx` 0,194 contra 0,290; [05](05-validacao-cruzada.md),
+  seção 8). Correção: refazer a seleção dentro de cada dobra para as extensões.
+- **L antigo no [01](01-visao-geral.md).** A regra 5 de seleção ainda cita L = 1,0669 + 0,1419 = 1,2088 p.p.
+  (1,1472 sem aninhar); o L atual é 0,2497 + 0,0407 = 0,2904 (0,2541 sem aninhar; [05](05-validacao-cruzada.md)).
+  Correção: atualizar o 01.
 - **Krigagem: o corte do correlograma (CORTE) vem dos resíduos dentro da amostra com todos
   os dados** (Parte 15, c. 20) e é reusado como alcance da krigagem (c. 33). Efeito:
   vazamento leve que favorece aceitar a krigagem; ela foi rejeitada, então a decisão não
   muda ([10](10-extensoes-rejeitadas.md), seção 3). Correção: estimar o corte dentro de
   cada dobra.
-- **[resolvida] ρ e o CAR usavam resíduos sem peso, embora a variância deles seja cerca de
-  1/n**; o I de Moran fora da amostra também. Sensibilidade com resíduos de Pearson
-  (beta-binomial), só informativa: nenhuma decisão muda. A queda do Moran fica abaixo de 0,05
-  (krigagem −0,001, CAR 0,024) e o MAE por UF passa nas duas versões
-  ([10](10-extensoes-rejeitadas.md), seção 6).
 - **Moran sem peso superestima a correlação residual.** Padronizado, o I de Moran base cai de
   0,4394 para 0,3882: parte da dependência espacial vem de municípios pequenos. Com peso, o MAE
   regional piora (krigagem 0,630 contra 0,433 p.p.; CAR 0,620 contra 0,585).
-- **[resolvida] Intervalos da apuração parcial tratavam n_u como fixo.** n_u passou a ser
-  sorteado (choque de UF mais resíduo municipal, só com seções recebidas) e a cobertura é
-  reportada por unidade e ano. Resultado: nenhuma cobertura mudou; as larguras variavam menos de
-  0,05 p.p. antes do 1º turno do mesmo ano e até 0,15 p.p. (mediana) agora ([11](11-apuracao-parcial.md), seções 3 e 6).
 - **Descasamento de θ na apuração parcial**: θ é avaliado em log(n_u), fora da faixa de
   log n do ajuste (n apurado); o erro de θ é ignorado (só o bloco β da covariância de
   Conley é sorteado); σ_UF vem do LOSO do desenho de cada corte
-  ([11](11-apuracao-parcial.md), seções 8 e 9).
+  ([11](11-apuracao-parcial.md), seções 8 e 9). O ruído binomial/θ é de 20 a 57 % da variância do resíduo LOSO
+  que sustenta σ_UF; subtraí-lo (H1) não fechou a lacuna de calibração ([15](15-apuracao-corte-precoce-calibracao.md),
+  seções 3.2 e 3.3).
 - **[resolvida em parte] IC largo na apuração parcial.** O diagnóstico D1 a D4 mostrou que o σ_UF inflado, por falta do
   1º turno do mesmo ano, era a causa principal; com a covariável o IC do Brasil caiu de 1,82 para 0,39 p.p. e a cobertura
-  foi de 56 de 60 para 60 de 60 ([14](14-apuracao-diagnostico-1t.md)). O texto abaixo é o estado de 26/11: as primeiras seções (capitais e grandes cidades) não
-  são amostra aleatória da UF. O encolhimento por UF (BLUP) estreitou o IC e perdeu cobertura em 2026 (Brasil 6/6 → 4/6,
-  regiões 27/30 → 20/30) e foi rejeitado ([13](13-apuracao-extensoes-rejeitadas.md)). Correção possível: encolhimento
+  foi de 56 de 60 para 60 de 60 ([14](14-apuracao-diagnostico-1t.md)). Resta que as primeiras seções (capitais e grandes
+  cidades) não são amostra aleatória da UF. O encolhimento por UF (BLUP) estreitou o IC e perdeu cobertura em 2026
+  (Brasil 6/6 → 4/6, regiões 27/30 → 20/30) e foi rejeitado, mas no modelo de 2026-11-26, sem a covariável do 1º
+  turno; não foi retestado depois dela ([13](13-apuracao-extensoes-rejeitadas.md)). Correção possível: encolhimento
   que pondere o apurado pela semelhança com o restante da UF, calibrado com critério que inclua a cobertura.
-
-- **[resolvida] Swing do 1º turno como linha de base do veredito.** Entrou como terceira linha de base (e como linha
-  tracejada no gráfico de erro): 2022 passa a não útil (3 de 6), 2026 segue útil (6 de 6). A regra mudou depois do
-  resultado, o que o [11](11-apuracao-parcial.md) (seção 1) declara.
-- **Cobertura do IC da apuração parcial não calibrada.** 72 de 72 itens dentro, com IC 5 vezes mais estreito; não
-  separa 95 % de valores maiores. Diagnosticada em 2026-11-27: a regra R-cal não disparou e o IC não mudou
-  ([15](15-apuracao-corte-precoce-calibracao.md), seções 3 e 4). Pistas abertas: (i) σ_UF pesado pelos votos ou
-  dependente do tamanho da UF, a testar sob nova regra pré-registrada; (ii) viés de n_u em 2026 (votos restantes ≈ 4 %
-  acima da estimativa). Correção de fundo: mais eleições ([11](11-apuracao-parcial.md), seção 6).
-- **[resolvida] Crista plana da dispersão do Centro-Oeste em 2026 a 10 %.** Teto de θ = 1e9 no limite binomial, com guarda
-  LRT; o ajuste converge ([14](14-apuracao-diagnostico-1t.md), seção 6).
-- **[resolvida] σ_UF e choque de UF.** O choque passou a σ̂·T_k, com k as UFs do desenho do corte ([11](11-apuracao-parcial.md),
-  seção 6).
-- **[resolvida] Fusão de região com a referência no 02.** O 02 passou a usar o mesmo agrupamento de `_fusoes` do 03.
-- **Contagem do funil de covariáveis desatualizada.** O item "Triagem" acima conta 13 selecionadas; com `lag1t` e
-  `outros_1t` como candidatas são 18 contínuas selecionadas (`results/tables/selecao_variaveis.json`). Correção: atualizar
-  o item na revisão do [03](03-modelos-candidatos.md).
+- **Cobertura do IC da apuração parcial não calibrada.** 72 de 72 itens dentro (z² médio 0,52, calibrado ≈ 1); não
+  separa 95 % de valores maiores. Diagnosticada em 2026-11-27 ([15](15-apuracao-corte-precoce-calibracao.md), seções 3
+  e 4): a regra R-cal não disparou e o IC não mudou. A condição (a) falha em todo componente e a (b) também; H1 a H3
+  fecham pouco da lacuna. Explicação líder, não testada diretamente: o DP total modelado da parcela restante da UF fica
+  superestimado quando pesado pelos votos restantes (ρ total 0,58 em 2022 e 0,70 em 2026; sem peso, 0,91 e 0,64).
+  Viés de n_u em 2026: votos restantes ≈ 4 % acima da estimativa (razão em log de 0,040 a 0,049), não modelado. No
+  corte de 2 %, fora do veredito, o final de 2026 fica ≈ 0,02 p.p. acima do IC do Brasil, e Sergipe não tem município
+  apurado nos dois anos. Correção: σ_UF pesado pelos votos ou dependente do tamanho da UF, sob nova regra
+  pré-registrada; de fundo, mais eleições ([11](11-apuracao-parcial.md), seção 6).
 - **Bloco de resíduos negativos sem leitura.** A figura de influência do modelo final tem um bloco de resíduos
-  negativos nos índices ~1850 a 2100, talvez da BA (não conferido); nenhuma leitura o comenta. Correção: identificar
-  a UF e comentar na leitura da figura.
-
-## Backtest
-
-- **Sem perfil do eleitorado de 2018**: o ajuste usa o perfil de 2022.
-- **Censo 2022 (publicado em 2023)** entra no ajuste de 2018: pequeno look-ahead.
-- **Modelo entre turnos sem recalibração erra o nível nacional em −4,7 p.p.**; a causa não
-  foi testada. Correção: testar efeito de turno e de abstenção diferencial.
+  negativos nos índices ~1850 a 2100. As linhas 1850 a 2100 de `data/processed/municipios.parquet` são todas da BA
+  (251 de 251) e o ajuste mantém a ordem do parquet (`carregar_base` em `src/dados.py` não reordena); [deduced] o
+  bloco é da BA. Nenhuma leitura o comenta. Correção: comentar na leitura da figura.
 
 ## Código/testes
 
-- **[resolvida] Teste de convergência fraco.** `tests/test_convergencia.py` usa dados reais
-  (`data/processed/municipios.parquet`; pulado se ausente): a tolerância antiga (`gtol` =
-  1e-4·N) para a ~0,3 do ótimo polido nos parâmetros, quase tudo em log θ (θ ~35 % fora); o padrão
-  fica a 3e-7 de llf. A premissa do teste é essa distância, não a perda de llf, que depende do
-  condicionamento: 398, depois 150 no conjunto anterior e 41 com `lag` e `lag1t` colineares.
-  O teste sintético foi removido de `tests/test_modelos.py`.
-- **[resolvida] Referências com ✔m**: `referencias.md` tem 0 ✔m (36 entradas conferidas na
-  web com DOI/ISBN/URL); detalhes residuais na legenda do arquivo.
-- **[resolvida] Saídas que variavam entre execuções.** `l1_logit` (solver `liblinear` sem
-  semente, coeficientes ±1e-5) ganhou `random_state=0`. O `z_sim` de `diag_moran.csv` (999
-  permutações do esda sem semente) ganhou semente fixa. As figuras (antes HTML, hoje PNG) não
-  guardam mais id aleatório. Regra: duas
-  execuções seguidas dos notebooks não mudam nenhum arquivo de `results/`.
-- **[resolvida] Votos apurados contados duas vezes nos intervalos.** Nos municípios fora do
-  modelo, o termo fixo somava y_c, que já estava no apurado. Só afetava 2026 (Boa Esperança do
-  Norte): limites de Centro-Oeste e Brasil até 0,01 p.p.; nenhuma cobertura mudou
-  ([11](11-apuracao-parcial.md), seção 6).
 - **Envelope da beta-binomial no 02-MLG consome a maior parte dos 7,5 min** (49 reajustes
   de ~4 s). Correção: partida a quente (warm start) e remover o passo de polimento.
-- **[resolvida] `mypy` em `src/pressupostos.py`:** sem erros.
-- **[resolvida, histórico] Checagem de tipos (`ty`).** Rodou em `src/`: 28 diagnósticos, depois 15. A
-  primeira leitura ("os 15 são lacunas dos stubs") estava errada: 7 eram do nosso código
-  (Optional sem estreitamento em `exog_names` e na ligação, assinatura de `fit` diferente da
-  do statsmodels, retorno de `_logit`) e foram corrigidos. Restam 3 `ty: ignore` com motivo,
-  todos de anotação de biblioteca: `LinearOperator` do scipy e `read_json(dtype=False)` do
-  pandas (2). `ty check src/` dá 0 diagnósticos.
-- **[resolvida] Referência do SLX.** Halleck Vega e Elhorst (2015) conferida (DOI
-  10.1111/jors.12188) e incluída em `referencias.md` e em
-  [08](08-dependencia-espacial.md), seção 3.
-- **[resolvida] Bloco do prefeito e fusão de níveis.** A fusão região/bloco vale só para a
-  linhagem `bb_selecao` (passo de seleção); `bloco_outro` deixou de existir nela. A Parte 6 mantém
-  `BLOCOS_PADRAO` de propósito: compara famílias numa especificação fixa ([03](03-modelos-candidatos.md), [09](09-modelo-final.md)).
-  Os p-valores dos passos de fusão (0,236; 0,474; 0,083) estão nas Tabelas 8.11 e 8.12 do `02-MLG`
-  (`results/tables/fusao_regiao_passos.csv` e `fusao_bloco_passos.csv`) e reproduzem os valores antigos.
-- **[resolvida] Inconsistências no markdown do `02-MLG`.** A Parte 6 cita o `bb_selecao` como o melhor, como o CSV;
-  "11 contínuas" ficou só para o conjunto antigo.
-- **[resolvida] Texto com números conferido.** Corrigidos a tabela de coeficientes do README, os resultados finais,
-  a tabela regional e o MAE do [01](01-visao-geral.md), o σ_UF desta lista, o SP do [08](08-dependencia-espacial.md)
-  (5,6 p.p. e 81 %, recalculados) e a regra de n̂ do [09](09-modelo-final.md). Bateram com `results/` as células 26,
-  28, 33, 82 e 146 do `02-MLG`, θ, ρ e fusão do [03](03-modelos-candidatos.md), as seções 5 a 8 do
-  [05](05-validacao-cruzada.md), as larguras de BA e SP do [09](09-modelo-final.md) e a tabela regional do README.
 - **Logit empírico sem citação em Paula.** A escolha do logit empírico (`log((y+½)/(n−y+½))`) como linha de base e para
   `lag1t` cita McCullagh e Nelder ([referências](referencias.md)); a seção de Paula que a sustenta não foi
   identificada. Também falta conferir se Paula 4.6.6 (citada no notebook 03 para a variância de β̂ e em `src/` para a
@@ -225,7 +119,13 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
 - **Agrupamento por UF não feito.** A seleção aninhada funde só níveis de região e de bloco de
   prefeito; UFs com comportamento parecido não são agrupadas. Correção: testar a fusão de UFs
   dentro de cada dobra, se o erro por UF justificar.
-- **Binária `suplementar` (prefeito eleito em eleição suplementar).** Entra só se o LRT de adição
-  der p <= 0,05 (`usa_suplementar`, `src/especificacoes.py`). Município sem o valor é tratado
-  como 0 (não suplementar). Conferir quantos municípios estão sem o valor e se tratá-los como 0
-  distorce o coeficiente.
+- **Higiene do repositório.** O lint do repositório (`make lint-all`, regras padrão do ruff) passa. As regras de nome
+  do pep8-naming (`N`), fora da configuração, acusam 362 achados em `src/` e `tests/`, quase todos notação
+  estatística (`X`, `N`, `L`, `PI`), e o `pyproject.toml` não registra se valem. O repositório não tem CI. O
+  `02-MLG` não foi reexecutado depois do commit de estilo c97afed (só `src/` e `tests/`), então `results/` não foi
+  conferido contra o código atual. Correção: registrar a exceção de nomes com motivo (`ignore` no `pyproject.toml`),
+  CI com `make lint test` e reexecutar o 02.
+- **Diagnóstico da calibração fora do repositório.** Os scripts e as saídas da R-cal (`rho_uf.csv`, `h1_ruido.csv`,
+  `pit.csv` e outros) rodaram fora do repositório e não estão versionados
+  ([15](15-apuracao-corte-precoce-calibracao.md), seção 5): os números das seções 3 e 4 do 15 não se refazem a partir
+  do código. Correção: versionar o diagnóstico em `src/` e as tabelas em `results/tables/`.
