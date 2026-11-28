@@ -1,0 +1,68 @@
+{
+ "versao": 5,
+ "termos": {
+  "vars": [
+   "lag",
+   "lag1t",
+   "nota_dep",
+   "comparecimento",
+   "delta_comp",
+   "pct_mulheres",
+   "pct_16_24",
+   "pct_pretos_pardos",
+   "pct_urbana"
+  ],
+  "disp": "const",
+  "slx": [],
+  "regiao_fundir": [
+   [
+    "Centro-Oeste",
+    "Norte",
+    "Sudeste"
+   ]
+  ],
+  "bloco_grupos": [
+   [
+    "sem_prefeito"
+   ]
+  ]
+ },
+ "corte_km": 25.0,
+ "sigma_uf": 0.020180924871896815,
+ "limite": 0.3754870213404559,
+ "mae_pp": {
+  "r1": 0.31552504539159726,
+  "final": 0.31552504539159726
+ },
+ "ep_r1_pp": 0.05996197594885866,
+ "aceitos": {
+  "disp": false,
+  "slx": false
+ },
+ "wald": {
+  "A": NaN,
+  "B": NaN
+ },
+ "bic_dispersao": {
+  "const": 7287.870979240184,
+  "regiao": 7287.868700122481
+ },
+ "n_ufs_loso": 24,
+ "n_municipios": 960,
+ "tempo_s": 145.9277184009552,
+ "extra": {
+  "corte_r1_km": 25.0,
+  "wald_cortes_km": {
+   "corte_A_km": 25.0
+  },
+  "ufs_puladas": {
+   "r1": []
+  },
+  "piso_aplicado": {
+   "r1": false,
+   "final": false,
+   "wald": false
+  }
+ },
+ "gl_sigma_uf": 24
+}

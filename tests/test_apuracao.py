@@ -199,3 +199,83 @@ def test_montar_base_aptos_rec() -> None:
     base = A.montar_base(_secoes(), _dfm(), 2022, A.recebidas_ate(_secoes(), 5))
     assert base.loc[1, "aptos_rec"] == 12.0 and base.loc[2, "aptos_rec"] == 0.0
     assert base.loc[1, "aptos_rec"] + base.loc[1, "aptos_pend"] == 24.0
+
+
+# --- corte precoce (2 %): tabela própria, fora do veredito ---------------------------------
+_REG = ["Norte", "Sul", "Brasil"]
+
+
+def _precoce_entradas() -> tuple[pd.Series, dict[str, pd.Series], pd.DataFrame, pd.DataFrame]:
+    real = pd.Series([0.50, 0.40, 0.45], index=_REG)
+    ests = {
+        "bruta": pd.Series([0.48, 0.41, 0.44], index=_REG),
+        "swing_1t": pd.Series([0.49, 0.39, 0.46], index=_REG),
+        "modelo": pd.Series([0.51, 0.42, 0.455], index=_REG),
+    }
+    ic = pd.DataFrame({"q025": [0.49, 0.40, 0.44], "q975": [0.53, 0.41, 0.47]}, index=_REG)
+    d1 = pd.DataFrame(
+        {"maior_componente": ["uf", "beta", "uf"], "parte_uf": [0.6, 0.1, 0.7], "parte_beta": [0.2, 0.5, 0.1]},
+        index=_REG,
+    )
+    return real, ests, ic, d1
+
+
+def test_cortes_precoces_e_cortes_do_veredito_sao_disjuntos() -> None:
+    assert A.CORTES_PRECOCES == (2,)
+    assert set(A.CORTES_PRECOCES).isdisjoint(A.CORTES)
+
+
+def test_linhas_precoces_estimadas() -> None:
+    real, ests, ic, d1 = _precoce_entradas()
+    corte = A.CortePrecoce(ano=2026, corte=2, pct_efetivo=2.01)
+    t = pd.DataFrame(A.linhas_corte_precoce(corte, real, A.AjustePrecoce(ests=ests, ic=ic, d1=d1), motivo=""))
+    assert list(t.columns) == list(A.COLUNAS_PRECOCE)
+    assert list(t.regiao) == _REG
+    assert set(t.estado) == {"estimado"}
+    br = t.set_index("regiao").loc["Brasil"]
+    assert br.estimativa_pct == pytest.approx(45.5)
+    assert br.q025_pct == pytest.approx(44.0)
+    assert br.largura_pp == pytest.approx(3.0)
+    assert br.bruta_pct == pytest.approx(44.0)
+    assert bool(br.dentro_ic95)
+    assert br.maior_componente == "uf"
+    assert br.parte_maior == pytest.approx(0.7)
+    assert bool(t.set_index("regiao").loc["Sul", "dentro_ic95"])
+
+
+def test_linha_precoce_nao_estimavel_diz_o_motivo() -> None:
+    real, _, _, _ = _precoce_entradas()
+    corte = A.CortePrecoce(ano=2022, corte=2, pct_efetivo=2.0)
+    t = pd.DataFrame(A.linhas_corte_precoce(corte, real, None, motivo="região vazia"))
+    assert len(t) == 1
+    assert list(t.columns) == list(A.COLUNAS_PRECOCE)
+    r = t.iloc[0]
+    assert r.estado == "não estimável"
+    assert r.motivo == "região vazia"
+    assert r.regiao == "Brasil"
+    assert r.real_pct == pytest.approx(45.0)
+    assert np.isnan(r.estimativa_pct)
+
+
+def test_linhas_precoces_recusam_corte_do_veredito() -> None:
+    real, ests, ic, d1 = _precoce_entradas()
+    with pytest.raises(ValueError, match="corte 5 não é precoce"):
+        A.linhas_corte_precoce(
+            A.CortePrecoce(ano=2022, corte=5, pct_efetivo=5.0),
+            real,
+            A.AjustePrecoce(ests=ests, ic=ic, d1=d1),
+            motivo="",
+        )
+
+
+def test_notebook_so_usa_cortes_precoces_na_subsecao_propria() -> None:
+    import json
+    from pathlib import Path
+
+    nb = json.loads(
+        (Path(__file__).resolve().parents[1] / "notebooks/03-apuracao-parcial.ipynb").read_text(encoding="utf-8")
+    )
+    fontes = ["".join(c["source"]) for c in nb["cells"]]
+    ini = next(i for i, f in enumerate(fontes) if f.startswith("## Corte precoce"))
+    assert not any("CORTES_PRECOCES" in f for f in fontes[:ini])
+    assert all("A.CORTES_PRECOCES" in f or "A.CORTES" not in f for f in fontes[ini + 1 :])

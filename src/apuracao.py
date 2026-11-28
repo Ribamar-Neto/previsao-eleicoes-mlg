@@ -34,6 +34,8 @@ from src import especificacoes as E
 from src import modelos as M
 
 CORTES: tuple[int, ...] = (5, 10, 25, 50, 67, 90)
+# Corte precoce: tabela e subseção próprias; fora do veredito, da Tabela 5 e dos agregados de "12 cortes".
+CORTES_PRECOCES: tuple[int, ...] = (2,)
 MINIMO_VITORIAS = 4
 METODOS: tuple[str, ...] = ("bruta", "swing", "swing_1t", "modelo")
 PREVIO: dict[int, int] = {2022: 2018, 2026: 2022}
@@ -557,6 +559,102 @@ def aplicar_regra(tab: pd.DataFrame, minimo: int = MINIMO_VITORIAS) -> pd.DataFr
             {"ano": ano, "cortes": len(cortes), "vitorias_modelo": vit, "minimo": minimo, "util": vit >= minimo}
         )
     return pd.DataFrame(linhas)
+
+
+COLUNAS_PRECOCE: tuple[str, ...] = (
+    "ano",
+    "corte",
+    "pct_efetivo",
+    "regiao",
+    "estado",
+    "motivo",
+    "estimativa_pct",
+    "q025_pct",
+    "q975_pct",
+    "largura_pp",
+    "real_pct",
+    "bruta_pct",
+    "swing_1t_pct",
+    "dentro_ic95",
+    "maior_componente",
+    "parte_maior",
+)
+
+
+class CorteNaoPrecoceError(ValueError):
+    """Corte fora de `CORTES_PRECOCES`: os cortes do veredito (`CORTES`) não entram na tabela precoce."""
+
+    def __init__(self, corte: int) -> None:
+        super().__init__(f"corte {corte!r} não é precoce; precoces: {CORTES_PRECOCES}")
+
+
+@dataclass(frozen=True)
+class CortePrecoce:
+    """Um corte precoce de um ano: `corte` é o % nominal; `pct_efetivo`, o % dos válidos de fato recebidos."""
+
+    ano: int
+    corte: int
+    pct_efetivo: float
+
+
+@dataclass(frozen=True)
+class AjustePrecoce:
+    """Ajuste de um corte precoce, tudo em fração por região.
+
+    `ests` traz `bruta`, `swing_1t` e `modelo`; `ic` tem q025/q975; `d1` é a saída de `AD.decompor`.
+    """
+
+    ests: Mapping[str, pd.Series]
+    ic: pd.DataFrame
+    d1: pd.DataFrame
+
+
+def linhas_corte_precoce(
+    precoce: CortePrecoce, real: pd.Series, ajuste: AjustePrecoce | None, motivo: str = ""
+) -> list[dict[str, Any]]:
+    """Linhas (uma por região e Brasil) de um corte precoce; sem ajuste, uma linha "não estimável".
+
+    Um corte do veredito (`CORTES`) é recusado.
+    """
+    if precoce.corte not in CORTES_PRECOCES:
+        raise CorteNaoPrecoceError(precoce.corte)
+    base = {"ano": precoce.ano, "corte": precoce.corte, "pct_efetivo": precoce.pct_efetivo}
+    vazio = dict.fromkeys(COLUNAS_PRECOCE, np.nan)
+    if ajuste is None:
+        return [
+            {
+                **vazio,
+                **base,
+                "regiao": "Brasil",
+                "estado": "não estimável",
+                "motivo": motivo,
+                "real_pct": 100 * float(real["Brasil"]),
+            }
+        ]
+    ests, ic, d1 = ajuste.ests, ajuste.ic, ajuste.d1
+    linhas: list[dict[str, Any]] = []
+    for r in ic.index:
+        maior = d1.loc[r, "maior_componente"]
+        linhas.append(
+            {
+                **vazio,
+                **base,
+                "regiao": r,
+                "estado": "estimado",
+                "motivo": "",
+                "estimativa_pct": 100 * float(ests["modelo"][r]),
+                "q025_pct": 100 * float(ic.loc[r, "q025"]),
+                "q975_pct": 100 * float(ic.loc[r, "q975"]),
+                "largura_pp": 100 * float(ic.loc[r, "q975"] - ic.loc[r, "q025"]),
+                "real_pct": 100 * float(real[r]),
+                "bruta_pct": 100 * float(ests["bruta"][r]),
+                "swing_1t_pct": 100 * float(ests["swing_1t"][r]),
+                "dentro_ic95": bool(ic.loc[r, "q025"] <= real[r] <= ic.loc[r, "q975"]),
+                "maior_componente": maior,
+                "parte_maior": float(d1.loc[r, f"parte_{maior}"]),
+            }
+        )
+    return linhas
 
 
 # --------------------------------------------------------------------------

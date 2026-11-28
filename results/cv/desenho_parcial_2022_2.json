@@ -1,0 +1,66 @@
+{
+ "versao": 5,
+ "termos": {
+  "vars": [
+   "lag",
+   "lag1t",
+   "cobertura_pbf",
+   "pct_urbana",
+   "pct_indigenas"
+  ],
+  "disp": "const",
+  "slx": [],
+  "regiao_fundir": [
+   [
+    "Centro-Oeste",
+    "Nordeste",
+    "Norte",
+    "Sul",
+    "Sudeste"
+   ]
+  ],
+  "bloco_grupos": [
+   [
+    "sem_prefeito"
+   ]
+  ]
+ },
+ "corte_km": 25.0,
+ "sigma_uf": 0.02756668591479459,
+ "limite": 0.584958877343391,
+ "mae_pp": {
+  "r1": 0.49744785392963975,
+  "final": 0.49744785392963975
+ },
+ "ep_r1_pp": 0.08751102341375126,
+ "aceitos": {
+  "disp": false,
+  "slx": false
+ },
+ "wald": {
+  "A": 0.3513340567662015,
+  "B": NaN
+ },
+ "bic_dispersao": {
+  "const": 4914.373256880716,
+  "regiao": 4921.712891572564
+ },
+ "n_ufs_loso": 20,
+ "n_municipios": 657,
+ "tempo_s": 75.3351194858551,
+ "extra": {
+  "corte_r1_km": 25.0,
+  "wald_cortes_km": {
+   "corte_A_km": 25.0
+  },
+  "ufs_puladas": {
+   "r1": []
+  },
+  "piso_aplicado": {
+   "r1": false,
+   "final": false,
+   "wald": false
+  }
+ },
+ "gl_sigma_uf": 20
+}

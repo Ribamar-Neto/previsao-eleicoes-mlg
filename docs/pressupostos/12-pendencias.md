@@ -152,7 +152,10 @@ Todas são [fact] salvo marca em contrário. Cada item: efeito e correção poss
   tracejada no gráfico de erro): 2022 passa a não útil (3 de 6), 2026 segue útil (6 de 6). A regra mudou depois do
   resultado, o que o [11](11-apuracao-parcial.md) (seção 1) declara.
 - **Cobertura do IC da apuração parcial não calibrada.** 72 de 72 itens dentro, com IC 5 vezes mais estreito; não
-  separa 95 % de valores maiores. Correção: mais eleições ou ano adicional ([11](11-apuracao-parcial.md), seção 6).
+  separa 95 % de valores maiores. Diagnosticada em 2026-11-27: a regra R-cal não disparou e o IC não mudou
+  ([15](15-apuracao-corte-precoce-calibracao.md), seções 3 e 4). Pistas abertas: (i) σ_UF pesado pelos votos ou
+  dependente do tamanho da UF, a testar sob nova regra pré-registrada; (ii) viés de n_u em 2026 (votos restantes ≈ 4 %
+  acima da estimativa). Correção de fundo: mais eleições ([11](11-apuracao-parcial.md), seção 6).
 - **[resolvida] Crista plana da dispersão do Centro-Oeste em 2026 a 10 %.** Teto de θ = 1e9 no limite binomial, com guarda
   LRT; o ajuste converge ([14](14-apuracao-diagnostico-1t.md), seção 6).
 - **[resolvida] σ_UF e choque de UF.** O choque passou a σ̂·T_k, com k as UFs do desenho do corte ([11](11-apuracao-parcial.md),

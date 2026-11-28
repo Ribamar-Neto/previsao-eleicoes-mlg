@@ -18,6 +18,7 @@
 | [12-pendencias.md](12-pendencias.md) | Pendências abertas, com efeito e correção possível |
 | [13-apuracao-extensoes-rejeitadas.md](13-apuracao-extensoes-rejeitadas.md) | Encolhimento por UF (BLUP), parcela apurada do município e desenho fixo de 2026 na apuração parcial (rejeitados: o IC estreita e perde cobertura); estado datado de 26/11, anterior ao `swing_1t` e ao choque t |
 | [14-apuracao-diagnostico-1t.md](14-apuracao-diagnostico-1t.md) | Diagnóstico do IC largo da apuração parcial (D1 a D4), covariável do 1º turno do mesmo ano, regra de aceitação e resultado (HEAD contra agora), swing do 1º turno como linha de base do veredito, Hessiana analítica e teto de θ (crista de 2026 a 10 % resolvida) |
+| [15-apuracao-corte-precoce-calibracao.md](15-apuracao-corte-precoce-calibracao.md) | Corte precoce de 2 % da apuração parcial (tabela própria, fora do veredito) e diagnóstico ex post da largura do IC (regra R-cal, não disparou; IC mantido) |
 | [referencias.md](referencias.md) | Referências únicas e conferidas (Paula, com as seções usadas; Pavía-Miralles; Gelman et al., seção 3.2, para o choque t) |
 
 Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
@@ -40,3 +41,4 @@ Dados e fontes: [../dados/consolidacao.md](../dados/consolidacao.md),
 | `03-apuracao-parcial` | 18 | [11-apuracao-parcial.md](11-apuracao-parcial.md) |
 | `03-apuracao-parcial` | 18 (extensões rejeitadas) | [13-apuracao-extensoes-rejeitadas.md](13-apuracao-extensoes-rejeitadas.md) |
 | `03-apuracao-parcial` | 18 (diagnóstico D1 a D4) | [14-apuracao-diagnostico-1t.md](14-apuracao-diagnostico-1t.md) |
+| `03-apuracao-parcial` | 18 (corte de 2 % e calibração do IC) | [15-apuracao-corte-precoce-calibracao.md](15-apuracao-corte-precoce-calibracao.md) |

@@ -121,7 +121,8 @@ de base ([11](11-apuracao-parcial.md), seção 1): o modelo só vence um corte s
 ## 8. Limitações
 
 - **Um experimento, dois anos.** A regra de aceitação foi fixada antes, mas o IC cobre 72 de 72 itens com largura 5
-  vezes menor; a cobertura real não foi calibrada ([11](11-apuracao-parcial.md), seção 6).
+  vezes menor; a cobertura real não foi calibrada ([11](11-apuracao-parcial.md), seção 6). O diagnóstico ex post da
+  largura está em [15](15-apuracao-corte-precoce-calibracao.md), seção 3.
 - **Referências comparáveis.** A literatura de apuração em noite de eleição com amostra não aleatória de seções
   (Pavía-Miralles 2005; Pavía-Miralles e Larraz-Iribas 2008, [referências](referencias.md)) trata a mesma
   dificuldade de seleção; não replicamos seus estimadores.
